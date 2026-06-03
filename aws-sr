@@ -1,0 +1,386 @@
+#!/usr/bin/env python3
+"""
+aws-sr — SR Automation CLI
+
+コマンド:
+    submit    ジョブを投入してECS Fargateタスクを起動
+    status    ジョブのステータスを確認
+    download  結果をS3からダウンロード
+    list      最近のジョブ一覧を表示
+    logs      ジョブの実行ログをストリーミング
+
+前提:
+    ~/.aws/credentials（または環境変数）でAWS認証済み
+    cdk deploy 後に aws-sr config init を実行して設定を保存済み
+
+設定ファイル: ~/.aws-sr/config.json
+    {
+        "cluster_arn": "...",
+        "task_definition_arn": "...",
+        "container_name": "sr-pipeline",
+        "s3_bucket": "sr-automation-output-XXXXXXXXXXXX",
+        "subnet_ids": ["subnet-XXXXXXXX"],
+        "security_group_ids": []
+    }
+"""
+
+import argparse
+import json
+import os
+import sys
+import time
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+
+import boto3
+
+CONFIG_PATH = Path.home() / ".aws-sr" / "config.json"
+
+
+# ------------------------------------------------------------------ #
+# 設定管理
+# ------------------------------------------------------------------ #
+
+def load_config() -> dict:
+    if not CONFIG_PATH.exists():
+        print(f"[エラー] 設定ファイルが見つかりません: {CONFIG_PATH}")
+        print("  まず 'aws-sr config init' を実行してください。")
+        sys.exit(1)
+    with open(CONFIG_PATH) as f:
+        return json.load(f)
+
+
+def cmd_config_init(args):
+    """CDK Outputs から設定ファイルを生成する。"""
+    cfn = boto3.client("cloudformation", region_name=args.region)
+    ec2 = boto3.client("ec2", region_name=args.region)
+
+    print(f"[設定] CloudFormation スタック '{args.stack_name}' からOutputsを取得中...")
+    try:
+        response = cfn.describe_stacks(StackName=args.stack_name)
+        outputs = {o["OutputKey"]: o["OutputValue"] for o in response["Stacks"][0].get("Outputs", [])}
+    except Exception as e:
+        print(f"[エラー] {e}")
+        sys.exit(1)
+
+    # デフォルトVPCのサブネットを自動取得
+    vpcs = ec2.describe_vpcs(Filters=[{"Name": "isDefault", "Values": ["true"]}])
+    default_vpc_id = vpcs["Vpcs"][0]["VpcId"] if vpcs["Vpcs"] else None
+    subnet_ids = []
+    if default_vpc_id:
+        subnets = ec2.describe_subnets(Filters=[{"Name": "vpc-id", "Values": [default_vpc_id]}])
+        subnet_ids = [s["SubnetId"] for s in subnets["Subnets"][:2]]
+
+    config = {
+        "cluster_arn": outputs.get("ClusterArn", ""),
+        "task_definition_arn": outputs.get("TaskDefinitionArn", ""),
+        "container_name": outputs.get("ContainerName", "sr-pipeline"),
+        "s3_bucket": outputs.get("OutputBucketName", ""),
+        "subnet_ids": subnet_ids,
+        "security_group_ids": [],
+        "region": args.region,
+    }
+
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(CONFIG_PATH, "w") as f:
+        json.dump(config, f, indent=2, ensure_ascii=False)
+    print(f"[完了] 設定を保存しました: {CONFIG_PATH}")
+    for k, v in config.items():
+        print(f"  {k}: {v}")
+
+
+# ------------------------------------------------------------------ #
+# submit
+# ------------------------------------------------------------------ #
+
+def cmd_submit(args):
+    cfg = load_config()
+    ecs = boto3.client("ecs", region_name=cfg.get("region", "ap-northeast-1"))
+
+    job_id = f"sr-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:6]}"
+
+    env_overrides = [
+        {"name": "SR_JOB_ID",    "value": job_id},
+        {"name": "SR_QUERY",     "value": args.query},
+        {"name": "SR_INCLUSION", "value": args.inclusion},
+        {"name": "SR_EXCLUSION", "value": args.exclusion},
+        {"name": "SR_PICO_Q",    "value": args.pico_q},
+        {"name": "SR_OUTCOMES",  "value": args.outcomes},
+        {"name": "SR_MODEL",     "value": args.model},
+        {"name": "SR_AGE_FILTER","value": "1" if args.age_filter else "0"},
+    ]
+
+    network_config = {
+        "awsvpcConfiguration": {
+            "subnets": cfg["subnet_ids"],
+            "securityGroups": cfg.get("security_group_ids", []),
+            "assignPublicIp": "ENABLED",
+        }
+    }
+
+    print(f"[投入] job_id: {job_id}")
+    print(f"  モデル:   {args.model}")
+    print(f"  検索式:   {args.query[:80]}{'...' if len(args.query) > 80 else ''}")
+
+    response = ecs.run_task(
+        cluster=cfg["cluster_arn"],
+        taskDefinition=cfg["task_definition_arn"],
+        launchType="FARGATE",
+        networkConfiguration=network_config,
+        overrides={
+            "containerOverrides": [
+                {
+                    "name": cfg["container_name"],
+                    "environment": env_overrides,
+                }
+            ]
+        },
+    )
+
+    failures = response.get("failures", [])
+    if failures:
+        print(f"[エラー] タスク起動失敗: {failures}")
+        sys.exit(1)
+
+    task_arn = response["tasks"][0]["taskArn"]
+    print(f"[起動] タスクARN: {task_arn}")
+    print(f"\n  ステータス確認: aws-sr status {job_id}")
+    print(f"  ダウンロード:   aws-sr download {job_id} --output-dir ./results")
+
+    # job_id → task_arn のマッピングをローカルに保存
+    jobs_file = CONFIG_PATH.parent / "jobs.json"
+    jobs = {}
+    if jobs_file.exists():
+        with open(jobs_file) as f:
+            jobs = json.load(f)
+    jobs[job_id] = {
+        "task_arn": task_arn,
+        "submitted_at": datetime.now(timezone.utc).isoformat(),
+        "query_summary": args.query[:120],
+        "model": args.model,
+    }
+    with open(jobs_file, "w") as f:
+        json.dump(jobs, f, indent=2, ensure_ascii=False)
+
+
+# ------------------------------------------------------------------ #
+# status
+# ------------------------------------------------------------------ #
+
+def cmd_status(args):
+    cfg = load_config()
+    s3 = boto3.client("s3", region_name=cfg.get("region", "ap-northeast-1"))
+
+    try:
+        response = s3.get_object(
+            Bucket=cfg["s3_bucket"],
+            Key=f"jobs/{args.job_id}/status.json",
+        )
+        status = json.loads(response["Body"].read())
+    except s3.exceptions.NoSuchKey:
+        print(f"[{args.job_id}] ステータスファイルがまだありません（起動直後 or 検索中）")
+        return
+
+    status_str = status.get("status", "unknown")
+    started = status.get("started_at", "")
+    finished = status.get("finished_at", "")
+
+    icons = {"running": "⏳", "succeeded": "✅", "failed": "❌"}
+    print(f"\n{icons.get(status_str, '?')} ジョブID: {args.job_id}")
+    print(f"  ステータス: {status_str}")
+    print(f"  開始:       {started}")
+    if finished:
+        print(f"  完了:       {finished}")
+    if status_str == "failed":
+        print(f"  エラー: {status.get('error', '')}")
+    if status_str == "succeeded":
+        print("\n  出力ファイル:")
+        for k, v in status.get("outputs", {}).items():
+            print(f"    {k}: {v}")
+        print(f"\n  ダウンロード: aws-sr download {args.job_id} --output-dir ./results")
+
+
+# ------------------------------------------------------------------ #
+# download
+# ------------------------------------------------------------------ #
+
+def cmd_download(args):
+    cfg = load_config()
+    s3 = boto3.client("s3", region_name=cfg.get("region", "ap-northeast-1"))
+
+    output_dir = Path(args.output_dir) / args.job_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    prefix = f"jobs/{args.job_id}/"
+    paginator = s3.get_paginator("list_objects_v2")
+    pages = paginator.paginate(Bucket=cfg["s3_bucket"], Prefix=prefix)
+
+    downloaded = 0
+    for page in pages:
+        for obj in page.get("Contents", []):
+            key = obj["Key"]
+            filename = key.split("/")[-1]
+            if not filename:
+                continue
+            local_path = output_dir / filename
+            print(f"  ダウンロード中: {filename}")
+            s3.download_file(cfg["s3_bucket"], key, str(local_path))
+            downloaded += 1
+
+    if downloaded == 0:
+        print(f"[{args.job_id}] ファイルがまだS3にありません。")
+    else:
+        print(f"\n[完了] {downloaded}ファイル -> {output_dir}")
+
+
+# ------------------------------------------------------------------ #
+# list
+# ------------------------------------------------------------------ #
+
+def cmd_list(args):
+    jobs_file = CONFIG_PATH.parent / "jobs.json"
+    if not jobs_file.exists():
+        print("ジョブ履歴がありません。")
+        return
+
+    with open(jobs_file) as f:
+        jobs = json.load(f)
+
+    cfg = load_config()
+    s3 = boto3.client("s3", region_name=cfg.get("region", "ap-northeast-1"))
+
+    print(f"\n{'JOB ID':<40} {'STATUS':<12} {'SUBMITTED':<26} {'MODEL':<8} QUERY")
+    print("-" * 120)
+    for job_id, meta in sorted(jobs.items(), key=lambda x: x[1]["submitted_at"], reverse=True)[:20]:
+        try:
+            resp = s3.get_object(Bucket=cfg["s3_bucket"], Key=f"jobs/{job_id}/status.json")
+            status = json.loads(resp["Body"].read()).get("status", "unknown")
+        except Exception:
+            status = "pending"
+        submitted = meta.get("submitted_at", "")[:19].replace("T", " ")
+        model = meta.get("model", "")
+        query_summary = meta.get("query_summary", "")[:50]
+        print(f"{job_id:<40} {status:<12} {submitted:<26} {model:<8} {query_summary}")
+
+
+# ------------------------------------------------------------------ #
+# logs
+# ------------------------------------------------------------------ #
+
+def cmd_logs(args):
+    cfg = load_config()
+    jobs_file = CONFIG_PATH.parent / "jobs.json"
+    if not jobs_file.exists():
+        print("ジョブ履歴がありません。")
+        return
+
+    with open(jobs_file) as f:
+        jobs = json.load(f)
+
+    job_meta = jobs.get(args.job_id)
+    if not job_meta:
+        print(f"[エラー] ジョブID '{args.job_id}' が見つかりません。")
+        sys.exit(1)
+
+    task_arn = job_meta["task_arn"]
+    task_id = task_arn.split("/")[-1]
+    log_stream = f"sr-pipeline/sr-pipeline/{task_id}"
+    log_group = "/sr-automation/pipeline"
+
+    logs = boto3.client("logs", region_name=cfg.get("region", "ap-northeast-1"))
+    print(f"[ログ] {log_group} / {log_stream}\n")
+
+    next_token = None
+    while True:
+        kwargs = {
+            "logGroupName": log_group,
+            "logStreamName": log_stream,
+            "startFromHead": True,
+        }
+        if next_token:
+            kwargs["nextForwardToken"] = next_token
+
+        try:
+            response = logs.get_log_events(**kwargs)
+        except logs.exceptions.ResourceNotFoundException:
+            print("（ログストリームがまだ作成されていません）")
+            break
+
+        for event in response.get("events", []):
+            ts = datetime.fromtimestamp(event["timestamp"] / 1000).strftime("%H:%M:%S")
+            print(f"[{ts}] {event['message']}")
+
+        new_token = response.get("nextForwardToken")
+        if new_token == next_token or not args.follow:
+            break
+        next_token = new_token
+        time.sleep(2)
+
+
+# ------------------------------------------------------------------ #
+# エントリポイント
+# ------------------------------------------------------------------ #
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="aws-sr",
+        description="SR Automation CLI — ジョブ投入・ステータス確認・ダウンロード",
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # config init
+    p_config = sub.add_parser("config", help="設定管理")
+    config_sub = p_config.add_subparsers(dest="config_command", required=True)
+    p_init = config_sub.add_parser("init", help="CDK Outputs から設定を生成")
+    p_init.add_argument("--stack-name", default="SrAutomationStack")
+    p_init.add_argument("--region", default="ap-northeast-1")
+
+    # submit
+    p_submit = sub.add_parser("submit", help="ジョブを投入")
+    p_submit.add_argument("--query", required=True, help="PubMed検索式")
+    p_submit.add_argument("--inclusion", required=True, help="包含基準")
+    p_submit.add_argument("--exclusion", required=True, help="除外基準")
+    p_submit.add_argument("--pico-q", default="介入はアウトカムを改善するか？")
+    p_submit.add_argument("--outcomes", default="QOL, 疲労, 身体機能")
+    p_submit.add_argument("--model", default="gemini", choices=["gemini", "claude"])
+    p_submit.add_argument("--age-filter", action="store_true")
+
+    # status
+    p_status = sub.add_parser("status", help="ジョブのステータスを確認")
+    p_status.add_argument("job_id")
+
+    # download
+    p_download = sub.add_parser("download", help="結果をダウンロード")
+    p_download.add_argument("job_id")
+    p_download.add_argument("--output-dir", default="./sr_results")
+
+    # list
+    sub.add_parser("list", help="ジョブ一覧を表示")
+
+    # logs
+    p_logs = sub.add_parser("logs", help="実行ログを表示")
+    p_logs.add_argument("job_id")
+    p_logs.add_argument("--follow", "-f", action="store_true", help="ログをリアルタイムで追跡")
+
+    args = parser.parse_args()
+
+    dispatch = {
+        "submit": cmd_submit,
+        "status": cmd_status,
+        "download": cmd_download,
+        "list": cmd_list,
+        "logs": cmd_logs,
+    }
+
+    if args.command == "config":
+        if args.config_command == "init":
+            cmd_config_init(args)
+    elif args.command in dispatch:
+        dispatch[args.command](args)
+    else:
+        parser.print_help()
+
+
+if __name__ == "__main__":
+    main()

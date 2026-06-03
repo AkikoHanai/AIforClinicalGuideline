@@ -1,0 +1,52 @@
+{
+  "total_cases": 4,
+  "cq_match_count": 4,
+  "no_contamination_count": 1,
+  "keyword_coverage_avg": 1.0,
+  "details": [
+    {
+      "query": "運動習慣のない18～64歳のがんサバイバーに運動を勧めるべきか",
+      "cq": "CQ 1",
+      "evaluation": {
+        "cq_match": true,
+        "keywords_coverage": 1.0,
+        "contaminated": true,
+        "section": "general",
+        "content_preview": "1．背景・目的\n海外のガイドラインではがんサバイバーに対する運動が推奨されているが，運動習慣の有無や若年者と高齢者に分けた\n推奨が行われていない。今回のがんサバイバーシップガイドライン身体活動・運動編..."
+      }
+    },
+    {
+      "query": "がんサバイバーの持久性体力改善",
+      "cq": "CQ 1",
+      "evaluation": {
+        "cq_match": true,
+        "keywords_coverage": 1.0,
+        "contaminated": true,
+        "section": "general",
+        "content_preview": "1．背景・目的\n海外のガイドラインではがんサバイバーに対する運動が推奨されているが，運動習慣の有無や若年者と高齢者に分けた\n推奨が行われていない。今回のがんサバイバーシップガイドライン身体活動・運動編..."
+      }
+    },
+    {
+      "query": "65歳以上のがんサバイバーへの運動推奨",
+      "cq": "CQ 2",
+      "evaluation": {
+        "cq_match": true,
+        "keywords_coverage": 1.0,
+        "contaminated": true,
+        "section": "general",
+        "content_preview": "3．CQ2\n運動習慣のない65歳以上のがんサバイバーにおいて，運動を勧めることが推奨されるか？\n2）推奨文\n運動習慣のない65歳以上のがんサバイバーにおいて，運動を勧めることを提案する。\n推奨の強さ：..."
+      }
+    },
+    {
+      "query": "益と害のバランス評価",
+      "cq": "CQ 1",
+      "evaluation": {
+        "cq_match": true,
+        "keywords_coverage": 1.0,
+        "contaminated": false,
+        "section": "general",
+        "content_preview": "1．背景・目的\n海外のガイドラインではがんサバイバーに対する運動が推奨されているが，運動習慣の有無や若年者と高齢者に分けた\n推奨が行われていない。今回のがんサバイバーシップガイドライン身体活動・運動編..."
+      }
+    }
+  ]
+}
