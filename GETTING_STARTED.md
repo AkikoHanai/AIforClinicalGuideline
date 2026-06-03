@@ -2,13 +2,17 @@
 
 最も簡単な方法で今すぐ試す！
 
+> **🪟 Windows ユーザーですか？** → [WINDOWS_SETUP.md](WINDOWS_SETUP.md) を参照（詳細な Windows 専用ガイド）
+
 ---
 
 ## 📦 Step 1: セットアップ（5分）
 
+### Mac/Linux
+
 ```bash
 # リポジトリをクローン
-git clone https://github.com/YOUR_USERNAME/AIforClinicalGuideline.git
+git clone https://github.com/AkikoHanai/AIforClinicalGuideline.git
 cd AIforClinicalGuideline
 
 # Python 環境構築
@@ -18,6 +22,23 @@ source venv/bin/activate
 # パッケージをインストール
 pip install -r requirements.txt
 ```
+
+### Windows（PowerShell 推奨）
+
+```powershell
+# リポジトリをクローン
+git clone https://github.com/AkikoHanai/AIforClinicalGuideline.git
+cd AIforClinicalGuideline
+
+# Python 環境構築
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# パッケージをインストール
+pip install -r requirements.txt
+```
+
+> 詳しい Windows セットアップは [WINDOWS_SETUP.md](WINDOWS_SETUP.md) を参照
 
 ---
 
