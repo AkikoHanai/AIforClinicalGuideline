@@ -55,3 +55,9 @@ output/
 # Temp
 *.tmp
 *.temp
+
+# PDFs
+*.pdf
+
+# Validation output
+sr_validation_output/
