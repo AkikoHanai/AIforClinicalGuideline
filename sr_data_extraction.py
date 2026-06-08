@@ -7,8 +7,7 @@ Usage:
     python sr_data_extraction.py \
         --input ./sr_output/screened.csv \
         --output ./sr_output/extracted.csv \
-        --outcome "QOL, 疲労, 身体機能" \
-        --model gemini
+        --outcome "QOL, 疲労, 身体機能"
 """
 
 import argparse
@@ -55,42 +54,6 @@ def build_prompt(row: dict) -> str:
     return f"Title: {row['Title']}\nAbstract: {row.get('Abstract', '')}"
 
 
-# ---- Gemini ----
-
-async def _gemini_extract(client, pmid: str, prompt: str, system_prompt: str, semaphore):
-    from google.genai import types
-
-    async with semaphore:
-        try:
-            response = await client.aio.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    response_mime_type="application/json",
-                    temperature=0.0,
-                ),
-            )
-            return pmid, json.loads(response.text)
-        except Exception as e:
-            return pmid, {k: "Error" for k in EXTRACTION_SCHEMA} | {"notes": str(e)}
-
-
-async def extract_with_gemini(df: pd.DataFrame, system_prompt: str) -> list[dict]:
-    from google import genai
-
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-    semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
-
-    rows = df.to_dict("records")
-    tasks = [
-        _gemini_extract(client, str(r["PMID"]), build_prompt(r), system_prompt, semaphore)
-        for r in rows
-    ]
-    print(f"[Gemini] {len(tasks)}件のデータ抽出を開始...")
-    return await tqdm_asyncio.gather(*tasks)
-
-
 # ---- Claude ----
 
 async def _claude_extract(client, pmid: str, prompt: str, system_prompt: str, semaphore):
@@ -131,7 +94,7 @@ async def extract_with_claude(df: pd.DataFrame, system_prompt: str) -> list[dict
 
 # ---- メイン ----
 
-async def run_extraction(input_csv: str, output_csv: str, outcome: str, model: str):
+async def run_extraction(input_csv: str, output_csv: str, outcome: str):
     df = pd.read_csv(input_csv).fillna("")
     include_df = df[df["decision"] == "Include"].reset_index(drop=True)
     print(f"[データ抽出] Include件数: {len(include_df)}件")
@@ -145,12 +108,7 @@ async def run_extraction(input_csv: str, output_csv: str, outcome: str, model: s
         schema_json=json.dumps(EXTRACTION_SCHEMA, ensure_ascii=False, indent=2),
     )
 
-    if model == "gemini":
-        results = await extract_with_gemini(include_df, system_prompt)
-    elif model == "claude":
-        results = await extract_with_claude(include_df, system_prompt)
-    else:
-        raise ValueError(f"未対応のモデル: {model}")
+    results = await extract_with_claude(include_df, system_prompt)
 
     extracted_rows = []
     for pmid, extracted in results:
@@ -169,10 +127,9 @@ def main():
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--outcome", default="QOL, 疲労, 身体機能, 運動耐容能", help="対象アウトカム")
-    parser.add_argument("--model", default="gemini", choices=["gemini", "claude"])
     args = parser.parse_args()
 
-    asyncio.run(run_extraction(args.input, args.output, args.outcome, args.model))
+    asyncio.run(run_extraction(args.input, args.output, args.outcome))
 
 
 if __name__ == "__main__":

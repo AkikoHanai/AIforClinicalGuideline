@@ -11,7 +11,6 @@ Usage:
         --pico-q "がんサバイバーへの運動介入はQOLを改善するか？" \
         --outcomes "QOL, 疲労, 身体機能, 運動耐容能" \
         --output-dir ./output/cancer_exercise_sr_2026 \
-        --model gemini \
         [--age-filter] \
         [--skip-search]      # 既存のsearch_all.csvを再利用
         [--skip-screening]   # 既存のscreened.csvを再利用
@@ -74,7 +73,6 @@ async def run_pipeline(args):
             output_csv=screened_csv,
             inclusion=args.inclusion,
             exclusion=args.exclusion,
-            model=args.model,
         )
     else:
         print_step(2, "一次スクリーニング（スキップ）")
@@ -86,7 +84,6 @@ async def run_pipeline(args):
             input_csv=screened_csv,
             output_csv=extracted_csv,
             outcome=args.outcomes,
-            model=args.model,
         )
     else:
         print_step(3, "データ抽出（スキップ）")
@@ -124,7 +121,6 @@ def main():
     parser.add_argument("--pico-q", default="介入はアウトカムを改善するか？", help="レビューの問い")
     parser.add_argument("--outcomes", default="QOL, 疲労, 身体機能", help="アウトカム（カンマ区切り）")
     parser.add_argument("--output-dir", default="./sr_output", help="出力ディレクトリ")
-    parser.add_argument("--model", default="gemini", choices=["gemini", "claude"], help="使用するLLM")
     parser.add_argument("--age-filter", action="store_true", help="年齢層別フィルタを有効化")
     parser.add_argument("--skip-search", action="store_true", help="検索済みCSVを再利用")
     parser.add_argument("--skip-screening", action="store_true", help="スクリーニング済みCSVを再利用")

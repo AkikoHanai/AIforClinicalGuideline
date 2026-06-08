@@ -152,23 +152,7 @@ aws ecr describe-images \
 
 ## 【ステップ 4】API キーを AWS Secrets Manager に登録
 
-### 4-1. Gemini API キーを登録
-
-```bash
-# キーを取得: https://ai.google.dev/tutorials/setup
-
-aws secretsmanager create-secret \
-  --name sr/gemini-api-key \
-  --secret-string "sk-..." \
-  --region ap-northeast-1
-
-# 確認
-aws secretsmanager get-secret-value \
-  --secret-id sr/gemini-api-key \
-  --region ap-northeast-1
-```
-
-### 4-2. Claude API キーを登録
+### 4-1. Claude API キーを登録
 
 ```bash
 # キーを取得: https://console.anthropic.com
@@ -183,6 +167,8 @@ aws secretsmanager get-secret-value \
   --secret-id sr/anthropic-api-key \
   --region ap-northeast-1
 ```
+
+> **Note**: This system now uses Claude API exclusively. Gemini API is no longer required due to corporate budget constraints.
 
 ---
 

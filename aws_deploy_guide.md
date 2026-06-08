@@ -28,8 +28,7 @@
          ↓ Credentials
 ┌─────────────────────────────────────────────────┐
 │  AWS Secrets Manager                            │
-│  - GEMINI_API_KEY                               │
-│  - ANTHROPIC_API_KEY                            │
+│  - ANTHROPIC_API_KEY (Claude API)               │
 └─────────────────────────────────────────────────┘
 ```
 
@@ -100,18 +99,14 @@ class SRStack(Stack):
 ### Step 3: API キーを Secrets Manager に登録
 
 ```bash
-# Gemini API キー
-aws secretsmanager create-secret \
-  --name sr-gemini-key \
-  --secret-string "sk-..." \
-  --region ap-northeast-1
-
-# Claude API キー
+# Claude API キー（ANTHROPIC_API_KEY）
 aws secretsmanager create-secret \
   --name sr-anthropic-key \
   --secret-string "sk-ant-..." \
   --region ap-northeast-1
 ```
+
+> **Note**: System uses Claude API only. Gemini API is no longer required.
 
 ### Step 4: Docker イメージをビルド
 
@@ -217,7 +212,7 @@ aws-sr download --task-id <TASK_ID> --output-dir ./results
 aws logs tail /ecs/sr-task --follow
 
 # Secrets Manager が正しく設定されているか確認
-aws secretsmanager get-secret-value --secret-id sr-gemini-key
+aws secretsmanager get-secret-value --secret-id sr-anthropic-key
 ```
 
 ### エラー: S3 permission denied

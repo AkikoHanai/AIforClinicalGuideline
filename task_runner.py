@@ -12,9 +12,7 @@ task_runner.py — ECS Fargate エントリポイント
     SR_EXCLUSION        除外基準
     SR_PICO_Q           レビューの問い
     SR_OUTCOMES         アウトカム（カンマ区切り）
-    SR_MODEL            使用LLM（gemini / claude）
     SR_AGE_FILTER       年齢層別フィルタ（1 / 0）
-    GEMINI_API_KEY      Gemini APIキー（Secrets Managerから注入）
     ANTHROPIC_API_KEY   Claude APIキー（Secrets Managerから注入）
 """
 
@@ -70,7 +68,6 @@ async def main():
     exclusion = get_env("SR_EXCLUSION")
     pico_q = get_env("SR_PICO_Q", "介入はアウトカムを改善するか？")
     outcomes = get_env("SR_OUTCOMES", "QOL, 疲労, 身体機能")
-    model = get_env("SR_MODEL", "gemini")
     age_filter = get_env("SR_AGE_FILTER", "0") == "1"
 
     if not bucket or not query:
@@ -85,7 +82,6 @@ async def main():
         "status": "running",
         "started_at": started_at,
         "query": query,
-        "model": model,
     })
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -105,12 +101,12 @@ async def main():
 
             # ---- Step 2: スクリーニング ----
             print_step(2, "一次スクリーニング")
-            await run_screening(search_csv, screened_csv, inclusion, exclusion, model)
+            await run_screening(search_csv, screened_csv, inclusion, exclusion)
             s3_upload(s3, screened_csv, bucket, f"jobs/{job_id}/screened.csv")
 
             # ---- Step 3: データ抽出 ----
             print_step(3, "データ抽出（PICO + RoB 2）")
-            await run_extraction(screened_csv, extracted_csv, outcomes, model)
+            await run_extraction(screened_csv, extracted_csv, outcomes)
             s3_upload(s3, extracted_csv, bucket, f"jobs/{job_id}/extracted.csv")
 
             # ---- Step 4: Mindsテーブル生成 ----

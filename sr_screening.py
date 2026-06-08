@@ -6,8 +6,7 @@ Usage:
         --input ./sr_output/search_all.csv \
         --output ./sr_output/screened.csv \
         --inclusion "がんサバイバーを対象とした運動介入のRCT" \
-        --exclusion "動物実験、プロトコル論文、運動介入なし" \
-        --model gemini   # or: claude
+        --exclusion "動物実験、プロトコル論文、運動介入なし"
 """
 
 import argparse
@@ -38,51 +37,6 @@ def build_system_prompt(inclusion: str, exclusion: str) -> str:
 {{"decision": "Include" | "Exclude" | "Unclear", "reason": "判定理由（日本語・2文以内）"}}
 
 判断に迷う場合は Unclear を選択してください。"""
-
-
-# ---- Gemini ----
-
-async def _gemini_decision(client, pmid: str, prompt: str, system_prompt: str, semaphore):
-    from google.genai import types
-
-    async with semaphore:
-        try:
-            response = await client.aio.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    response_mime_type="application/json",
-                    temperature=0.0,
-                ),
-            )
-            return pmid, json.loads(response.text)
-        except Exception as e:
-            return pmid, {"decision": "Error", "reason": str(e)}
-
-
-async def screen_with_gemini(df: pd.DataFrame, system_prompt: str) -> dict:
-    from google import genai
-
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
-    semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
-    records_dict = {str(r["PMID"]): r for r in df.to_dict("records")}
-    tasks = []
-
-    for _, row in df.iterrows():
-        pmid = str(row["PMID"])
-        abstract = str(row.get("Abstract", ""))
-        if len(abstract) < 50:
-            records_dict[pmid].update({"decision": "Unclear", "reason": "Abstract missing or too short"})
-            continue
-        prompt = f"Title: {row['Title']}\nAbstract: {abstract}"
-        tasks.append(_gemini_decision(client, pmid, prompt, system_prompt, semaphore))
-
-    print(f"[Gemini] {len(tasks)}件のスクリーニングを開始...")
-    results = await tqdm_asyncio.gather(*tasks)
-    for pmid, result in results:
-        records_dict[pmid].update(result)
-    return records_dict
 
 
 # ---- Claude ----
@@ -135,16 +89,10 @@ async def screen_with_claude(df: pd.DataFrame, system_prompt: str) -> dict:
 
 # ---- メイン ----
 
-async def run_screening(input_csv: str, output_csv: str, inclusion: str, exclusion: str, model: str):
+async def run_screening(input_csv: str, output_csv: str, inclusion: str, exclusion: str):
     df = pd.read_csv(input_csv).fillna("")
     system_prompt = build_system_prompt(inclusion, exclusion)
-
-    if model == "gemini":
-        records_dict = await screen_with_gemini(df, system_prompt)
-    elif model == "claude":
-        records_dict = await screen_with_claude(df, system_prompt)
-    else:
-        raise ValueError(f"未対応のモデル: {model}。 'gemini' または 'claude' を指定してください。")
+    records_dict = await screen_with_claude(df, system_prompt)
 
     final_df = pd.DataFrame(list(records_dict.values()))
     final_df = final_df.sort_values(by="decision")
@@ -163,10 +111,9 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--inclusion", required=True, help="包含基準")
     parser.add_argument("--exclusion", required=True, help="除外基準")
-    parser.add_argument("--model", default="gemini", choices=["gemini", "claude"])
     args = parser.parse_args()
 
-    asyncio.run(run_screening(args.input, args.output, args.inclusion, args.exclusion, args.model))
+    asyncio.run(run_screening(args.input, args.output, args.inclusion, args.exclusion))
 
 
 if __name__ == "__main__":
