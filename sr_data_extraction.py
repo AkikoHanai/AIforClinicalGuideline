@@ -15,6 +15,7 @@ import asyncio
 import json
 import os
 
+import boto3
 import pandas as pd
 from dotenv import load_dotenv
 from tqdm.asyncio import tqdm_asyncio
@@ -54,20 +55,32 @@ def build_prompt(row: dict) -> str:
     return f"Title: {row['Title']}\nAbstract: {row.get('Abstract', '')}"
 
 
-# ---- Claude ----
+# ---- AWS Bedrock (Claude) ----
 
-async def _claude_extract(client, pmid: str, prompt: str, system_prompt: str, semaphore):
+async def _bedrock_extract(bedrock_client, pmid: str, prompt: str, system_prompt: str, semaphore):
     async with semaphore:
         try:
+            body = json.dumps({
+                "anthropic_version": "bedrock-2023-06-01",
+                "max_tokens": 1024,
+                "system": system_prompt,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.0,
+            })
+
             response = await asyncio.to_thread(
-                client.messages.create,
-                model="claude-haiku-4-5-20251001",
-                max_tokens=1024,
-                system=system_prompt,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.0,
+                bedrock_client.invoke_model,
+                modelId="anthropic.claude-haiku-4-5-20251001-v1:0",
+                body=body
             )
-            text = response.content[0].text.strip()
+
+            response_body = json.loads(response["body"].read())
+            text = response_body["content"][0]["text"].strip()
             if "```" in text:
                 text = text.split("```")[1].strip()
                 if text.startswith("json"):
@@ -77,18 +90,16 @@ async def _claude_extract(client, pmid: str, prompt: str, system_prompt: str, se
             return pmid, {k: "Error" for k in EXTRACTION_SCHEMA} | {"notes": str(e)}
 
 
-async def extract_with_claude(df: pd.DataFrame, system_prompt: str) -> list[dict]:
-    import anthropic
-
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    semaphore = asyncio.Semaphore(10)
+async def extract_with_bedrock(df: pd.DataFrame, system_prompt: str) -> list[dict]:
+    bedrock_client = boto3.client("bedrock-runtime", region_name="us-east-1")
+    semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
     rows = df.to_dict("records")
     tasks = [
-        _claude_extract(client, str(r["PMID"]), build_prompt(r), system_prompt, semaphore)
+        _bedrock_extract(bedrock_client, str(r["PMID"]), build_prompt(r), system_prompt, semaphore)
         for r in rows
     ]
-    print(f"[Claude] {len(tasks)}件のデータ抽出を開始...")
+    print(f"[Bedrock/Claude] {len(tasks)}件のデータ抽出を開始...")
     return await tqdm_asyncio.gather(*tasks)
 
 
@@ -108,7 +119,7 @@ async def run_extraction(input_csv: str, output_csv: str, outcome: str):
         schema_json=json.dumps(EXTRACTION_SCHEMA, ensure_ascii=False, indent=2),
     )
 
-    results = await extract_with_claude(include_df, system_prompt)
+    results = await extract_with_bedrock(include_df, system_prompt)
 
     extracted_rows = []
     for pmid, extracted in results:

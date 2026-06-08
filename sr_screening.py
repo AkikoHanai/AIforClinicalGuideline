@@ -14,6 +14,7 @@ import asyncio
 import json
 import os
 
+import boto3
 import pandas as pd
 from dotenv import load_dotenv
 from tqdm.asyncio import tqdm_asyncio
@@ -39,35 +40,50 @@ def build_system_prompt(inclusion: str, exclusion: str) -> str:
 判断に迷う場合は Unclear を選択してください。"""
 
 
-# ---- Claude ----
+# ---- AWS Bedrock (Claude) ----
 
-async def _claude_decision(client, pmid: str, prompt: str, system_prompt: str, semaphore):
+async def _bedrock_decision(bedrock_client, pmid: str, prompt: str, system_prompt: str, semaphore):
     async with semaphore:
         try:
+            # Prepare Bedrock request
+            body = json.dumps({
+                "anthropic_version": "bedrock-2023-06-01",
+                "max_tokens": 256,
+                "system": system_prompt,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.0,
+            })
+
+            # Call Bedrock in thread to avoid blocking
             response = await asyncio.to_thread(
-                client.messages.create,
-                model="claude-haiku-4-5-20251001",
-                max_tokens=256,
-                system=system_prompt,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.0,
+                bedrock_client.invoke_model,
+                modelId="anthropic.claude-haiku-4-5-20251001-v1:0",
+                body=body
             )
-            text = response.content[0].text.strip()
-            # JSONブロック抽出
+
+            # Parse response
+            response_body = json.loads(response["body"].read())
+            text = response_body["content"][0]["text"].strip()
+
+            # Extract JSON if wrapped in markdown
             if "```" in text:
                 text = text.split("```")[1].strip()
                 if text.startswith("json"):
                     text = text[4:].strip()
+
             return pmid, json.loads(text)
         except Exception as e:
             return pmid, {"decision": "Error", "reason": str(e)}
 
 
-async def screen_with_claude(df: pd.DataFrame, system_prompt: str) -> dict:
-    import anthropic
-
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    semaphore = asyncio.Semaphore(20)  # Claude APIのレート制限を考慮
+async def screen_with_bedrock(df: pd.DataFrame, system_prompt: str) -> dict:
+    bedrock_client = boto3.client("bedrock-runtime", region_name="us-east-1")
+    semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
     records_dict = {str(r["PMID"]): r for r in df.to_dict("records")}
     tasks = []
 
@@ -78,9 +94,9 @@ async def screen_with_claude(df: pd.DataFrame, system_prompt: str) -> dict:
             records_dict[pmid].update({"decision": "Unclear", "reason": "Abstract missing or too short"})
             continue
         prompt = f"Title: {row['Title']}\nAbstract: {abstract}"
-        tasks.append(_claude_decision(client, pmid, prompt, system_prompt, semaphore))
+        tasks.append(_bedrock_decision(bedrock_client, pmid, prompt, system_prompt, semaphore))
 
-    print(f"[Claude] {len(tasks)}件のスクリーニングを開始...")
+    print(f"[Bedrock/Claude] {len(tasks)}件のスクリーニングを開始...")
     results = await tqdm_asyncio.gather(*tasks)
     for pmid, result in results:
         records_dict[pmid].update(result)
@@ -92,7 +108,7 @@ async def screen_with_claude(df: pd.DataFrame, system_prompt: str) -> dict:
 async def run_screening(input_csv: str, output_csv: str, inclusion: str, exclusion: str):
     df = pd.read_csv(input_csv).fillna("")
     system_prompt = build_system_prompt(inclusion, exclusion)
-    records_dict = await screen_with_claude(df, system_prompt)
+    records_dict = await screen_with_bedrock(df, system_prompt)
 
     final_df = pd.DataFrame(list(records_dict.values()))
     final_df = final_df.sort_values(by="decision")
