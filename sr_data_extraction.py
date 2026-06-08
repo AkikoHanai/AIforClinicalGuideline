@@ -91,7 +91,14 @@ async def _bedrock_extract(bedrock_client, pmid: str, prompt: str, system_prompt
 
 
 async def extract_with_bedrock(df: pd.DataFrame, system_prompt: str) -> list[dict]:
-    bedrock_client = boto3.client("bedrock-runtime", region_name="us-east-1")
+    # Use Bedrock API key if available, otherwise use AWS credentials
+    api_key = os.environ.get("AWS_BEDROCK_API_KEY")
+    region = os.environ.get("AWS_REGION", "us-east-1")
+
+    if api_key:
+        bedrock_client = boto3.client("bedrock-runtime", region_name=region, api_key=api_key)
+    else:
+        bedrock_client = boto3.client("bedrock-runtime", region_name=region)
     semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
     rows = df.to_dict("records")
