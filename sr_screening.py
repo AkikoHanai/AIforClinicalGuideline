@@ -83,14 +83,9 @@ async def _bedrock_decision(bedrock_client, pmid: str, prompt: str, system_promp
 
 
 async def screen_with_bedrock(df: pd.DataFrame, system_prompt: str) -> dict:
-    # Use Bedrock API key if available, otherwise use AWS credentials
-    api_key = os.environ.get("AWS_BEARER_TOKEN_BEDROCK")
+    # boto3 automatically reads AWS_BEARER_TOKEN_BEDROCK from environment
     region = os.environ.get("AWS_REGION", "ap-northeast-1")
-
-    if api_key:
-        bedrock_client = boto3.client("bedrock-runtime", region_name=region, api_key=api_key)
-    else:
-        bedrock_client = boto3.client("bedrock-runtime", region_name=region)
+    bedrock_client = boto3.client("bedrock-runtime", region_name=region)
     semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
     records_dict = {str(r["PMID"]): r for r in df.to_dict("records")}
     tasks = []
