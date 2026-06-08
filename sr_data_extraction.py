@@ -75,7 +75,7 @@ async def _bedrock_extract(bedrock_client, pmid: str, prompt: str, system_prompt
 
             response = await asyncio.to_thread(
                 bedrock_client.invoke_model,
-                modelId="anthropic.claude-3-haiku-20240307-v1:0",
+                modelId="anthropic.claude-sonnet-4-20250514-v1:0",
                 body=body
             )
 
