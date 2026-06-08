@@ -92,7 +92,7 @@ async def _bedrock_extract(bedrock_client, pmid: str, prompt: str, system_prompt
 
 async def extract_with_bedrock(df: pd.DataFrame, system_prompt: str) -> list[dict]:
     # Use Bedrock API key if available, otherwise use AWS credentials
-    api_key = os.environ.get("AWS_BEDROCK_API_KEY")
+    api_key = os.environ.get("AWS_BEARER_TOKEN_BEDROCK")
     region = os.environ.get("AWS_REGION", "ap-northeast-1")
 
     if api_key:
