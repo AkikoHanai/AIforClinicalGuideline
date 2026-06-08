@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 
 import pandas as pd
 import requests
+from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 
 BASE_URL_SEARCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
 BASE_URL_FETCH = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
@@ -41,7 +42,7 @@ def search_pubmed(query: str) -> tuple[str, str, int]:
 
 
 def fetch_records(webenv: str, query_key: str, count: int) -> list[dict]:
-    """ページネーションで全件取得。"""
+    """ページネーションで全件取得（リトライ機能付き）。"""
     records = []
     for start in range(0, count, RETMAX_PER_PAGE):
         params = {
@@ -52,9 +53,23 @@ def fetch_records(webenv: str, query_key: str, count: int) -> list[dict]:
             "retstart": start,
             "retmax": RETMAX_PER_PAGE,
         }
-        res = requests.get(BASE_URL_FETCH, params=params, timeout=60)
-        res.raise_for_status()
-        root = ET.fromstring(res.content)
+
+        # Retry logic for transient network errors
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                res = requests.get(BASE_URL_FETCH, params=params, timeout=60)
+                res.raise_for_status()
+                root = ET.fromstring(res.content)
+                break  # Success, exit retry loop
+            except (ChunkedEncodingError, ConnectionError, Timeout) as e:
+                if attempt < max_retries - 1:
+                    wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                    print(f"  [リトライ] ネットワークエラー: {type(e).__name__}. {wait_time}秒後に再試行します...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"  [エラー] {max_retries}回のリトライ後も失敗しました: {e}")
+                    raise
 
         for article in root.findall(".//PubmedArticle"):
             pmid = article.findtext(".//PMID")
