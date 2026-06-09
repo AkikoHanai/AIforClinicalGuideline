@@ -46,11 +46,12 @@ async def _bedrock_decision(client, pmid: str, prompt: str, system_prompt: str, 
     async with semaphore:
         try:
             # Call Bedrock converse API
+            # Note: system parameter must be a list, not a string
             response = await asyncio.to_thread(
                 client.converse,
                 modelId="anthropic.claude-3-haiku-20240307-v1:0",
                 messages=[{"role": "user", "content": [{"text": prompt}]}],
-                system=system_prompt,
+                system=[{"text": system_prompt}],
                 inferenceConfig={"maxTokens": 256, "temperature": 0.0},
             )
 
