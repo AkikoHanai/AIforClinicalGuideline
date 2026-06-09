@@ -42,34 +42,20 @@ def build_system_prompt(inclusion: str, exclusion: str) -> str:
 
 # ---- AWS Bedrock (Claude) ----
 
-async def _bedrock_decision(bedrock_client, pmid: str, prompt: str, system_prompt: str, semaphore):
+async def _bedrock_decision(client, pmid: str, prompt: str, system_prompt: str, semaphore):
     async with semaphore:
         try:
-            # Prepare Bedrock request
-            body = json.dumps({
-                "anthropic_version": "bedrock-2023-06-01",
-                "max_tokens": 256,
-                "system": system_prompt,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                "temperature": 0.0,
-            })
-
-            # Call Bedrock in thread to avoid blocking
-            # Using Claude Sonnet 4 (current active model)
+            # Call Bedrock converse API
             response = await asyncio.to_thread(
-                bedrock_client.invoke_model,
-                modelId="anthropic.claude-sonnet-4-20250514-v1:0",
-                body=body
+                client.converse,
+                modelId="anthropic.claude-3-haiku-20240307-v1:0",
+                messages=[{"role": "user", "content": [{"text": prompt}]}],
+                system=system_prompt,
+                inferenceConfig={"maxTokens": 256, "temperature": 0.0},
             )
 
-            # Parse response
-            response_body = json.loads(response["body"].read())
-            text = response_body["content"][0]["text"].strip()
+            # Extract text from response
+            text = response["output"]["message"]["content"][0]["text"].strip()
 
             # Extract JSON if wrapped in markdown
             if "```" in text:
@@ -84,8 +70,7 @@ async def _bedrock_decision(bedrock_client, pmid: str, prompt: str, system_promp
 
 async def screen_with_bedrock(df: pd.DataFrame, system_prompt: str) -> dict:
     # boto3 automatically reads AWS_BEARER_TOKEN_BEDROCK from environment
-    region = os.environ.get("AWS_REGION", "ap-northeast-1")
-    bedrock_client = boto3.client("bedrock-runtime", region_name=region)
+    client = boto3.client("bedrock-runtime", region_name="ap-northeast-1")
     semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
     records_dict = {str(r["PMID"]): r for r in df.to_dict("records")}
     tasks = []
@@ -97,7 +82,7 @@ async def screen_with_bedrock(df: pd.DataFrame, system_prompt: str) -> dict:
             records_dict[pmid].update({"decision": "Unclear", "reason": "Abstract missing or too short"})
             continue
         prompt = f"Title: {row['Title']}\nAbstract: {abstract}"
-        tasks.append(_bedrock_decision(bedrock_client, pmid, prompt, system_prompt, semaphore))
+        tasks.append(_bedrock_decision(client, pmid, prompt, system_prompt, semaphore))
 
     print(f"[Bedrock/Claude] {len(tasks)}件のスクリーニングを開始...")
     results = await tqdm_asyncio.gather(*tasks)

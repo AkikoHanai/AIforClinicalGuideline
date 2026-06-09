@@ -57,30 +57,20 @@ def build_prompt(row: dict) -> str:
 
 # ---- AWS Bedrock (Claude) ----
 
-async def _bedrock_extract(bedrock_client, pmid: str, prompt: str, system_prompt: str, semaphore):
+async def _bedrock_extract(client, pmid: str, prompt: str, system_prompt: str, semaphore):
     async with semaphore:
         try:
-            body = json.dumps({
-                "anthropic_version": "bedrock-2023-06-01",
-                "max_tokens": 1024,
-                "system": system_prompt,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                "temperature": 0.0,
-            })
-
+            # Call Bedrock converse API
             response = await asyncio.to_thread(
-                bedrock_client.invoke_model,
-                modelId="anthropic.claude-sonnet-4-20250514-v1:0",
-                body=body
+                client.converse,
+                modelId="anthropic.claude-3-haiku-20240307-v1:0",
+                messages=[{"role": "user", "content": [{"text": prompt}]}],
+                system=system_prompt,
+                inferenceConfig={"maxTokens": 1024, "temperature": 0.0},
             )
 
-            response_body = json.loads(response["body"].read())
-            text = response_body["content"][0]["text"].strip()
+            # Extract text from response
+            text = response["output"]["message"]["content"][0]["text"].strip()
             if "```" in text:
                 text = text.split("```")[1].strip()
                 if text.startswith("json"):
@@ -92,13 +82,12 @@ async def _bedrock_extract(bedrock_client, pmid: str, prompt: str, system_prompt
 
 async def extract_with_bedrock(df: pd.DataFrame, system_prompt: str) -> list[dict]:
     # boto3 automatically reads AWS_BEARER_TOKEN_BEDROCK from environment
-    region = os.environ.get("AWS_REGION", "ap-northeast-1")
-    bedrock_client = boto3.client("bedrock-runtime", region_name=region)
+    client = boto3.client("bedrock-runtime", region_name="ap-northeast-1")
     semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
     rows = df.to_dict("records")
     tasks = [
-        _bedrock_extract(bedrock_client, str(r["PMID"]), build_prompt(r), system_prompt, semaphore)
+        _bedrock_extract(client, str(r["PMID"]), build_prompt(r), system_prompt, semaphore)
         for r in rows
     ]
     print(f"[Bedrock/Claude] {len(tasks)}件のデータ抽出を開始...")
