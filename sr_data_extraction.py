@@ -64,7 +64,7 @@ async def _bedrock_extract(client, pmid: str, prompt: str, system_prompt: str, s
             # Note: system parameter must be a list, not a string
             response = await asyncio.to_thread(
                 client.converse,
-                modelId="anthropic.claude-3-haiku-20240307-v1:0",
+                modelId="anthropic.claude-3-sonnet-20240229-v1:0",
                 messages=[{"role": "user", "content": [{"text": prompt}]}],
                 system=[{"text": system_prompt}],
                 inferenceConfig={"maxTokens": 1024, "temperature": 0.0},

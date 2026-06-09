@@ -1,0 +1,66 @@
+{
+  "family": "sr-pipeline",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::439112340401:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::439112340401:role/ecsTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "sr-pipeline",
+      "image": "439112340401.dkr.ecr.ap-northeast-1.amazonaws.com/sr-pipeline:latest",
+      "essential": true,
+      "environment": [
+        {
+          "name": "AWS_REGION",
+          "value": "ap-northeast-1"
+        },
+        {
+          "name": "QUERY",
+          "value": "(\"Cancer Survivors\"[MeSH]) AND (\"Exercise\"[MeSH] OR \"Physical Activity\"[MeSH])"
+        },
+        {
+          "name": "INCLUSION",
+          "value": "Adult cancer survivors, exercise-based interventions, RCT or cohort studies"
+        },
+        {
+          "name": "EXCLUSION",
+          "value": "Animal studies, pediatric, non-English"
+        },
+        {
+          "name": "OUTCOMES",
+          "value": "Quality of Life, Fatigue, Physical Function"
+        },
+        {
+          "name": "OUTPUT_DIR",
+          "value": "/output/cancer_exercise"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/sr-pipeline",
+          "awslogs-region": "ap-northeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "mountPoints": [
+        {
+          "sourceVolume": "output",
+          "containerPath": "/output",
+          "readOnly": false
+        }
+      ]
+    }
+  ],
+  "volumes": [
+    {
+      "name": "output",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-12345678",
+        "transitEncryption": "ENABLED"
+      }
+    }
+  ]
+}

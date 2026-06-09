@@ -49,7 +49,7 @@ async def _bedrock_decision(client, pmid: str, prompt: str, system_prompt: str, 
             # Note: system parameter must be a list, not a string
             response = await asyncio.to_thread(
                 client.converse,
-                modelId="anthropic.claude-3-haiku-20240307-v1:0",
+                modelId="anthropic.claude-3-sonnet-20240229-v1:0",
                 messages=[{"role": "user", "content": [{"text": prompt}]}],
                 system=[{"text": system_prompt}],
                 inferenceConfig={"maxTokens": 256, "temperature": 0.0},
@@ -66,7 +66,9 @@ async def _bedrock_decision(client, pmid: str, prompt: str, system_prompt: str, 
 
             return pmid, json.loads(text)
         except Exception as e:
-            return pmid, {"decision": "Error", "reason": str(e)}
+            error_msg = f"{type(e).__name__}: {str(e)}"
+            print(f"[DEBUG PMID {pmid}] Error: {error_msg}", file=__import__('sys').stderr)
+            return pmid, {"decision": "Error", "reason": error_msg}
 
 
 async def screen_with_bedrock(df: pd.DataFrame, system_prompt: str) -> dict:
