@@ -10,6 +10,7 @@
 
 - [概要](#概要)
 - [セットアップ](#セットアップ)
+- [MacBookへの移行](#macbookへの移行)
 - [使い方](#使い方)
 - [ファイル構成](#ファイル構成)
 - [Q&A](#qa)
@@ -55,6 +56,17 @@ RC-1（推奨文草案）生成
 
 ## セットアップ
 
+macOSでは、次のコマンドで仮想環境・依存関係・ローカル設定ファイルを準備できます。
+
+```bash
+git clone https://github.com/AkikoHanai/AIforClinicalGuideline.git
+cd AIforClinicalGuideline
+./scripts/setup_mac.sh --dev
+./scripts/doctor_mac.sh
+```
+
+手動で準備する場合は以下を参照してください。
+
 ### 1. Python 環境を準備
 
 ```bash
@@ -71,7 +83,7 @@ venv\Scripts\activate  # Windows
 ### 2. リポジトリをクローン
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/AIforClinicalGuideline.git
+git clone https://github.com/AkikoHanai/AIforClinicalGuideline.git
 cd AIforClinicalGuideline
 ```
 
@@ -96,14 +108,25 @@ pip install -r requirements.txt
 このシステムは **Claude API のみ** を使用します（Gemini API は不要）
 
 ```bash
-# .env ファイルを作成
-echo "ANTHROPIC_API_KEY=sk-ant-xxx..." > .env
+# 設定例をコピーして、ローカルの .env だけを編集
+cp .env.example .env
+chmod 600 .env
 
 # または環境変数を直接設定
 export ANTHROPIC_API_KEY="sk-ant-xxx..."
 ```
 
 [Claude API キーを取得](https://console.anthropic.com) — アクティブなAPIキーが必要です
+
+## MacBookへの移行
+
+コード、Google Drive資料、秘密情報を分離して移行します。旧Macでの準備、MacBookでの再セットアップ、AWS認証、固定パス、診断手順は [MAC_MIGRATION.md](MAC_MIGRATION.md) を参照してください。
+
+移行後の確認:
+
+```bash
+./scripts/doctor_mac.sh --tests
+```
 
 ---
 

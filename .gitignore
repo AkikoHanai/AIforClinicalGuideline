@@ -22,6 +22,7 @@ wheels/
 
 # Virtual environments
 venv/
+.venv/
 ENV/
 env/
 
@@ -34,6 +35,7 @@ env/
 # Environment variables
 .env
 .env.local
+config/paths.local.env
 
 # OS
 .DS_Store
@@ -55,6 +57,10 @@ output/
 # Temp
 *.tmp
 *.temp
+
+# macOS migration artifacts (may contain local clinical working files)
+migration_bundle/
+*.migration.tar.gz
 
 # PDFs
 *.pdf
