@@ -1,0 +1,2471 @@
+{
+  "_source": {
+    "pdf": "cancer_survivor_guidelines.pdf",
+    "extracted_by": "extract_from_pdf.py",
+    "pages": {
+      "推奨": [
+        21,
+        30
+      ],
+      "エビデンス総体": [
+        146,
+        147
+      ],
+      "評価シート": [
+        130,
+        146
+      ]
+    },
+    "注意": "刊行PDFからの自動抽出。対照の種類・適格性・PMIDは未入力（人手で補う）"
+  },
+  "cq_id": "CQ1",
+  "title": "運動習慣のない18~64歳のがんサバイバーにおいて,運動を勧めることが推奨されるか？",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "",
+    "C": "",
+    "O": [
+      "全生存期間",
+      "持久性体力",
+      "筋力",
+      "QOL",
+      "倦怠感",
+      "有害事象",
+      "うつ"
+    ]
+  },
+  "outcomes": [
+    {
+      "id": "O:全生存期間",
+      "label": "全生存期間",
+      "importance": 7
+    },
+    {
+      "id": "O:持久性体力",
+      "label": "持久性体力",
+      "importance": 7
+    },
+    {
+      "id": "O:筋力",
+      "label": "筋力",
+      "importance": 6
+    },
+    {
+      "id": "O:QOL",
+      "label": "QOL",
+      "importance": 8
+    },
+    {
+      "id": "O:倦怠感",
+      "label": "倦怠感",
+      "importance": 7
+    },
+    {
+      "id": "O:有害事象",
+      "label": "有害事象",
+      "importance": 6
+    },
+    {
+      "id": "O:うつ",
+      "label": "うつ",
+      "importance": 6
+    }
+  ],
+  "evidence_bodies": [
+    {
+      "id": "EB:全生存期間",
+      "outcome": "O:全生存期間",
+      "certainty": "D",
+      "downgraded_by": [
+        "risk_of_bias",
+        "imprecision",
+        "indirectness",
+        "publication_bias"
+      ],
+      "summary": "RCT 1件。HR 0.86（95%CI 0.35–2.14）",
+      "_pooled": {
+        "measure": "HR",
+        "point": 0.86,
+        "ci_low": 0.35,
+        "ci_high": 2.14
+      },
+      "_n_declared": 1
+    },
+    {
+      "id": "EB:持久性体力",
+      "outcome": "O:持久性体力",
+      "certainty": "B",
+      "downgraded_by": [
+        "risk_of_bias",
+        "inconsistency",
+        "imprecision",
+        "publication_bias"
+      ],
+      "summary": "RCT 18件。SMD 0.65（95%CI 0.34–0.95）",
+      "_pooled": {
+        "measure": "SMD",
+        "point": 0.65,
+        "ci_low": 0.34,
+        "ci_high": 0.95
+      },
+      "_n_declared": 18
+    },
+    {
+      "id": "EB:筋力",
+      "outcome": "O:筋力",
+      "certainty": "B",
+      "downgraded_by": [
+        "risk_of_bias",
+        "inconsistency",
+        "imprecision"
+      ],
+      "summary": "RCT 9件。SMD 0.79（95%CI 0.22–1.36）",
+      "_pooled": {
+        "measure": "SMD",
+        "point": 0.79,
+        "ci_low": 0.22,
+        "ci_high": 1.36
+      },
+      "_n_declared": 9
+    },
+    {
+      "id": "EB:QOL",
+      "outcome": "O:QOL",
+      "certainty": "B",
+      "downgraded_by": [
+        "risk_of_bias",
+        "inconsistency",
+        "imprecision",
+        "publication_bias"
+      ],
+      "summary": "RCT 19件。SMD 0.68（95%CI 0.27–1.09）",
+      "_pooled": {
+        "measure": "SMD",
+        "point": 0.68,
+        "ci_low": 0.27,
+        "ci_high": 1.09
+      },
+      "_n_declared": 19
+    },
+    {
+      "id": "EB:倦怠感",
+      "outcome": "O:倦怠感",
+      "certainty": "B",
+      "downgraded_by": [
+        "risk_of_bias",
+        "inconsistency",
+        "imprecision",
+        "publication_bias"
+      ],
+      "summary": "RCT 18件。SMD -0.48（95%CI -0.7–-0.26）",
+      "_pooled": {
+        "measure": "SMD",
+        "point": -0.48,
+        "ci_low": -0.7,
+        "ci_high": -0.26
+      },
+      "_n_declared": 18
+    },
+    {
+      "id": "EB:有害事象",
+      "outcome": "O:有害事象",
+      "certainty": "B",
+      "downgraded_by": [
+        "risk_of_bias",
+        "imprecision"
+      ],
+      "summary": "RCT 21件。RR 2.83（95%CI 1.79–4.45）",
+      "_pooled": {
+        "measure": "RR",
+        "point": 2.83,
+        "ci_low": 1.79,
+        "ci_high": 4.45
+      },
+      "_n_declared": 21
+    },
+    {
+      "id": "EB:うつ",
+      "outcome": "O:うつ",
+      "certainty": "C",
+      "downgraded_by": [
+        "risk_of_bias",
+        "imprecision",
+        "publication_bias"
+      ],
+      "summary": "RCT 5件。SMD -0.39（95%CI -0.68–-0.1）",
+      "_pooled": {
+        "measure": "SMD",
+        "point": -0.39,
+        "ci_low": -0.68,
+        "ci_high": -0.1
+      },
+      "_n_declared": 5
+    }
+  ],
+  "studies": [
+    {
+      "id": "S:Adams SC et al.,2018",
+      "pmid": null,
+      "design": "rct",
+      "title": "Adams SC et al.,2018",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Ahmed RL et al.,2006",
+      "pmid": null,
+      "design": "rct",
+      "title": "Ahmed RL et al.,2006",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Alibhai SM et al.,2014",
+      "pmid": null,
+      "design": "rct",
+      "title": "Alibhai SM et al.,2014",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Arroyo-Morales M et al.,2012",
+      "pmid": null,
+      "design": "rct",
+      "title": "Arroyo-Morales M et al.,2012",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Baruth M et al.,2015",
+      "pmid": null,
+      "design": "rct",
+      "title": "Baruth M et al.,2015",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Bourke L et al.,2011",
+      "pmid": null,
+      "design": "rct",
+      "title": "Bourke L et al.,2011",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Brocki BC et al.,2014",
+      "pmid": null,
+      "design": "rct",
+      "title": "Brocki BC et al.,2014",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Broderick JM et al.,2013",
+      "pmid": null,
+      "design": "rct",
+      "title": "Broderick JM et al.,2013",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Brown JC et al.,2012",
+      "pmid": null,
+      "design": "rct",
+      "title": "Brown JC et al.,2012",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Brown JC et al.,2015",
+      "pmid": null,
+      "design": "rct",
+      "title": "Brown JC et al.,2015",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Brown JC et al.,2018",
+      "pmid": null,
+      "design": "rct",
+      "title": "Brown JC et al.,2018",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Brown JC et al.,2018(High vs Ctrl)",
+      "pmid": null,
+      "design": "rct",
+      "title": "Brown JC et al.,2018(High vs Ctrl)",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Brown JC et al.,2018(Low vs Ctrl)",
+      "pmid": null,
+      "design": "rct",
+      "title": "Brown JC et al.,2018(Low vs Ctrl)",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Burnham TR et al.,2002",
+      "pmid": null,
+      "design": "rct",
+      "title": "Burnham TR et al.,2002",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Campbell KL et al.,2018",
+      "pmid": null,
+      "design": "rct",
+      "title": "Campbell KL et al.,2018",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Cantarero-Villanueva I et al.,2016",
+      "pmid": null,
+      "design": "rct",
+      "title": "Cantarero-Villanueva I et al.,2016",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Carter SJ et al.,2018",
+      "pmid": null,
+      "design": "rct",
+      "title": "Carter SJ et al.,2018",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Casla S et al.,2015",
+      "pmid": null,
+      "design": "rct",
+      "title": "Casla S et al.,2015",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Courneya KS et al.,2003",
+      "pmid": null,
+      "design": "rct",
+      "title": "Courneya KS et al.,2003",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Crawford JJ et al.,2017",
+      "pmid": null,
+      "design": "rct",
+      "title": "Crawford JJ et al.,2017",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Culos-Reed SN et al.,2010",
+      "pmid": null,
+      "design": "rct",
+      "title": "Culos-Reed SN et al.,2010",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Dieli-Conwright CM et al.,2018",
+      "pmid": null,
+      "design": "rct",
+      "title": "Dieli-Conwright CM et al.,2018",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Dolan LB et al.,2016",
+      "pmid": null,
+      "design": "rct",
+      "title": "Dolan LB et al.,2016",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Fairey AS et al.,2005",
+      "pmid": null,
+      "design": "rct",
+      "title": "Fairey AS et al.,2005",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Galiano-Castillo N et al.,2016",
+      "pmid": null,
+      "design": "rct",
+      "title": "Galiano-Castillo N et al.,2016",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Galvao DA et al.,2014",
+      "pmid": null,
+      "design": "rct",
+      "title": "Galvao DA et al.,2014",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Gaskin CJ et al.,2016",
+      "pmid": null,
+      "design": "rct",
+      "title": "Gaskin CJ et al.,2016",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Gaskin CJ et al.,2017",
+      "pmid": null,
+      "design": "rct",
+      "title": "Gaskin CJ et al.,2017",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Giallauria F et al.,2014",
+      "pmid": null,
+      "design": "rct",
+      "title": "Giallauria F et al.,2014",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Goodwin PJ et al.,2014",
+      "pmid": null,
+      "design": "rct",
+      "title": "Goodwin PJ et al.,2014",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Goodwin PJ et al.,2020",
+      "pmid": null,
+      "design": "rct",
+      "title": "Goodwin PJ et al.,2020",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Greenlee HA et al.,2013",
+      "pmid": null,
+      "design": "rct",
+      "title": "Greenlee HA et al.,2013",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Irwin ML et al.,2008",
+      "pmid": null,
+      "design": "rct",
+      "title": "Irwin ML et al.,2008",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Irwin ML et al.,2017",
+      "pmid": null,
+      "design": "rct",
+      "title": "Irwin ML et al.,2017",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Johansson K et al.,2013",
+      "pmid": null,
+      "design": "rct",
+      "title": "Johansson K et al.,2013",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Johnston MF et al.,2011",
+      "pmid": null,
+      "design": "rct",
+      "title": "Johnston MF et al.,2011",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Kampshoff CS et al.,2015",
+      "pmid": null,
+      "design": "rct",
+      "title": "Kampshoff CS et al.,2015",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Kenfield SA et al.,2019",
+      "pmid": null,
+      "design": "rct",
+      "title": "Kenfield SA et al.,2019",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Kim JY et al.,2019",
+      "pmid": null,
+      "design": "rct",
+      "title": "Kim JY et al.,2019",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Kim SH et al.,2016",
+      "pmid": null,
+      "design": "rct",
+      "title": "Kim SH et al.,2016",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Kim SH et al.,2018",
+      "pmid": null,
+      "design": "rct",
+      "title": "Kim SH et al.,2018",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Kinney A et al.,2011",
+      "pmid": null,
+      "design": "rct",
+      "title": "Kinney A et al.,2011",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:LaStayo PC et al.,2011",
+      "pmid": null,
+      "design": "rct",
+      "title": "LaStayo PC et al.,2011",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Lee MK et al.,2018",
+      "pmid": null,
+      "design": "rct",
+      "title": "Lee MK et al.,2018",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Luca DV et al.,2016",
+      "pmid": null,
+      "design": "rct",
+      "title": "Luca DV et al.,2016",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:McNeil J et al.,2019",
+      "pmid": null,
+      "design": "rct",
+      "title": "McNeil J et al.,2019",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Milne HM et al.,2008",
+      "pmid": null,
+      "design": "rct",
+      "title": "Milne HM et al.,2008",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Mulero PA et al.,2008",
+      "pmid": null,
+      "design": "rct",
+      "title": "Mulero PA et al.,2008",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Murtezani A et al.,2014",
+      "pmid": null,
+      "design": "rct",
+      "title": "Murtezani A et al.,2014",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Nyrop KA et al.,2017",
+      "pmid": null,
+      "design": "rct",
+      "title": "Nyrop KA et al.,2017",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:O'Neill LM et al.,2018",
+      "pmid": null,
+      "design": "rct",
+      "title": "O'Neill LM et al.,2018",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:O'Neill RF et al.,2015",
+      "pmid": null,
+      "design": "rct",
+      "title": "O'Neill RF et al.,2015",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Pinto BM et al.,2013",
+      "pmid": null,
+      "design": "rct",
+      "title": "Pinto BM et al.,2013",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Pisu M et al.,2017",
+      "pmid": null,
+      "design": "rct",
+      "title": "Pisu M et al.,2017",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Rabin C et al.,2011",
+      "pmid": null,
+      "design": "rct",
+      "title": "Rabin C et al.,2011",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Rogers LQ et al.,2009",
+      "pmid": null,
+      "design": "rct",
+      "title": "Rogers LQ et al.,2009",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Rogers LQ et al.,2013",
+      "pmid": null,
+      "design": "rct",
+      "title": "Rogers LQ et al.,2013",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Rogers LQ et al.,2014",
+      "pmid": null,
+      "design": "rct",
+      "title": "Rogers LQ et al.,2014",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Rogers LQ et al.,2015a",
+      "pmid": null,
+      "design": "rct",
+      "title": "Rogers LQ et al.,2015a",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Rogers LQ et al.,2015b",
+      "pmid": null,
+      "design": "rct",
+      "title": "Rogers LQ et al.,2015b",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Sandel SL et al.,2005",
+      "pmid": null,
+      "design": "rct",
+      "title": "Sandel SL et al.,2005",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Saxton JM et al.,2014",
+      "pmid": null,
+      "design": "rct",
+      "title": "Saxton JM et al.,2014",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Scott C et al.,2018",
+      "pmid": null,
+      "design": "rct",
+      "title": "Scott C et al.,2018",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Scott E et al.,2013",
+      "pmid": null,
+      "design": "rct",
+      "title": "Scott E et al.,2013",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Strunk MA et al.,2017",
+      "pmid": null,
+      "design": "rct",
+      "title": "Strunk MA et al.,2017",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Sweeney FC et al.,2018",
+      "pmid": null,
+      "design": "rct",
+      "title": "Sweeney FC et al.,2018",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Vallance JK et al.,2007",
+      "pmid": null,
+      "design": "rct",
+      "title": "Vallance JK et al.,2007",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Waltman NL et al.,2010",
+      "pmid": null,
+      "design": "rct",
+      "title": "Waltman NL et al.,2010",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Winters-Stone KM et al.,2011",
+      "pmid": null,
+      "design": "rct",
+      "title": "Winters-Stone KM et al.,2011",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Winters-Stone KM et al.,2014",
+      "pmid": null,
+      "design": "rct",
+      "title": "Winters-Stone KM et al.,2014",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Yang Z et al.,2017",
+      "pmid": null,
+      "design": "rct",
+      "title": "Yang Z et al.,2017",
+      "trial_ids": [],
+      "_source": "評価シート"
+    },
+    {
+      "id": "S:Zhou Y et al.,2017",
+      "pmid": null,
+      "design": "rct",
+      "title": "Zhou Y et al.,2017",
+      "trial_ids": [],
+      "_source": "評価シート"
+    }
+  ],
+  "includes": [],
+  "results": [
+    {
+      "id": "R:Goodwin PJ et al.,2020×全生存期間",
+      "study": "S:Goodwin PJ et al.,2020",
+      "outcome": "O:全生存期間",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:全生存期間",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Cantarero-Villanueva I et al.,2016×持久性体力",
+      "study": "S:Cantarero-Villanueva I et al.,2016",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Campbell KL et al.,2018×持久性体力",
+      "study": "S:Campbell KL et al.,2018",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2018×持久性体力",
+      "study": "S:Brown JC et al.,2018",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Alibhai SM et al.,2014×持久性体力",
+      "study": "S:Alibhai SM et al.,2014",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Dolan LB et al.,2016×持久性体力",
+      "study": "S:Dolan LB et al.,2016",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Dolan LB et al.,2016×持久性体力#2",
+      "study": "S:Dolan LB et al.,2016",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Courneya KS et al.,2003×持久性体力",
+      "study": "S:Courneya KS et al.,2003",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Pisu M et al.,2017×持久性体力",
+      "study": "S:Pisu M et al.,2017",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:O'Neill LM et al.,2018×持久性体力",
+      "study": "S:O'Neill LM et al.,2018",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:LaStayo PC et al.,2011×持久性体力",
+      "study": "S:LaStayo PC et al.,2011",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Bourke L et al.,2011×持久性体力",
+      "study": "S:Bourke L et al.,2011",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brocki BC et al.,2014×持久性体力",
+      "study": "S:Brocki BC et al.,2014",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Broderick JM et al.,2013×持久性体力",
+      "study": "S:Broderick JM et al.,2013",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Crawford JJ et al.,2017×持久性体力",
+      "study": "S:Crawford JJ et al.,2017",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Culos-Reed SN et al.,2010×持久性体力",
+      "study": "S:Culos-Reed SN et al.,2010",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:McNeil J et al.,2019×持久性体力",
+      "study": "S:McNeil J et al.,2019",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:McNeil J et al.,2019×持久性体力#2",
+      "study": "S:McNeil J et al.,2019",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Rogers LQ et al.,2014×持久性体力",
+      "study": "S:Rogers LQ et al.,2014",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Scott E et al.,2013×持久性体力",
+      "study": "S:Scott E et al.,2013",
+      "outcome": "O:持久性体力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:持久性体力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Alibhai SM et al.,2014×筋力",
+      "study": "S:Alibhai SM et al.,2014",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Dolan LB et al.,2016×筋力",
+      "study": "S:Dolan LB et al.,2016",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Dolan LB et al.,2016×筋力#2",
+      "study": "S:Dolan LB et al.,2016",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Ahmed RL et al.,2006×筋力",
+      "study": "S:Ahmed RL et al.,2006",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:LaStayo PC et al.,2011×筋力",
+      "study": "S:LaStayo PC et al.,2011",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:LaStayo PC et al.,2011×筋力#2",
+      "study": "S:LaStayo PC et al.,2011",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Bourke L et al.,2011×筋力",
+      "study": "S:Bourke L et al.,2011",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Crawford JJ et al.,2017×筋力",
+      "study": "S:Crawford JJ et al.,2017",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Crawford JJ et al.,2017×筋力#2",
+      "study": "S:Crawford JJ et al.,2017",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Crawford JJ et al.,2017×筋力#3",
+      "study": "S:Crawford JJ et al.,2017",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Rogers LQ et al.,2014×筋力",
+      "study": "S:Rogers LQ et al.,2014",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kim SH et al.,2018×筋力",
+      "study": "S:Kim SH et al.,2018",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kim SH et al.,2018×筋力#2",
+      "study": "S:Kim SH et al.,2018",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kim SH et al.,2018×筋力#3",
+      "study": "S:Kim SH et al.,2018",
+      "outcome": "O:筋力",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:筋力",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kinney A et al.,2011×QOL",
+      "study": "S:Kinney A et al.,2011",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kinney A et al.,2011×QOL#2",
+      "study": "S:Kinney A et al.,2011",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kim JY et al.,2019×QOL",
+      "study": "S:Kim JY et al.,2019",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Zhou Y et al.,2017×QOL",
+      "study": "S:Zhou Y et al.,2017",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Zhou Y et al.,2017×QOL#2",
+      "study": "S:Zhou Y et al.,2017",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Galiano-Castillo N et al.,2016×QOL",
+      "study": "S:Galiano-Castillo N et al.,2016",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Nyrop KA et al.,2017×QOL",
+      "study": "S:Nyrop KA et al.,2017",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Alibhai SM et al.,2014×QOL",
+      "study": "S:Alibhai SM et al.,2014",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Goodwin PJ et al.,2014×QOL",
+      "study": "S:Goodwin PJ et al.,2014",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Goodwin PJ et al.,2014×QOL#2",
+      "study": "S:Goodwin PJ et al.,2014",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Goodwin PJ et al.,2014×QOL#3",
+      "study": "S:Goodwin PJ et al.,2014",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Murtezani A et al.,2014×QOL",
+      "study": "S:Murtezani A et al.,2014",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Courneya KS et al.,2003×QOL",
+      "study": "S:Courneya KS et al.,2003",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2018(Low vs Ctrl)×QOL",
+      "study": "S:Brown JC et al.,2018(Low vs Ctrl)",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2018(High vs Ctrl)×QOL",
+      "study": "S:Brown JC et al.,2018(High vs Ctrl)",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2018(Low vs Ctrl)×QOL#2",
+      "study": "S:Brown JC et al.,2018(Low vs Ctrl)",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2018(High vs Ctrl)×QOL#2",
+      "study": "S:Brown JC et al.,2018(High vs Ctrl)",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2018(Low vs Ctrl)×QOL#3",
+      "study": "S:Brown JC et al.,2018(Low vs Ctrl)",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2018(High vs Ctrl)×QOL#3",
+      "study": "S:Brown JC et al.,2018(High vs Ctrl)",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Pisu M et al.,2017×QOL",
+      "study": "S:Pisu M et al.,2017",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Pisu M et al.,2017×QOL#2",
+      "study": "S:Pisu M et al.,2017",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Bourke L et al.,2011×QOL",
+      "study": "S:Bourke L et al.,2011",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Broderick JM et al.,2013×QOL",
+      "study": "S:Broderick JM et al.,2013",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Broderick JM et al.,2013×QOL#2",
+      "study": "S:Broderick JM et al.,2013",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Culos-Reed SN et al.,2010×QOL",
+      "study": "S:Culos-Reed SN et al.,2010",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:McNeil J et al.,2019×QOL",
+      "study": "S:McNeil J et al.,2019",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:McNeil J et al.,2019×QOL#2",
+      "study": "S:McNeil J et al.,2019",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Milne HM et al.,2008×QOL",
+      "study": "S:Milne HM et al.,2008",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Pinto BM et al.,2013×QOL",
+      "study": "S:Pinto BM et al.,2013",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Scott E et al.,2013×QOL",
+      "study": "S:Scott E et al.,2013",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Vallance JK et al.,2007×QOL",
+      "study": "S:Vallance JK et al.,2007",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Vallance JK et al.,2007×QOL#2",
+      "study": "S:Vallance JK et al.,2007",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Vallance JK et al.,2007×QOL#3",
+      "study": "S:Vallance JK et al.,2007",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Yang Z et al.,2017×QOL",
+      "study": "S:Yang Z et al.,2017",
+      "outcome": "O:QOL",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:QOL",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Arroyo-Morales M et al.,2012×倦怠感",
+      "study": "S:Arroyo-Morales M et al.,2012",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Campbell KL et al.,2018×倦怠感",
+      "study": "S:Campbell KL et al.,2018",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Rabin C et al.,2011×倦怠感",
+      "study": "S:Rabin C et al.,2011",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kim JY et al.,2019×倦怠感",
+      "study": "S:Kim JY et al.,2019",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Zhou Y et al.,2017×倦怠感",
+      "study": "S:Zhou Y et al.,2017",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Nyrop KA et al.,2017×倦怠感",
+      "study": "S:Nyrop KA et al.,2017",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Alibhai SM et al.,2014×倦怠感",
+      "study": "S:Alibhai SM et al.,2014",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Rogers LQ et al.,2015a×倦怠感",
+      "study": "S:Rogers LQ et al.,2015a",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2018×倦怠感",
+      "study": "S:Brown JC et al.,2018",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2018×倦怠感#2",
+      "study": "S:Brown JC et al.,2018",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Bourke L et al.,2011×倦怠感",
+      "study": "S:Bourke L et al.,2011",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Broderick JM et al.,2013×倦怠感",
+      "study": "S:Broderick JM et al.,2013",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Broderick JM et al.,2013×倦怠感#2",
+      "study": "S:Broderick JM et al.,2013",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Culos-Reed SN et al.,2010×倦怠感",
+      "study": "S:Culos-Reed SN et al.,2010",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Milne HM et al.,2008×倦怠感",
+      "study": "S:Milne HM et al.,2008",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Pinto BM et al.,2013×倦怠感",
+      "study": "S:Pinto BM et al.,2013",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Rogers LQ et al.,2014×倦怠感",
+      "study": "S:Rogers LQ et al.,2014",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Vallance JK et al.,2007×倦怠感",
+      "study": "S:Vallance JK et al.,2007",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Vallance JK et al.,2007×倦怠感#2",
+      "study": "S:Vallance JK et al.,2007",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Vallance JK et al.,2007×倦怠感#3",
+      "study": "S:Vallance JK et al.,2007",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Yang Z et al.,2017×倦怠感",
+      "study": "S:Yang Z et al.,2017",
+      "outcome": "O:倦怠感",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:倦怠感",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kampshoff CS et al.,2015×有害事象",
+      "study": "S:Kampshoff CS et al.,2015",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kampshoff CS et al.,2015×有害事象#2",
+      "study": "S:Kampshoff CS et al.,2015",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kenfield SA et al.,2019×有害事象",
+      "study": "S:Kenfield SA et al.,2019",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Arroyo-Morales M et al.,2012×有害事象",
+      "study": "S:Arroyo-Morales M et al.,2012",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Strunk MA et al.,2017×有害事象",
+      "study": "S:Strunk MA et al.,2017",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Sweeney FC et al.,2018×有害事象",
+      "study": "S:Sweeney FC et al.,2018",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Galvao DA et al.,2014×有害事象",
+      "study": "S:Galvao DA et al.,2014",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Galvao DA et al.,2014×有害事象#2",
+      "study": "S:Galvao DA et al.,2014",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kinney A et al.,2011×有害事象",
+      "study": "S:Kinney A et al.,2011",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:O'Neill RF et al.,2015×有害事象",
+      "study": "S:O'Neill RF et al.,2015",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Burnham TR et al.,2002×有害事象",
+      "study": "S:Burnham TR et al.,2002",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Burnham TR et al.,2002×有害事象#2",
+      "study": "S:Burnham TR et al.,2002",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Winters-Stone KM et al.,2014×有害事象",
+      "study": "S:Winters-Stone KM et al.,2014",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Campbell KL et al.,2018×有害事象",
+      "study": "S:Campbell KL et al.,2018",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Casla S et al.,2015×有害事象",
+      "study": "S:Casla S et al.,2015",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Mulero PA et al.,2008×有害事象",
+      "study": "S:Mulero PA et al.,2008",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Mulero PA et al.,2008×有害事象#2",
+      "study": "S:Mulero PA et al.,2008",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Zhou Y et al.,2017×有害事象",
+      "study": "S:Zhou Y et al.,2017",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Adams SC et al.,2018×有害事象",
+      "study": "S:Adams SC et al.,2018",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2018×有害事象",
+      "study": "S:Brown JC et al.,2018",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Luca DV et al.,2016×有害事象",
+      "study": "S:Luca DV et al.,2016",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Nyrop KA et al.,2017×有害事象",
+      "study": "S:Nyrop KA et al.,2017",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Alibhai SM et al.,2014×有害事象",
+      "study": "S:Alibhai SM et al.,2014",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Baruth M et al.,2015×有害事象",
+      "study": "S:Baruth M et al.,2015",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2012×有害事象",
+      "study": "S:Brown JC et al.,2012",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2012×有害事象#2",
+      "study": "S:Brown JC et al.,2012",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Dolan LB et al.,2016×有害事象",
+      "study": "S:Dolan LB et al.,2016",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Dolan LB et al.,2016×有害事象#2",
+      "study": "S:Dolan LB et al.,2016",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Giallauria F et al.,2014×有害事象",
+      "study": "S:Giallauria F et al.,2014",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Johnston MF et al.,2011×有害事象",
+      "study": "S:Johnston MF et al.,2011",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Courneya KS et al.,2003×有害事象",
+      "study": "S:Courneya KS et al.,2003",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Fairey AS et al.,2005×有害事象",
+      "study": "S:Fairey AS et al.,2005",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Gaskin CJ et al.,2017×有害事象",
+      "study": "S:Gaskin CJ et al.,2017",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:O'Neill LM et al.,2018×有害事象",
+      "study": "S:O'Neill LM et al.,2018",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:LaStayo PC et al.,2011×有害事象",
+      "study": "S:LaStayo PC et al.,2011",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Broderick JM et al.,2013×有害事象",
+      "study": "S:Broderick JM et al.,2013",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Crawford JJ et al.,2017×有害事象",
+      "study": "S:Crawford JJ et al.,2017",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Gaskin CJ et al.,2016×有害事象",
+      "study": "S:Gaskin CJ et al.,2016",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Greenlee HA et al.,2013×有害事象",
+      "study": "S:Greenlee HA et al.,2013",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Rogers LQ et al.,2015b×有害事象",
+      "study": "S:Rogers LQ et al.,2015b",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Rogers LQ et al.,2013×有害事象",
+      "study": "S:Rogers LQ et al.,2013",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Rogers LQ et al.,2009×有害事象",
+      "study": "S:Rogers LQ et al.,2009",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Rogers LQ et al.,2014×有害事象",
+      "study": "S:Rogers LQ et al.,2014",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Sandel SL et al.,2005×有害事象",
+      "study": "S:Sandel SL et al.,2005",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Scott E et al.,2013×有害事象",
+      "study": "S:Scott E et al.,2013",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Waltman NL et al.,2010×有害事象",
+      "study": "S:Waltman NL et al.,2010",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Winters-Stone KM et al.,2011×有害事象",
+      "study": "S:Winters-Stone KM et al.,2011",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Irwin ML et al.,2008×有害事象",
+      "study": "S:Irwin ML et al.,2008",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Irwin ML et al.,2017×有害事象",
+      "study": "S:Irwin ML et al.,2017",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Johansson K et al.,2013×有害事象",
+      "study": "S:Johansson K et al.,2013",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kim SH et al.,2016×有害事象",
+      "study": "S:Kim SH et al.,2016",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Kim SH et al.,2018×有害事象",
+      "study": "S:Kim SH et al.,2018",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Lee MK et al.,2018×有害事象",
+      "study": "S:Lee MK et al.,2018",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Brown JC et al.,2015×有害事象",
+      "study": "S:Brown JC et al.,2015",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Yang Z et al.,2017×有害事象",
+      "study": "S:Yang Z et al.,2017",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Scott C et al.,2018×有害事象",
+      "study": "S:Scott C et al.,2018",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Dieli-Conwright CM et al.,2018×有害事象",
+      "study": "S:Dieli-Conwright CM et al.,2018",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Dieli-Conwright CM et al.,2018×有害事象#2",
+      "study": "S:Dieli-Conwright CM et al.,2018",
+      "outcome": "O:有害事象",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:有害事象",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Saxton JM et al.,2014×うつ",
+      "study": "S:Saxton JM et al.,2014",
+      "outcome": "O:うつ",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:うつ",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Campbell KL et al.,2018×うつ",
+      "study": "S:Campbell KL et al.,2018",
+      "outcome": "O:うつ",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:うつ",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Alibhai SM et al.,2014×うつ",
+      "study": "S:Alibhai SM et al.,2014",
+      "outcome": "O:うつ",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:うつ",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Carter SJ et al.,2018×うつ",
+      "study": "S:Carter SJ et al.,2018",
+      "outcome": "O:うつ",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:うつ",
+      "_needs_human": [
+        "comparator"
+      ]
+    },
+    {
+      "id": "R:Culos-Reed SN et al.,2010×うつ",
+      "study": "S:Culos-Reed SN et al.,2010",
+      "outcome": "O:うつ",
+      "comparator": null,
+      "eligible": true,
+      "contributes_to": "EB:うつ",
+      "_needs_human": [
+        "comparator"
+      ]
+    }
+  ],
+  "draft": {
+    "_note": "刊行版の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力で置き換える",
+    "generated_by": "published_guideline",
+    "recommendation_text": "運動習慣のない18~64歳のがんサバイバーにおいて,運動を勧めることを提案する。",
+    "direction": "for",
+    "strength": "2",
+    "certainty": "C",
+    "cited_pmids": [],
+    "mentioned_outcomes": [],
+    "panel_vote": null
+  },
+  "narrative": ""
+}

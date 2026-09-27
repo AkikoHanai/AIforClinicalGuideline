@@ -1,0 +1,288 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CQ1 レビュー｜CIPN診療ガイドライン改訂</title><style>
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+ background:#f6f7f9;color:#16202b;line-height:1.7;font-size:15px}
+header{background:#0f3d3e;color:#fff;padding:18px 28px}
+header .cqid{font-size:12px;letter-spacing:.12em;color:#6ecfc4}
+header h1{margin:4px 0 10px;font-size:20px;font-weight:700}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 28px 90px}
+.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.ok{background:#1c7c4a;color:#fff}.ng{background:#b3261e;color:#fff}
+.warn{background:#a86200;color:#fff}.mute{background:#e3e6ea;color:#41505f}
+section{background:#fff;border:1px solid #e0e4e9;border-radius:10px;padding:18px 20px;margin:16px 0}
+section>h2{margin:0 0 12px;font-size:15px;font-weight:700;color:#0f3d3e;
+ border-left:4px solid #17a398;padding-left:9px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{border-bottom:1px solid #eceff2;padding:8px 9px;text-align:left;vertical-align:top}
+th{background:#f2f5f6;font-weight:600;font-size:13px;color:#41505f}
+.scroll{overflow-x:auto}
+.issue{border-left:4px solid #b3261e;background:#fdf3f2;padding:10px 13px;margin:8px 0;border-radius:5px}
+.issue.w{border-color:#a86200;background:#fdf8ee}
+.issue .rule{font-weight:700;font-size:13px}
+.issue .d{font-size:13.5px;color:#3b4854;margin-top:3px}
+.rec{background:#f0f8f7;border:1px solid #bfe0dc;border-radius:8px;padding:14px 16px;font-size:16px;font-weight:600}
+.kv{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.kv div{background:#f2f5f6;border-radius:6px;padding:5px 11px;font-size:13px}
+.kv b{color:#0f3d3e}
+details.study{border:1px solid #e0e4e9;border-radius:8px;margin:8px 0;background:#fcfdfd}
+details.study>summary{cursor:pointer;padding:10px 13px;font-size:14px;list-style:none}
+details.study>summary::-webkit-details-marker{display:none}
+details.study>summary:before{content:"▸ ";color:#17a398}
+details.study[open]>summary:before{content:"▾ "}
+.sbody{padding:0 14px 13px;font-size:13.5px}
+.tag{display:inline-block;background:#e7edf1;border-radius:4px;padding:1px 7px;font-size:11.5px;margin-left:6px}
+.tag.r{background:#b3261e;color:#fff}.tag.ma{background:#3d5a80;color:#fff}
+.tag.dup{background:#a86200;color:#fff}
+a{color:#0b6ea8}
+.chain{border-left:3px solid #17a398;padding-left:13px;margin:10px 0;font-size:13.5px}
+.chk{border-top:1px solid #eceff2;padding:9px 0;display:flex;gap:10px;align-items:flex-start}
+.chk input[type=checkbox]{margin-top:5px;width:17px;height:17px;flex:none}
+.chk .q{flex:1}.chk .q small{color:#5b6a78;display:block;font-size:12.5px}
+textarea{width:100%;min-height:78px;border:1px solid #ccd3da;border-radius:6px;padding:9px;
+ font-family:inherit;font-size:14px;resize:vertical}
+.verdicts{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+.verdicts label{border:1.5px solid #ccd3da;border-radius:7px;padding:8px 14px;cursor:pointer;font-size:14px;background:#fff}
+.verdicts input{margin-right:6px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#0f3d3e;color:#fff;padding:11px 28px;
+ display:flex;gap:12px;align-items:center;font-size:13.5px}
+button{background:#17a398;color:#fff;border:0;border-radius:7px;padding:9px 17px;font-size:14px;
+ font-weight:700;cursor:pointer}
+button.ghost{background:transparent;border:1.5px solid #6ecfc4;color:#6ecfc4}
+.note{font-size:12.5px;color:#5b6a78}
+.demo{background:#fdf8ee;border:1px solid #e3c98a;border-radius:8px;padding:11px 14px;
+ font-size:13.5px;color:#6b4d00;margin:14px 0}
+@media(prefers-color-scheme:dark){
+ body{background:#11171d;color:#e6eaee}
+ section{background:#1a222b;border-color:#2b3742}
+ th{background:#222c36;color:#a9b7c4}td,th{border-color:#2b3742}
+ .rec{background:#14302e;border-color:#2a5c56}.kv div{background:#222c36}
+ .kv b{color:#6ecfc4}details.study{background:#1a222b;border-color:#2b3742}
+ .issue{background:#2c1a19}.issue.w{background:#2b2415}.issue .d{color:#c3cdd6}
+ textarea{background:#141b22;color:#e6eaee;border-color:#38454f}
+ .verdicts label{background:#1a222b;border-color:#38454f;color:#e6eaee}
+ .mute{background:#2b3742;color:#c3cdd6}.tag{background:#2b3742;color:#dbe3ea}
+ a{color:#6ab7e8}.note,.chk .q small{color:#9dabb8}
+ .demo{background:#2b2415;border-color:#5a4a1e;color:#e8d5a3}
+ section>h2{color:#6ecfc4}
+}
+</style></head><body>
+<header>
+  <div class="cqid">CIPN GUIDELINE REVISION · REVIEW CONSOLE</div>
+  <h1>CQ1　運動習慣のない18~64歳のがんサバイバーにおいて,運動を勧めることが推奨されるか？</h1>
+  <span class="badge ng">機械検証 不合格（26件）</span>
+  <span class="badge mute">生成 2026-08-07</span>
+</header>
+<div class="wrap">
+
+<section>
+  <h2>機械検証の結果（LLMではなく規則で判定）</h2>
+  <div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Broderick JM et al.,2013 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Brown JC et al.,2018(High vs Ctrl) の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Brown JC et al.,2018(Low vs Ctrl) の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Goodwin PJ et al.,2014 の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Kinney A et al.,2011 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:McNeil J et al.,2019 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Pisu M et al.,2017 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Vallance JK et al.,2007 の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Zhou Y et al.,2017 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Broderick JM et al.,2013 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Brown JC et al.,2018 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Vallance JK et al.,2007 の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Dolan LB et al.,2016 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:McNeil J et al.,2019 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Brown JC et al.,2012 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Burnham TR et al.,2002 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Dieli-Conwright CM et al.,2018 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Dolan LB et al.,2016 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Galvao DA et al.,2014 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Kampshoff CS et al.,2015 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Mulero PA et al.,2008 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Crawford JJ et al.,2017 の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Dolan LB et al.,2016 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:Kim SH et al.,2018 の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">R2b 違反</div><div class="d">S:LaStayo PC et al.,2011 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）</div></div>
+<div class="issue"><div class="rule">AI生成の申告と根拠の不一致（certainty）</div><div class="d">推奨案の確実性 C は、重大アウトカムの総体から導かれる D と一致しない(重大アウトカム4件のうち最低の確実性を採用(決定元: EB:全生存期間))</div></div>
+  <p class="note">Minds規則 R1–R8（適格性・二重計上・撤回・非直接性・重大アウトカム・格下げ理由）と、
+  AI生成の申告値の照合を、決定論的に実行した結果です。</p>
+</section>
+
+<section>
+  <h2>臨床疑問（PICO）</h2>
+  <div class="scroll"><table>
+    <tr><th style="width:4em">P</th><td></td></tr>
+    <tr><th>I</th><td></td></tr>
+    <tr><th>C</th><td></td></tr>
+    <tr><th>O</th><td>全生存期間、持久性体力、筋力、QOL、倦怠感、有害事象、うつ</td></tr>
+  </table></div>
+</section>
+
+<section><h2>推奨案（AI生成・未承認）</h2><p class="note">機械検証で不整合が残っているため、推奨文は畳んでいます。先に上の「機械検証の結果」を確認してください。</p><details><summary style="cursor:pointer">それでも推奨案を読む</summary>
+<section>
+  <h2>推奨案（AI生成・未承認）</h2>
+  <div class="rec">運動習慣のない18~64歳のがんサバイバーにおいて,運動を勧めることを提案する。</div>
+  <div class="kv">
+    <div><b>推奨の強さ</b> 2（弱い推奨）</div>
+    <div><b>方向</b> 行うことを推奨</div>
+    <div><b>AI申告の確実性</b> C</div>
+    <div><b>グラフから導いた確実性</b> D</div>
+    <div><b>合意率</b> —
+      </div>
+  </div>
+  <p class="note">確実性は「重大アウトカムの総体のうち最も低いもの」として機械的に導出しています：重大アウトカム4件のうち最低の確実性を採用(決定元: EB:全生存期間)</p>
+</section></details></section>
+
+<section><h2>エビデンス総体（アウトカムごと）</h2><div class='scroll'><table><tr><th>アウトカム</th><th>確実性</th><th>格下げ理由</th><th>要約</th><th>寄与した論文</th></tr><tr><td><b>全生存期間</b><br><span class="tag">重大・重要度7</span></td><td><b>D</b></td><td>バイアスリスク、不精確、非直接性、出版バイアス</td><td>RCT 1件。HR 0.86（95%CI 0.35–2.14）</td><td style='font-size:12.5px'>S:Goodwin PJ et al.,2020</td></tr><tr><td><b>持久性体力</b><br><span class="tag">重大・重要度7</span></td><td><b>B</b></td><td>バイアスリスク、非一貫性、不精確、出版バイアス</td><td>RCT 18件。SMD 0.65（95%CI 0.34–0.95）</td><td style='font-size:12.5px'>S:Alibhai SM et al.,2014<br>S:Bourke L et al.,2011<br>S:Brocki BC et al.,2014<br>S:Broderick JM et al.,2013<br>S:Brown JC et al.,2018<br>S:Campbell KL et al.,2018<br>S:Cantarero-Villanueva I et al.,2016<br>S:Courneya KS et al.,2003<br>S:Crawford JJ et al.,2017<br>S:Culos-Reed SN et al.,2010<br>S:Dolan LB et al.,2016<br>S:LaStayo PC et al.,2011<br>S:McNeil J et al.,2019<br>S:O&#x27;Neill LM et al.,2018<br>S:Pisu M et al.,2017<br>S:Rogers LQ et al.,2014<br>S:Scott E et al.,2013</td></tr><tr><td><b>筋力</b><br><span class="tag">重要・重要度6</span></td><td><b>B</b></td><td>バイアスリスク、非一貫性、不精確</td><td>RCT 9件。SMD 0.79（95%CI 0.22–1.36）</td><td style='font-size:12.5px'>S:Ahmed RL et al.,2006<br>S:Alibhai SM et al.,2014<br>S:Bourke L et al.,2011<br>S:Crawford JJ et al.,2017<br>S:Dolan LB et al.,2016<br>S:Kim SH et al.,2018<br>S:LaStayo PC et al.,2011<br>S:Rogers LQ et al.,2014</td></tr><tr><td><b>QOL</b><br><span class="tag">重大・重要度8</span></td><td><b>B</b></td><td>バイアスリスク、非一貫性、不精確、出版バイアス</td><td>RCT 19件。SMD 0.68（95%CI 0.27–1.09）</td><td style='font-size:12.5px'>S:Alibhai SM et al.,2014<br>S:Bourke L et al.,2011<br>S:Broderick JM et al.,2013<br>S:Brown JC et al.,2018(High vs Ctrl)<br>S:Brown JC et al.,2018(Low vs Ctrl)<br>S:Courneya KS et al.,2003<br>S:Culos-Reed SN et al.,2010<br>S:Galiano-Castillo N et al.,2016<br>S:Goodwin PJ et al.,2014<br>S:Kim JY et al.,2019<br>S:Kinney A et al.,2011<br>S:McNeil J et al.,2019<br>S:Milne HM et al.,2008<br>S:Murtezani A et al.,2014<br>S:Nyrop KA et al.,2017<br>S:Pinto BM et al.,2013<br>S:Pisu M et al.,2017<br>S:Scott E et al.,2013<br>S:Vallance JK et al.,2007<br>S:Yang Z et al.,2017<br>S:Zhou Y et al.,2017</td></tr><tr><td><b>倦怠感</b><br><span class="tag">重大・重要度7</span></td><td><b>B</b></td><td>バイアスリスク、非一貫性、不精確、出版バイアス</td><td>RCT 18件。SMD -0.48（95%CI -0.7–-0.26）</td><td style='font-size:12.5px'>S:Alibhai SM et al.,2014<br>S:Arroyo-Morales M et al.,2012<br>S:Bourke L et al.,2011<br>S:Broderick JM et al.,2013<br>S:Brown JC et al.,2018<br>S:Campbell KL et al.,2018<br>S:Culos-Reed SN et al.,2010<br>S:Kim JY et al.,2019<br>S:Milne HM et al.,2008<br>S:Nyrop KA et al.,2017<br>S:Pinto BM et al.,2013<br>S:Rabin C et al.,2011<br>S:Rogers LQ et al.,2014<br>S:Rogers LQ et al.,2015a<br>S:Vallance JK et al.,2007<br>S:Yang Z et al.,2017<br>S:Zhou Y et al.,2017</td></tr><tr><td><b>有害事象</b><br><span class="tag">重要・重要度6</span></td><td><b>B</b></td><td>バイアスリスク、不精確</td><td>RCT 21件。RR 2.83（95%CI 1.79–4.45）</td><td style='font-size:12.5px'>S:Adams SC et al.,2018<br>S:Alibhai SM et al.,2014<br>S:Arroyo-Morales M et al.,2012<br>S:Baruth M et al.,2015<br>S:Broderick JM et al.,2013<br>S:Brown JC et al.,2012<br>S:Brown JC et al.,2015<br>S:Brown JC et al.,2018<br>S:Burnham TR et al.,2002<br>S:Campbell KL et al.,2018<br>S:Casla S et al.,2015<br>S:Courneya KS et al.,2003<br>S:Crawford JJ et al.,2017<br>S:Dieli-Conwright CM et al.,2018<br>S:Dolan LB et al.,2016<br>S:Fairey AS et al.,2005<br>S:Galvao DA et al.,2014<br>S:Gaskin CJ et al.,2016<br>S:Gaskin CJ et al.,2017<br>S:Giallauria F et al.,2014<br>S:Greenlee HA et al.,2013<br>S:Irwin ML et al.,2008<br>S:Irwin ML et al.,2017<br>S:Johansson K et al.,2013<br>S:Johnston MF et al.,2011<br>S:Kampshoff CS et al.,2015<br>S:Kenfield SA et al.,2019<br>S:Kim SH et al.,2016<br>S:Kim SH et al.,2018<br>S:Kinney A et al.,2011<br>S:LaStayo PC et al.,2011<br>S:Lee MK et al.,2018<br>S:Luca DV et al.,2016<br>S:Mulero PA et al.,2008<br>S:Nyrop KA et al.,2017<br>S:O&#x27;Neill LM et al.,2018<br>S:O&#x27;Neill RF et al.,2015<br>S:Rogers LQ et al.,2009<br>S:Rogers LQ et al.,2013<br>S:Rogers LQ et al.,2014<br>S:Rogers LQ et al.,2015b<br>S:Sandel SL et al.,2005<br>S:Scott C et al.,2018<br>S:Scott E et al.,2013<br>S:Strunk MA et al.,2017<br>S:Sweeney FC et al.,2018<br>S:Waltman NL et al.,2010<br>S:Winters-Stone KM et al.,2011<br>S:Winters-Stone KM et al.,2014<br>S:Yang Z et al.,2017<br>S:Zhou Y et al.,2017</td></tr><tr><td><b>うつ</b><br><span class="tag">重要・重要度6</span></td><td><b>C</b></td><td>バイアスリスク、不精確、出版バイアス</td><td>RCT 5件。SMD -0.39（95%CI -0.68–-0.1）</td><td style='font-size:12.5px'>S:Alibhai SM et al.,2014<br>S:Campbell KL et al.,2018<br>S:Carter SJ et al.,2018<br>S:Culos-Reed SN et al.,2010<br>S:Saxton JM et al.,2014</td></tr></table></div></section>
+
+<section><h2>採用文献（クリックで結果を展開）</h2><details class="study"><summary>Adams SC et al.,2018</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Ahmed RL et al.,2006</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Alibhai SM et al.,2014</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>うつ</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Arroyo-Morales M et al.,2012</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Baruth M et al.,2015</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Bourke L et al.,2011</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Brocki BC et al.,2014</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Broderick JM et al.,2013</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Brown JC et al.,2012</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Brown JC et al.,2015</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Brown JC et al.,2018</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Brown JC et al.,2018(High vs Ctrl)</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Brown JC et al.,2018(Low vs Ctrl)</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Burnham TR et al.,2002</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Campbell KL et al.,2018</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>うつ</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Cantarero-Villanueva I et al.,2016</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Carter SJ et al.,2018</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>うつ</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Casla S et al.,2015</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Courneya KS et al.,2003</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Crawford JJ et al.,2017</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Culos-Reed SN et al.,2010</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>うつ</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Dieli-Conwright CM et al.,2018</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Dolan LB et al.,2016</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Fairey AS et al.,2005</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Galiano-Castillo N et al.,2016</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Galvao DA et al.,2014</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Gaskin CJ et al.,2016</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Gaskin CJ et al.,2017</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Giallauria F et al.,2014</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Goodwin PJ et al.,2014</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Goodwin PJ et al.,2020</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>全生存期間</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Greenlee HA et al.,2013</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Irwin ML et al.,2008</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Irwin ML et al.,2017</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Johansson K et al.,2013</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Johnston MF et al.,2011</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Kampshoff CS et al.,2015</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Kenfield SA et al.,2019</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Kim JY et al.,2019</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Kim SH et al.,2016</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Kim SH et al.,2018</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Kinney A et al.,2011</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>LaStayo PC et al.,2011</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Lee MK et al.,2018</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Luca DV et al.,2016</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>McNeil J et al.,2019</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Milne HM et al.,2008</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Mulero PA et al.,2008</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Murtezani A et al.,2014</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Nyrop KA et al.,2017</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>O&#x27;Neill LM et al.,2018</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>O&#x27;Neill RF et al.,2015</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Pinto BM et al.,2013</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Pisu M et al.,2017</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Rabin C et al.,2011</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Rogers LQ et al.,2009</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Rogers LQ et al.,2013</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Rogers LQ et al.,2014</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>筋力</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Rogers LQ et al.,2015a</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Rogers LQ et al.,2015b</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Sandel SL et al.,2005</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Saxton JM et al.,2014</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>うつ</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Scott C et al.,2018</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Scott E et al.,2013</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>持久性体力</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Strunk MA et al.,2017</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Sweeney FC et al.,2018</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Vallance JK et al.,2007</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Waltman NL et al.,2010</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Winters-Stone KM et al.,2011</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Winters-Stone KM et al.,2014</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Yang Z et al.,2017</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details>
+<details class="study"><summary>Zhou Y et al.,2017</summary><div class="sbody">PMID未登録｜ ｜デザイン: rct<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th><th>効果</th><th>適格性</th></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>QOL</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>倦怠感</td><td>—</td><td>—</td><td>適格</td></tr><tr><td>有害事象</td><td>—</td><td>—</td><td>適格</td></tr></table></div></div></details></section>
+
+<section><h2>推奨の由来（AGREE II 項目12の証跡）</h2><div class="chain"><b>EB:QOL</b>（確実性 B、格下げ: 不精確、非一貫性、出版バイアス、バイアスリスク）<br><span class="note">根拠: S:Alibhai SM et al.,2014、S:Bourke L et al.,2011、S:Broderick JM et al.,2013、S:Broderick JM et al.,2013、S:Brown JC et al.,2018(High vs Ctrl)、S:Brown JC et al.,2018(High vs Ctrl)、S:Brown JC et al.,2018(High vs Ctrl)、S:Brown JC et al.,2018(Low vs Ctrl)、S:Brown JC et al.,2018(Low vs Ctrl)、S:Brown JC et al.,2018(Low vs Ctrl)、S:Courneya KS et al.,2003、S:Culos-Reed SN et al.,2010、S:Galiano-Castillo N et al.,2016、S:Goodwin PJ et al.,2014、S:Goodwin PJ et al.,2014、S:Goodwin PJ et al.,2014、S:Kim JY et al.,2019、S:Kinney A et al.,2011、S:Kinney A et al.,2011、S:McNeil J et al.,2019、S:McNeil J et al.,2019、S:Milne HM et al.,2008、S:Murtezani A et al.,2014、S:Nyrop KA et al.,2017、S:Pinto BM et al.,2013、S:Pisu M et al.,2017、S:Pisu M et al.,2017、S:Scott E et al.,2013、S:Vallance JK et al.,2007、S:Vallance JK et al.,2007、S:Vallance JK et al.,2007、S:Yang Z et al.,2017、S:Zhou Y et al.,2017、S:Zhou Y et al.,2017</span></div><div class="chain"><b>EB:うつ</b>（確実性 C、格下げ: 不精確、出版バイアス、バイアスリスク）<br><span class="note">根拠: S:Alibhai SM et al.,2014、S:Campbell KL et al.,2018、S:Carter SJ et al.,2018、S:Culos-Reed SN et al.,2010、S:Saxton JM et al.,2014</span></div><div class="chain"><b>EB:倦怠感</b>（確実性 B、格下げ: 不精確、非一貫性、出版バイアス、バイアスリスク）<br><span class="note">根拠: S:Alibhai SM et al.,2014、S:Arroyo-Morales M et al.,2012、S:Bourke L et al.,2011、S:Broderick JM et al.,2013、S:Broderick JM et al.,2013、S:Brown JC et al.,2018、S:Brown JC et al.,2018、S:Campbell KL et al.,2018、S:Culos-Reed SN et al.,2010、S:Kim JY et al.,2019、S:Milne HM et al.,2008、S:Nyrop KA et al.,2017、S:Pinto BM et al.,2013、S:Rabin C et al.,2011、S:Rogers LQ et al.,2014、S:Rogers LQ et al.,2015a、S:Vallance JK et al.,2007、S:Vallance JK et al.,2007、S:Vallance JK et al.,2007、S:Yang Z et al.,2017、S:Zhou Y et al.,2017</span></div><div class="chain"><b>EB:全生存期間</b>（確実性 D、格下げ: 不精確、非直接性、出版バイアス、バイアスリスク）<br><span class="note">根拠: S:Goodwin PJ et al.,2020</span></div><div class="chain"><b>EB:持久性体力</b>（確実性 B、格下げ: 不精確、非一貫性、出版バイアス、バイアスリスク）<br><span class="note">根拠: S:Alibhai SM et al.,2014、S:Bourke L et al.,2011、S:Brocki BC et al.,2014、S:Broderick JM et al.,2013、S:Brown JC et al.,2018、S:Campbell KL et al.,2018、S:Cantarero-Villanueva I et al.,2016、S:Courneya KS et al.,2003、S:Crawford JJ et al.,2017、S:Culos-Reed SN et al.,2010、S:Dolan LB et al.,2016、S:Dolan LB et al.,2016、S:LaStayo PC et al.,2011、S:McNeil J et al.,2019、S:McNeil J et al.,2019、S:O&#x27;Neill LM et al.,2018、S:Pisu M et al.,2017、S:Rogers LQ et al.,2014、S:Scott E et al.,2013</span></div><div class="chain"><b>EB:有害事象</b>（確実性 B、格下げ: 不精確、バイアスリスク）<br><span class="note">根拠: S:Adams SC et al.,2018、S:Alibhai SM et al.,2014、S:Arroyo-Morales M et al.,2012、S:Baruth M et al.,2015、S:Broderick JM et al.,2013、S:Brown JC et al.,2012、S:Brown JC et al.,2012、S:Brown JC et al.,2015、S:Brown JC et al.,2018、S:Burnham TR et al.,2002、S:Burnham TR et al.,2002、S:Campbell KL et al.,2018、S:Casla S et al.,2015、S:Courneya KS et al.,2003、S:Crawford JJ et al.,2017、S:Dieli-Conwright CM et al.,2018、S:Dieli-Conwright CM et al.,2018、S:Dolan LB et al.,2016、S:Dolan LB et al.,2016、S:Fairey AS et al.,2005、S:Galvao DA et al.,2014、S:Galvao DA et al.,2014、S:Gaskin CJ et al.,2016、S:Gaskin CJ et al.,2017、S:Giallauria F et al.,2014、S:Greenlee HA et al.,2013、S:Irwin ML et al.,2008、S:Irwin ML et al.,2017、S:Johansson K et al.,2013、S:Johnston MF et al.,2011、S:Kampshoff CS et al.,2015、S:Kampshoff CS et al.,2015、S:Kenfield SA et al.,2019、S:Kim SH et al.,2016、S:Kim SH et al.,2018、S:Kinney A et al.,2011、S:LaStayo PC et al.,2011、S:Lee MK et al.,2018、S:Luca DV et al.,2016、S:Mulero PA et al.,2008、S:Mulero PA et al.,2008、S:Nyrop KA et al.,2017、S:O&#x27;Neill LM et al.,2018、S:O&#x27;Neill RF et al.,2015、S:Rogers LQ et al.,2009、S:Rogers LQ et al.,2013、S:Rogers LQ et al.,2014、S:Rogers LQ et al.,2015b、S:Sandel SL et al.,2005、S:Scott C et al.,2018、S:Scott E et al.,2013、S:Strunk MA et al.,2017、S:Sweeney FC et al.,2018、S:Waltman NL et al.,2010、S:Winters-Stone KM et al.,2011、S:Winters-Stone KM et al.,2014、S:Yang Z et al.,2017、S:Zhou Y et al.,2017</span></div><div class="chain"><b>EB:筋力</b>（確実性 B、格下げ: 不精確、非一貫性、バイアスリスク）<br><span class="note">根拠: S:Ahmed RL et al.,2006、S:Alibhai SM et al.,2014、S:Bourke L et al.,2011、S:Crawford JJ et al.,2017、S:Crawford JJ et al.,2017、S:Crawford JJ et al.,2017、S:Dolan LB et al.,2016、S:Dolan LB et al.,2016、S:Kim SH et al.,2018、S:Kim SH et al.,2018、S:Kim SH et al.,2018、S:LaStayo PC et al.,2011、S:LaStayo PC et al.,2011、S:Rogers LQ et al.,2014</span></div>
+<p class="note">推奨 → エビデンス総体 → 格下げ要因 → 論文PMID の連鎖です。この鎖に載っていない根拠は、推奨の裏づけになりません。</p></section>
+
+
+
+
+
+<section>
+  <h2>あなたの確認</h2>
+  <div class="chk"><input type="checkbox" id="c0" data-chk="0"><label class="q" for="c0">推奨文が、この画面に並ぶ根拠だけで説明できる（書かれていない根拠を前提にしていない）<small>AGREE II 項目12：推奨とエビデンスの対応関係</small></label></div><div class="chk"><input type="checkbox" id="c1" data-chk="1"><label class="q" for="c1">採用文献に、除外すべき研究（同一試験の重複・撤回論文・適格基準外）が混じっていない<small>Minds 4.2 / 4.4</small></label></div><div class="chk"><input type="checkbox" id="c2" data-chk="2"><label class="q" for="c2">エビデンスの確実性の格下げ理由に納得できる<small>AGREE II 項目9 / Minds 4.4</small></label></div><div class="chk"><input type="checkbox" id="c3" data-chk="3"><label class="q" for="c3">益と害のバランスの記述が、示された効果量と矛盾しない<small>AGREE II 項目11 / Minds 6.3</small></label></div><div class="chk"><input type="checkbox" id="c4" data-chk="4"><label class="q" for="c4">推奨の強さ（1/2/なし）と方向が、確実性と益害バランスから妥当である<small>Minds 6.3</small></label></div><div class="chk"><input type="checkbox" id="c5" data-chk="5"><label class="q" for="c5">患者の価値観・希望のばらつきへの言及が、この領域の実態に合っている<small>AGREE II 項目5</small></label></div><div class="chk"><input type="checkbox" id="c6" data-chk="6"><label class="q" for="c6">実施上の障壁（費用・器材・体制）の記述に、現場から見た抜けがない<small>AGREE II 項目18 / Minds 6.4</small></label></div>
+  <div class="verdicts">
+    <label><input type="radio" name="verdict" value="approve">承認する</label>
+    <label><input type="radio" name="verdict" value="conditional">条件付き承認（コメント必須）</label>
+    <label><input type="radio" name="verdict" value="revise">差し戻す（コメント必須）</label>
+  </div>
+  <textarea id="comment" placeholder="コメント（差し戻し・条件付き承認の場合は必須。どの記述を、何を根拠に、どう直すかを書いてください）"></textarea>
+  <p style="margin-top:10px">
+    お名前：<input id="reviewer" style="padding:7px;border:1px solid #ccd3da;border-radius:6px;font-size:14px" placeholder="委員名">
+  </p>
+</section>
+</div>
+
+<div class="bar">
+  <span id="status">入力は自動保存されます（この端末のブラウザ内のみ）</span>
+  <span style="flex:1"></span>
+  <button class="ghost" onclick="clearAll()">入力を消去</button>
+  <button onclick="exportJSON()">回答をJSONで書き出す</button>
+</div>
+
+<script>
+const CQ = "CQ1";
+const KEY = "cipn-review-" + CQ;
+function collect() {
+  const chk = {};
+  document.querySelectorAll('[data-chk]').forEach(e => chk[e.dataset.chk] = e.checked);
+  const v = document.querySelector('input[name=verdict]:checked');
+  return {cq: CQ, reviewer: document.getElementById('reviewer').value,
+          verdict: v ? v.value : null, checklist: chk,
+          comment: document.getElementById('comment').value,
+          saved_at: new Date().toISOString()};
+}
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(collect()));
+  document.getElementById('status').textContent = "保存しました " + new Date().toLocaleTimeString('ja-JP');
+}
+function restore() {
+  const raw = localStorage.getItem(KEY); if (!raw) return;
+  const d = JSON.parse(raw);
+  document.getElementById('reviewer').value = d.reviewer || "";
+  document.getElementById('comment').value = d.comment || "";
+  Object.entries(d.checklist || {}).forEach(([k, v]) => {
+    const e = document.querySelector('[data-chk="' + k + '"]'); if (e) e.checked = v;
+  });
+  if (d.verdict) {
+    const e = document.querySelector('input[name=verdict][value="' + d.verdict + '"]');
+    if (e) e.checked = true;
+  }
+}
+function exportJSON() {
+  const d = collect();
+  if (!d.reviewer) { alert("お名前を入力してください"); return; }
+  if (!d.verdict) { alert("承認・条件付き承認・差し戻しのいずれかを選んでください"); return; }
+  if (d.verdict !== "approve" && !d.comment.trim()) { alert("コメントを入力してください"); return; }
+  const blob = new Blob([JSON.stringify(d, null, 2)], {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = CQ + "_" + (d.reviewer || "reviewer") + ".review.json";
+  a.click();
+}
+function clearAll() {
+  if (!confirm("この画面の入力を消去します。よろしいですか。")) return;
+  localStorage.removeItem(KEY); location.reload();
+}
+document.addEventListener("input", save);
+document.addEventListener("change", save);
+restore();
+</script>
+</body></html>

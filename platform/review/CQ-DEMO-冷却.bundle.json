@@ -1,0 +1,498 @@
+{
+  "generated_at": "2026-07-31T08:56:30+00:00",
+  "cq": {
+    "id": "CQ-DEMO-冷却",
+    "title": "【デモ】タキサン系抗がん薬による末梢神経障害の予防に凍結療法（冷却）は推奨されるか",
+    "pico": {
+      "P": "タキサン系抗がん薬の投与を受けるがん患者",
+      "I": "手足の冷却（凍結手袋・靴下）",
+      "C": "冷却なし",
+      "O": [
+        "CIPN発症頻度",
+        "手足のしびれ（患者報告）",
+        "QOL",
+        "冷却に伴う有害事象"
+      ]
+    },
+    "comparator_kind": "none",
+    "outcomes": [
+      {
+        "id": "O:CIPN発症頻度",
+        "label": "CIPN発症頻度",
+        "importance": 8
+      },
+      {
+        "id": "O:しびれ",
+        "label": "手足のしびれ（患者報告）",
+        "importance": 7
+      },
+      {
+        "id": "O:QOL",
+        "label": "QOL",
+        "importance": 5
+      }
+    ]
+  },
+  "draft": {
+    "_note": "Phase1（推奨案生成）の出力を想定したダミー。意図的に不整合を含めてある。",
+    "generated_by": "demo (LLM未実行)",
+    "recommendation_text": "タキサン系抗がん薬による末梢神経障害の予防として、手足の冷却を行うことを提案する。",
+    "direction": "for",
+    "strength": "2",
+    "certainty": "B",
+    "cited_pmids": [
+      "00000001",
+      "00000004",
+      "99999999"
+    ],
+    "mentioned_outcomes": [
+      "CIPN発症頻度",
+      "手足のしびれ（患者報告）",
+      "全生存期間"
+    ],
+    "etd_judgments": {
+      "benefit_harm": "望ましい効果が望ましくない効果をやや上回る",
+      "values": "冷却の不快感の受け止めには個人差がある",
+      "resources": "凍結手袋の購入・保管に一定の負担がある"
+    },
+    "panel_vote": {
+      "n_panel": 12,
+      "distribution": {
+        "1": 1,
+        "2": 8,
+        "なし": 3
+      },
+      "agreement_rate": 0.67
+    }
+  },
+  "narrative": "",
+  "evidence_bodies": [
+    {
+      "id": "EB:冷却×発症頻度",
+      "outcome": "O:CIPN発症頻度",
+      "outcome_label": "CIPN発症頻度",
+      "importance": 8,
+      "band": "critical",
+      "certainty": "C",
+      "downgraded_by": [
+        "risk_of_bias",
+        "imprecision"
+      ],
+      "summary": "【ダミー】RCT2件・メタ解析1件。発症頻度の低下を示すが、盲検化困難によるバイアスリスクとイベント数不足がある。",
+      "results": [
+        "R:A主-発症頻度",
+        "R:A副-発症頻度",
+        "R:B-発症頻度",
+        "R:MA-発症頻度"
+      ],
+      "studies": [
+        "S:ダミーMA",
+        "S:ダミーRCT-A主報告",
+        "S:ダミーRCT-A副次報告",
+        "S:ダミーRCT-B"
+      ]
+    },
+    {
+      "id": "EB:冷却×しびれ",
+      "outcome": "O:しびれ",
+      "outcome_label": "手足のしびれ（患者報告）",
+      "importance": 7,
+      "band": "critical",
+      "certainty": "D",
+      "downgraded_by": [
+        "risk_of_bias",
+        "inconsistency",
+        "imprecision"
+      ],
+      "summary": "【ダミー】患者報告アウトカムは研究間で尺度が異なり、方向も一致しない。",
+      "results": [
+        "R:A副-しびれ"
+      ],
+      "studies": [
+        "S:ダミーRCT-A副次報告"
+      ]
+    },
+    {
+      "id": "EB:冷却×QOL",
+      "outcome": "O:QOL",
+      "outcome_label": "QOL",
+      "importance": 5,
+      "band": "important",
+      "certainty": "C",
+      "downgraded_by": [
+        "imprecision"
+      ],
+      "summary": "【ダミー】QOLは重要だが重大ではない（重要度5）。全体確実性の決定には用いない。",
+      "results": [
+        "R:B-QOL"
+      ],
+      "studies": [
+        "S:ダミーRCT-B"
+      ]
+    }
+  ],
+  "studies": [
+    {
+      "id": "S:ダミーMA",
+      "pmid": "00000004",
+      "title": "【架空】Cryotherapy for CIPN prevention: systematic review and meta-analysis",
+      "journal": "Demo Reviews",
+      "year": 2026,
+      "design": "meta_analysis",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [
+        "S:ダミーRCT-A主報告",
+        "S:ダミーRCT-B"
+      ],
+      "results": [
+        {
+          "id": "R:MA-発症頻度",
+          "outcome": "O:CIPN発症頻度",
+          "outcome_label": "CIPN発症頻度",
+          "comparator": "none",
+          "effect": {
+            "measure": "RR",
+            "point": 0.71,
+            "ci_low": 0.55,
+            "ci_high": 0.92,
+            "i2": 34
+          },
+          "eligible": true,
+          "contributes_to": [
+            "EB:冷却×発症頻度"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:ダミーRCT-A主報告",
+      "pmid": "00000001",
+      "title": "【架空】Frozen gloves for prevention of taxane-induced neuropathy: a randomized trial",
+      "journal": "Demo Journal of Supportive Care",
+      "year": 2024,
+      "design": "rct",
+      "retracted": false,
+      "trials": [
+        "T:UMIN000000001"
+      ],
+      "same_trial_as": [
+        "S:ダミーRCT-A副次報告"
+      ],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:A主-発症頻度",
+          "outcome": "O:CIPN発症頻度",
+          "outcome_label": "CIPN発症頻度",
+          "comparator": "none",
+          "effect": {
+            "measure": "RR",
+            "point": 0.62,
+            "ci_low": 0.41,
+            "ci_high": 0.94
+          },
+          "eligible": true,
+          "contributes_to": [
+            "EB:冷却×発症頻度"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:ダミーRCT-A副次報告",
+      "pmid": "00000002",
+      "title": "【架空】Secondary analysis of the same frozen-glove trial: patient-reported numbness",
+      "journal": "Demo Journal of Supportive Care",
+      "year": 2025,
+      "design": "rct",
+      "retracted": false,
+      "trials": [
+        "T:UMIN000000001"
+      ],
+      "same_trial_as": [
+        "S:ダミーRCT-A主報告"
+      ],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:A副-しびれ",
+          "outcome": "O:しびれ",
+          "outcome_label": "手足のしびれ（患者報告）",
+          "comparator": "none",
+          "effect": {
+            "measure": "SMD",
+            "point": -0.21,
+            "ci_low": -0.55,
+            "ci_high": 0.13
+          },
+          "eligible": true,
+          "contributes_to": [
+            "EB:冷却×しびれ"
+          ]
+        },
+        {
+          "id": "R:A副-発症頻度",
+          "outcome": "O:CIPN発症頻度",
+          "outcome_label": "CIPN発症頻度",
+          "comparator": "none",
+          "effect": {
+            "measure": "RR",
+            "point": 0.65,
+            "ci_low": 0.43,
+            "ci_high": 0.98
+          },
+          "eligible": true,
+          "contributes_to": [
+            "EB:冷却×発症頻度"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:ダミーRCT-B",
+      "pmid": "00000003",
+      "title": "【架空】Strong cooling versus mild cooling during taxane infusion",
+      "journal": "Demo Oncology Letters",
+      "year": 2025,
+      "design": "rct",
+      "retracted": false,
+      "trials": [
+        "T:NCT00000003"
+      ],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:B-QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": "active_weaker",
+          "effect": {
+            "measure": "SMD",
+            "point": 0.15,
+            "ci_low": -0.2,
+            "ci_high": 0.5
+          },
+          "eligible": true,
+          "contributes_to": [
+            "EB:冷却×QOL"
+          ]
+        },
+        {
+          "id": "R:B-発症頻度",
+          "outcome": "O:CIPN発症頻度",
+          "outcome_label": "CIPN発症頻度",
+          "comparator": "active_weaker",
+          "effect": {
+            "measure": "RR",
+            "point": 0.88,
+            "ci_low": 0.61,
+            "ci_high": 1.27
+          },
+          "eligible": true,
+          "contributes_to": [
+            "EB:冷却×発症頻度"
+          ]
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "passed": false,
+    "violations": [
+      {
+        "rule": "R2",
+        "evidence_body": "EB:冷却×発症頻度",
+        "trial": "T:UMIN000000001",
+        "results": [
+          "R:A主-発症頻度",
+          "R:A副-発症頻度"
+        ],
+        "studies": [
+          "S:ダミーRCT-A主報告",
+          "S:ダミーRCT-A副次報告"
+        ],
+        "detail": "試験 T:UMIN000000001 の複数論文が同一総体に寄与している(二重計上)。1つを主報告として残し他を除外する"
+      },
+      {
+        "rule": "R3",
+        "evidence_body": "EB:冷却×発症頻度",
+        "meta_analysis": "S:ダミーMA",
+        "overlapping": [
+          "S:ダミーRCT-A主報告",
+          "S:ダミーRCT-B"
+        ],
+        "detail": "メタ解析 S:ダミーMA が含む S:ダミーRCT-A主報告・S:ダミーRCT-B が同一総体に個別にも寄与している(二重計上)。MAを採るか個別研究を採るかを決める"
+      },
+      {
+        "rule": "R6",
+        "evidence_body": "EB:冷却×QOL",
+        "result": "R:B-QOL",
+        "cq_comparator": "none",
+        "result_comparator": [
+          "active_weaker"
+        ],
+        "detail": "R:B-QOL の対照(active_weaker)はCQの対照(none)と異なるが、非直接性の格下げが記録されていない。方向の判定には使えない"
+      },
+      {
+        "rule": "R6",
+        "evidence_body": "EB:冷却×発症頻度",
+        "result": "R:B-発症頻度",
+        "cq_comparator": "none",
+        "result_comparator": [
+          "active_weaker"
+        ],
+        "detail": "R:B-発症頻度 の対照(active_weaker)はCQの対照(none)と異なるが、非直接性の格下げが記録されていない。方向の判定には使えない"
+      }
+    ],
+    "by_rule": {
+      "R1": 0,
+      "R2": 1,
+      "R3": 1,
+      "R4": 0,
+      "R6": 2,
+      "R7": 0,
+      "R8": 0
+    }
+  },
+  "cross_check": [
+    {
+      "check": "certainty",
+      "level": "block",
+      "declared": "B",
+      "derived": "D",
+      "detail": "推奨案の確実性 B は、重大アウトカムの総体から導かれる D と一致しない(重大アウトカム2件のうち最低の確実性を採用(決定元: EB:冷却×しびれ))"
+    },
+    {
+      "check": "citation",
+      "level": "block",
+      "pmid": "99999999",
+      "detail": "推奨案が引用する PMID 99999999 は、この推奨の根拠グラフに存在しない。採用文献でないものを引いている"
+    },
+    {
+      "check": "outcome_scope",
+      "level": "warn",
+      "outcome": "全生存期間",
+      "detail": "推奨案が言及するアウトカム「全生存期間」はスコープで設定したアウトカム一覧にない。スコープ逸脱の候補"
+    },
+    {
+      "check": "consensus",
+      "level": "warn",
+      "agreement_rate": 0.67,
+      "detail": "合意率70%未満。Minds 6.3の合意基準を満たすか委員会で確認が必要"
+    }
+  ],
+  "derived_certainty": {
+    "overall": "D",
+    "reason": "重大アウトカム2件のうち最低の確実性を採用(決定元: EB:冷却×しびれ)",
+    "per_outcome": {
+      "O:QOL": {
+        "certainty": "C",
+        "importance": 5,
+        "band": "important",
+        "evidence_body": "EB:冷却×QOL"
+      },
+      "O:しびれ": {
+        "certainty": "D",
+        "importance": 7,
+        "band": "critical",
+        "evidence_body": "EB:冷却×しびれ"
+      },
+      "O:CIPN発症頻度": {
+        "certainty": "C",
+        "importance": 8,
+        "band": "critical",
+        "evidence_body": "EB:冷却×発症頻度"
+      }
+    }
+  },
+  "provenance": {
+    "recommendation": "REC:CQ-DEMO-冷却",
+    "chain": [
+      {
+        "evidence_body": "EB:冷却×QOL",
+        "certainty": "C",
+        "outcomes": [
+          "O:QOL"
+        ],
+        "downgraded_by": [
+          "imprecision"
+        ],
+        "studies": [
+          {
+            "result": "R:B-QOL",
+            "study": "S:ダミーRCT-B",
+            "pmid": "00000003",
+            "design": "rct"
+          }
+        ]
+      },
+      {
+        "evidence_body": "EB:冷却×しびれ",
+        "certainty": "D",
+        "outcomes": [
+          "O:しびれ"
+        ],
+        "downgraded_by": [
+          "imprecision",
+          "inconsistency",
+          "risk_of_bias"
+        ],
+        "studies": [
+          {
+            "result": "R:A副-しびれ",
+            "study": "S:ダミーRCT-A副次報告",
+            "pmid": "00000002",
+            "design": "rct"
+          }
+        ]
+      },
+      {
+        "evidence_body": "EB:冷却×発症頻度",
+        "certainty": "C",
+        "outcomes": [
+          "O:CIPN発症頻度"
+        ],
+        "downgraded_by": [
+          "imprecision",
+          "risk_of_bias"
+        ],
+        "studies": [
+          {
+            "result": "R:A主-発症頻度",
+            "study": "S:ダミーRCT-A主報告",
+            "pmid": "00000001",
+            "design": "rct"
+          },
+          {
+            "result": "R:A副-発症頻度",
+            "study": "S:ダミーRCT-A副次報告",
+            "pmid": "00000002",
+            "design": "rct"
+          },
+          {
+            "result": "R:B-発症頻度",
+            "study": "S:ダミーRCT-B",
+            "pmid": "00000003",
+            "design": "rct"
+          },
+          {
+            "result": "R:MA-発症頻度",
+            "study": "S:ダミーMA",
+            "pmid": "00000004",
+            "design": "meta_analysis"
+          }
+        ]
+      }
+    ],
+    "n_studies": 6
+  },
+  "gate": {
+    "ready_for_review": false,
+    "n_blocking": 6,
+    "reason": "機械検証で不整合。委員に出す前に差し戻す"
+  },
+  "source_package": "CQ-DEMO-冷却.json"
+}

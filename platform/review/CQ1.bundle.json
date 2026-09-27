@@ -1,0 +1,4510 @@
+{
+  "generated_at": "2026-08-07T10:30:54+00:00",
+  "cq": {
+    "id": "CQ1",
+    "title": "運動習慣のない18~64歳のがんサバイバーにおいて,運動を勧めることが推奨されるか？",
+    "pico": {
+      "P": "",
+      "I": "",
+      "C": "",
+      "O": [
+        "全生存期間",
+        "持久性体力",
+        "筋力",
+        "QOL",
+        "倦怠感",
+        "有害事象",
+        "うつ"
+      ]
+    },
+    "comparator_kind": "none",
+    "outcomes": [
+      {
+        "id": "O:全生存期間",
+        "label": "全生存期間",
+        "importance": 7
+      },
+      {
+        "id": "O:持久性体力",
+        "label": "持久性体力",
+        "importance": 7
+      },
+      {
+        "id": "O:筋力",
+        "label": "筋力",
+        "importance": 6
+      },
+      {
+        "id": "O:QOL",
+        "label": "QOL",
+        "importance": 8
+      },
+      {
+        "id": "O:倦怠感",
+        "label": "倦怠感",
+        "importance": 7
+      },
+      {
+        "id": "O:有害事象",
+        "label": "有害事象",
+        "importance": 6
+      },
+      {
+        "id": "O:うつ",
+        "label": "うつ",
+        "importance": 6
+      }
+    ]
+  },
+  "draft": {
+    "_note": "刊行版の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力で置き換える",
+    "generated_by": "published_guideline",
+    "recommendation_text": "運動習慣のない18~64歳のがんサバイバーにおいて,運動を勧めることを提案する。",
+    "direction": "for",
+    "strength": "2",
+    "certainty": "C",
+    "cited_pmids": [],
+    "mentioned_outcomes": [],
+    "panel_vote": null
+  },
+  "narrative": "",
+  "evidence_bodies": [
+    {
+      "id": "EB:全生存期間",
+      "outcome": "O:全生存期間",
+      "outcome_label": "全生存期間",
+      "importance": 7,
+      "band": "critical",
+      "certainty": "D",
+      "downgraded_by": [
+        "risk_of_bias",
+        "imprecision",
+        "indirectness",
+        "publication_bias"
+      ],
+      "summary": "RCT 1件。HR 0.86（95%CI 0.35–2.14）",
+      "results": [
+        "R:Goodwin PJ et al.,2020×全生存期間"
+      ],
+      "studies": [
+        "S:Goodwin PJ et al.,2020"
+      ]
+    },
+    {
+      "id": "EB:持久性体力",
+      "outcome": "O:持久性体力",
+      "outcome_label": "持久性体力",
+      "importance": 7,
+      "band": "critical",
+      "certainty": "B",
+      "downgraded_by": [
+        "risk_of_bias",
+        "inconsistency",
+        "imprecision",
+        "publication_bias"
+      ],
+      "summary": "RCT 18件。SMD 0.65（95%CI 0.34–0.95）",
+      "results": [
+        "R:Alibhai SM et al.,2014×持久性体力",
+        "R:Bourke L et al.,2011×持久性体力",
+        "R:Brocki BC et al.,2014×持久性体力",
+        "R:Broderick JM et al.,2013×持久性体力",
+        "R:Brown JC et al.,2018×持久性体力",
+        "R:Campbell KL et al.,2018×持久性体力",
+        "R:Cantarero-Villanueva I et al.,2016×持久性体力",
+        "R:Courneya KS et al.,2003×持久性体力",
+        "R:Crawford JJ et al.,2017×持久性体力",
+        "R:Culos-Reed SN et al.,2010×持久性体力",
+        "R:Dolan LB et al.,2016×持久性体力",
+        "R:Dolan LB et al.,2016×持久性体力#2",
+        "R:LaStayo PC et al.,2011×持久性体力",
+        "R:McNeil J et al.,2019×持久性体力",
+        "R:McNeil J et al.,2019×持久性体力#2",
+        "R:O'Neill LM et al.,2018×持久性体力",
+        "R:Pisu M et al.,2017×持久性体力",
+        "R:Rogers LQ et al.,2014×持久性体力",
+        "R:Scott E et al.,2013×持久性体力"
+      ],
+      "studies": [
+        "S:Alibhai SM et al.,2014",
+        "S:Bourke L et al.,2011",
+        "S:Brocki BC et al.,2014",
+        "S:Broderick JM et al.,2013",
+        "S:Brown JC et al.,2018",
+        "S:Campbell KL et al.,2018",
+        "S:Cantarero-Villanueva I et al.,2016",
+        "S:Courneya KS et al.,2003",
+        "S:Crawford JJ et al.,2017",
+        "S:Culos-Reed SN et al.,2010",
+        "S:Dolan LB et al.,2016",
+        "S:LaStayo PC et al.,2011",
+        "S:McNeil J et al.,2019",
+        "S:O'Neill LM et al.,2018",
+        "S:Pisu M et al.,2017",
+        "S:Rogers LQ et al.,2014",
+        "S:Scott E et al.,2013"
+      ]
+    },
+    {
+      "id": "EB:筋力",
+      "outcome": "O:筋力",
+      "outcome_label": "筋力",
+      "importance": 6,
+      "band": "important",
+      "certainty": "B",
+      "downgraded_by": [
+        "risk_of_bias",
+        "inconsistency",
+        "imprecision"
+      ],
+      "summary": "RCT 9件。SMD 0.79（95%CI 0.22–1.36）",
+      "results": [
+        "R:Ahmed RL et al.,2006×筋力",
+        "R:Alibhai SM et al.,2014×筋力",
+        "R:Bourke L et al.,2011×筋力",
+        "R:Crawford JJ et al.,2017×筋力",
+        "R:Crawford JJ et al.,2017×筋力#2",
+        "R:Crawford JJ et al.,2017×筋力#3",
+        "R:Dolan LB et al.,2016×筋力",
+        "R:Dolan LB et al.,2016×筋力#2",
+        "R:Kim SH et al.,2018×筋力",
+        "R:Kim SH et al.,2018×筋力#2",
+        "R:Kim SH et al.,2018×筋力#3",
+        "R:LaStayo PC et al.,2011×筋力",
+        "R:LaStayo PC et al.,2011×筋力#2",
+        "R:Rogers LQ et al.,2014×筋力"
+      ],
+      "studies": [
+        "S:Ahmed RL et al.,2006",
+        "S:Alibhai SM et al.,2014",
+        "S:Bourke L et al.,2011",
+        "S:Crawford JJ et al.,2017",
+        "S:Dolan LB et al.,2016",
+        "S:Kim SH et al.,2018",
+        "S:LaStayo PC et al.,2011",
+        "S:Rogers LQ et al.,2014"
+      ]
+    },
+    {
+      "id": "EB:QOL",
+      "outcome": "O:QOL",
+      "outcome_label": "QOL",
+      "importance": 8,
+      "band": "critical",
+      "certainty": "B",
+      "downgraded_by": [
+        "risk_of_bias",
+        "inconsistency",
+        "imprecision",
+        "publication_bias"
+      ],
+      "summary": "RCT 19件。SMD 0.68（95%CI 0.27–1.09）",
+      "results": [
+        "R:Alibhai SM et al.,2014×QOL",
+        "R:Bourke L et al.,2011×QOL",
+        "R:Broderick JM et al.,2013×QOL",
+        "R:Broderick JM et al.,2013×QOL#2",
+        "R:Brown JC et al.,2018(High vs Ctrl)×QOL",
+        "R:Brown JC et al.,2018(High vs Ctrl)×QOL#2",
+        "R:Brown JC et al.,2018(High vs Ctrl)×QOL#3",
+        "R:Brown JC et al.,2018(Low vs Ctrl)×QOL",
+        "R:Brown JC et al.,2018(Low vs Ctrl)×QOL#2",
+        "R:Brown JC et al.,2018(Low vs Ctrl)×QOL#3",
+        "R:Courneya KS et al.,2003×QOL",
+        "R:Culos-Reed SN et al.,2010×QOL",
+        "R:Galiano-Castillo N et al.,2016×QOL",
+        "R:Goodwin PJ et al.,2014×QOL",
+        "R:Goodwin PJ et al.,2014×QOL#2",
+        "R:Goodwin PJ et al.,2014×QOL#3",
+        "R:Kim JY et al.,2019×QOL",
+        "R:Kinney A et al.,2011×QOL",
+        "R:Kinney A et al.,2011×QOL#2",
+        "R:McNeil J et al.,2019×QOL",
+        "R:McNeil J et al.,2019×QOL#2",
+        "R:Milne HM et al.,2008×QOL",
+        "R:Murtezani A et al.,2014×QOL",
+        "R:Nyrop KA et al.,2017×QOL",
+        "R:Pinto BM et al.,2013×QOL",
+        "R:Pisu M et al.,2017×QOL",
+        "R:Pisu M et al.,2017×QOL#2",
+        "R:Scott E et al.,2013×QOL",
+        "R:Vallance JK et al.,2007×QOL",
+        "R:Vallance JK et al.,2007×QOL#2",
+        "R:Vallance JK et al.,2007×QOL#3",
+        "R:Yang Z et al.,2017×QOL",
+        "R:Zhou Y et al.,2017×QOL",
+        "R:Zhou Y et al.,2017×QOL#2"
+      ],
+      "studies": [
+        "S:Alibhai SM et al.,2014",
+        "S:Bourke L et al.,2011",
+        "S:Broderick JM et al.,2013",
+        "S:Brown JC et al.,2018(High vs Ctrl)",
+        "S:Brown JC et al.,2018(Low vs Ctrl)",
+        "S:Courneya KS et al.,2003",
+        "S:Culos-Reed SN et al.,2010",
+        "S:Galiano-Castillo N et al.,2016",
+        "S:Goodwin PJ et al.,2014",
+        "S:Kim JY et al.,2019",
+        "S:Kinney A et al.,2011",
+        "S:McNeil J et al.,2019",
+        "S:Milne HM et al.,2008",
+        "S:Murtezani A et al.,2014",
+        "S:Nyrop KA et al.,2017",
+        "S:Pinto BM et al.,2013",
+        "S:Pisu M et al.,2017",
+        "S:Scott E et al.,2013",
+        "S:Vallance JK et al.,2007",
+        "S:Yang Z et al.,2017",
+        "S:Zhou Y et al.,2017"
+      ]
+    },
+    {
+      "id": "EB:倦怠感",
+      "outcome": "O:倦怠感",
+      "outcome_label": "倦怠感",
+      "importance": 7,
+      "band": "critical",
+      "certainty": "B",
+      "downgraded_by": [
+        "risk_of_bias",
+        "inconsistency",
+        "imprecision",
+        "publication_bias"
+      ],
+      "summary": "RCT 18件。SMD -0.48（95%CI -0.7–-0.26）",
+      "results": [
+        "R:Alibhai SM et al.,2014×倦怠感",
+        "R:Arroyo-Morales M et al.,2012×倦怠感",
+        "R:Bourke L et al.,2011×倦怠感",
+        "R:Broderick JM et al.,2013×倦怠感",
+        "R:Broderick JM et al.,2013×倦怠感#2",
+        "R:Brown JC et al.,2018×倦怠感",
+        "R:Brown JC et al.,2018×倦怠感#2",
+        "R:Campbell KL et al.,2018×倦怠感",
+        "R:Culos-Reed SN et al.,2010×倦怠感",
+        "R:Kim JY et al.,2019×倦怠感",
+        "R:Milne HM et al.,2008×倦怠感",
+        "R:Nyrop KA et al.,2017×倦怠感",
+        "R:Pinto BM et al.,2013×倦怠感",
+        "R:Rabin C et al.,2011×倦怠感",
+        "R:Rogers LQ et al.,2014×倦怠感",
+        "R:Rogers LQ et al.,2015a×倦怠感",
+        "R:Vallance JK et al.,2007×倦怠感",
+        "R:Vallance JK et al.,2007×倦怠感#2",
+        "R:Vallance JK et al.,2007×倦怠感#3",
+        "R:Yang Z et al.,2017×倦怠感",
+        "R:Zhou Y et al.,2017×倦怠感"
+      ],
+      "studies": [
+        "S:Alibhai SM et al.,2014",
+        "S:Arroyo-Morales M et al.,2012",
+        "S:Bourke L et al.,2011",
+        "S:Broderick JM et al.,2013",
+        "S:Brown JC et al.,2018",
+        "S:Campbell KL et al.,2018",
+        "S:Culos-Reed SN et al.,2010",
+        "S:Kim JY et al.,2019",
+        "S:Milne HM et al.,2008",
+        "S:Nyrop KA et al.,2017",
+        "S:Pinto BM et al.,2013",
+        "S:Rabin C et al.,2011",
+        "S:Rogers LQ et al.,2014",
+        "S:Rogers LQ et al.,2015a",
+        "S:Vallance JK et al.,2007",
+        "S:Yang Z et al.,2017",
+        "S:Zhou Y et al.,2017"
+      ]
+    },
+    {
+      "id": "EB:有害事象",
+      "outcome": "O:有害事象",
+      "outcome_label": "有害事象",
+      "importance": 6,
+      "band": "important",
+      "certainty": "B",
+      "downgraded_by": [
+        "risk_of_bias",
+        "imprecision"
+      ],
+      "summary": "RCT 21件。RR 2.83（95%CI 1.79–4.45）",
+      "results": [
+        "R:Adams SC et al.,2018×有害事象",
+        "R:Alibhai SM et al.,2014×有害事象",
+        "R:Arroyo-Morales M et al.,2012×有害事象",
+        "R:Baruth M et al.,2015×有害事象",
+        "R:Broderick JM et al.,2013×有害事象",
+        "R:Brown JC et al.,2012×有害事象",
+        "R:Brown JC et al.,2012×有害事象#2",
+        "R:Brown JC et al.,2015×有害事象",
+        "R:Brown JC et al.,2018×有害事象",
+        "R:Burnham TR et al.,2002×有害事象",
+        "R:Burnham TR et al.,2002×有害事象#2",
+        "R:Campbell KL et al.,2018×有害事象",
+        "R:Casla S et al.,2015×有害事象",
+        "R:Courneya KS et al.,2003×有害事象",
+        "R:Crawford JJ et al.,2017×有害事象",
+        "R:Dieli-Conwright CM et al.,2018×有害事象",
+        "R:Dieli-Conwright CM et al.,2018×有害事象#2",
+        "R:Dolan LB et al.,2016×有害事象",
+        "R:Dolan LB et al.,2016×有害事象#2",
+        "R:Fairey AS et al.,2005×有害事象",
+        "R:Galvao DA et al.,2014×有害事象",
+        "R:Galvao DA et al.,2014×有害事象#2",
+        "R:Gaskin CJ et al.,2016×有害事象",
+        "R:Gaskin CJ et al.,2017×有害事象",
+        "R:Giallauria F et al.,2014×有害事象",
+        "R:Greenlee HA et al.,2013×有害事象",
+        "R:Irwin ML et al.,2008×有害事象",
+        "R:Irwin ML et al.,2017×有害事象",
+        "R:Johansson K et al.,2013×有害事象",
+        "R:Johnston MF et al.,2011×有害事象",
+        "R:Kampshoff CS et al.,2015×有害事象",
+        "R:Kampshoff CS et al.,2015×有害事象#2",
+        "R:Kenfield SA et al.,2019×有害事象",
+        "R:Kim SH et al.,2016×有害事象",
+        "R:Kim SH et al.,2018×有害事象",
+        "R:Kinney A et al.,2011×有害事象",
+        "R:LaStayo PC et al.,2011×有害事象",
+        "R:Lee MK et al.,2018×有害事象",
+        "R:Luca DV et al.,2016×有害事象",
+        "R:Mulero PA et al.,2008×有害事象",
+        "R:Mulero PA et al.,2008×有害事象#2",
+        "R:Nyrop KA et al.,2017×有害事象",
+        "R:O'Neill LM et al.,2018×有害事象",
+        "R:O'Neill RF et al.,2015×有害事象",
+        "R:Rogers LQ et al.,2009×有害事象",
+        "R:Rogers LQ et al.,2013×有害事象",
+        "R:Rogers LQ et al.,2014×有害事象",
+        "R:Rogers LQ et al.,2015b×有害事象",
+        "R:Sandel SL et al.,2005×有害事象",
+        "R:Scott C et al.,2018×有害事象",
+        "R:Scott E et al.,2013×有害事象",
+        "R:Strunk MA et al.,2017×有害事象",
+        "R:Sweeney FC et al.,2018×有害事象",
+        "R:Waltman NL et al.,2010×有害事象",
+        "R:Winters-Stone KM et al.,2011×有害事象",
+        "R:Winters-Stone KM et al.,2014×有害事象",
+        "R:Yang Z et al.,2017×有害事象",
+        "R:Zhou Y et al.,2017×有害事象"
+      ],
+      "studies": [
+        "S:Adams SC et al.,2018",
+        "S:Alibhai SM et al.,2014",
+        "S:Arroyo-Morales M et al.,2012",
+        "S:Baruth M et al.,2015",
+        "S:Broderick JM et al.,2013",
+        "S:Brown JC et al.,2012",
+        "S:Brown JC et al.,2015",
+        "S:Brown JC et al.,2018",
+        "S:Burnham TR et al.,2002",
+        "S:Campbell KL et al.,2018",
+        "S:Casla S et al.,2015",
+        "S:Courneya KS et al.,2003",
+        "S:Crawford JJ et al.,2017",
+        "S:Dieli-Conwright CM et al.,2018",
+        "S:Dolan LB et al.,2016",
+        "S:Fairey AS et al.,2005",
+        "S:Galvao DA et al.,2014",
+        "S:Gaskin CJ et al.,2016",
+        "S:Gaskin CJ et al.,2017",
+        "S:Giallauria F et al.,2014",
+        "S:Greenlee HA et al.,2013",
+        "S:Irwin ML et al.,2008",
+        "S:Irwin ML et al.,2017",
+        "S:Johansson K et al.,2013",
+        "S:Johnston MF et al.,2011",
+        "S:Kampshoff CS et al.,2015",
+        "S:Kenfield SA et al.,2019",
+        "S:Kim SH et al.,2016",
+        "S:Kim SH et al.,2018",
+        "S:Kinney A et al.,2011",
+        "S:LaStayo PC et al.,2011",
+        "S:Lee MK et al.,2018",
+        "S:Luca DV et al.,2016",
+        "S:Mulero PA et al.,2008",
+        "S:Nyrop KA et al.,2017",
+        "S:O'Neill LM et al.,2018",
+        "S:O'Neill RF et al.,2015",
+        "S:Rogers LQ et al.,2009",
+        "S:Rogers LQ et al.,2013",
+        "S:Rogers LQ et al.,2014",
+        "S:Rogers LQ et al.,2015b",
+        "S:Sandel SL et al.,2005",
+        "S:Scott C et al.,2018",
+        "S:Scott E et al.,2013",
+        "S:Strunk MA et al.,2017",
+        "S:Sweeney FC et al.,2018",
+        "S:Waltman NL et al.,2010",
+        "S:Winters-Stone KM et al.,2011",
+        "S:Winters-Stone KM et al.,2014",
+        "S:Yang Z et al.,2017",
+        "S:Zhou Y et al.,2017"
+      ]
+    },
+    {
+      "id": "EB:うつ",
+      "outcome": "O:うつ",
+      "outcome_label": "うつ",
+      "importance": 6,
+      "band": "important",
+      "certainty": "C",
+      "downgraded_by": [
+        "risk_of_bias",
+        "imprecision",
+        "publication_bias"
+      ],
+      "summary": "RCT 5件。SMD -0.39（95%CI -0.68–-0.1）",
+      "results": [
+        "R:Alibhai SM et al.,2014×うつ",
+        "R:Campbell KL et al.,2018×うつ",
+        "R:Carter SJ et al.,2018×うつ",
+        "R:Culos-Reed SN et al.,2010×うつ",
+        "R:Saxton JM et al.,2014×うつ"
+      ],
+      "studies": [
+        "S:Alibhai SM et al.,2014",
+        "S:Campbell KL et al.,2018",
+        "S:Carter SJ et al.,2018",
+        "S:Culos-Reed SN et al.,2010",
+        "S:Saxton JM et al.,2014"
+      ]
+    }
+  ],
+  "studies": [
+    {
+      "id": "S:Adams SC et al.,2018",
+      "pmid": null,
+      "title": "Adams SC et al.,2018",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Adams SC et al.,2018×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Ahmed RL et al.,2006",
+      "pmid": null,
+      "title": "Ahmed RL et al.,2006",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Ahmed RL et al.,2006×筋力",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Alibhai SM et al.,2014",
+      "pmid": null,
+      "title": "Alibhai SM et al.,2014",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Alibhai SM et al.,2014×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Alibhai SM et al.,2014×うつ",
+          "outcome": "O:うつ",
+          "outcome_label": "うつ",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:うつ"
+          ]
+        },
+        {
+          "id": "R:Alibhai SM et al.,2014×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Alibhai SM et al.,2014×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:Alibhai SM et al.,2014×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Alibhai SM et al.,2014×筋力",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Arroyo-Morales M et al.,2012",
+      "pmid": null,
+      "title": "Arroyo-Morales M et al.,2012",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Arroyo-Morales M et al.,2012×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Arroyo-Morales M et al.,2012×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Baruth M et al.,2015",
+      "pmid": null,
+      "title": "Baruth M et al.,2015",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Baruth M et al.,2015×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Bourke L et al.,2011",
+      "pmid": null,
+      "title": "Bourke L et al.,2011",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Bourke L et al.,2011×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Bourke L et al.,2011×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Bourke L et al.,2011×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:Bourke L et al.,2011×筋力",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Brocki BC et al.,2014",
+      "pmid": null,
+      "title": "Brocki BC et al.,2014",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Brocki BC et al.,2014×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Broderick JM et al.,2013",
+      "pmid": null,
+      "title": "Broderick JM et al.,2013",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Broderick JM et al.,2013×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Broderick JM et al.,2013×QOL#2",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Broderick JM et al.,2013×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Broderick JM et al.,2013×倦怠感#2",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Broderick JM et al.,2013×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:Broderick JM et al.,2013×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Brown JC et al.,2012",
+      "pmid": null,
+      "title": "Brown JC et al.,2012",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Brown JC et al.,2012×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Brown JC et al.,2012×有害事象#2",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Brown JC et al.,2015",
+      "pmid": null,
+      "title": "Brown JC et al.,2015",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Brown JC et al.,2015×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Brown JC et al.,2018",
+      "pmid": null,
+      "title": "Brown JC et al.,2018",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Brown JC et al.,2018×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Brown JC et al.,2018×倦怠感#2",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Brown JC et al.,2018×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:Brown JC et al.,2018×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Brown JC et al.,2018(High vs Ctrl)",
+      "pmid": null,
+      "title": "Brown JC et al.,2018(High vs Ctrl)",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Brown JC et al.,2018(High vs Ctrl)×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Brown JC et al.,2018(High vs Ctrl)×QOL#2",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Brown JC et al.,2018(High vs Ctrl)×QOL#3",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Brown JC et al.,2018(Low vs Ctrl)",
+      "pmid": null,
+      "title": "Brown JC et al.,2018(Low vs Ctrl)",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Brown JC et al.,2018(Low vs Ctrl)×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Brown JC et al.,2018(Low vs Ctrl)×QOL#2",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Brown JC et al.,2018(Low vs Ctrl)×QOL#3",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Burnham TR et al.,2002",
+      "pmid": null,
+      "title": "Burnham TR et al.,2002",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Burnham TR et al.,2002×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Burnham TR et al.,2002×有害事象#2",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Campbell KL et al.,2018",
+      "pmid": null,
+      "title": "Campbell KL et al.,2018",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Campbell KL et al.,2018×うつ",
+          "outcome": "O:うつ",
+          "outcome_label": "うつ",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:うつ"
+          ]
+        },
+        {
+          "id": "R:Campbell KL et al.,2018×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Campbell KL et al.,2018×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:Campbell KL et al.,2018×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Cantarero-Villanueva I et al.,2016",
+      "pmid": null,
+      "title": "Cantarero-Villanueva I et al.,2016",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Cantarero-Villanueva I et al.,2016×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Carter SJ et al.,2018",
+      "pmid": null,
+      "title": "Carter SJ et al.,2018",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Carter SJ et al.,2018×うつ",
+          "outcome": "O:うつ",
+          "outcome_label": "うつ",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:うつ"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Casla S et al.,2015",
+      "pmid": null,
+      "title": "Casla S et al.,2015",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Casla S et al.,2015×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Courneya KS et al.,2003",
+      "pmid": null,
+      "title": "Courneya KS et al.,2003",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Courneya KS et al.,2003×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Courneya KS et al.,2003×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:Courneya KS et al.,2003×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Crawford JJ et al.,2017",
+      "pmid": null,
+      "title": "Crawford JJ et al.,2017",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Crawford JJ et al.,2017×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:Crawford JJ et al.,2017×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Crawford JJ et al.,2017×筋力",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        },
+        {
+          "id": "R:Crawford JJ et al.,2017×筋力#2",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        },
+        {
+          "id": "R:Crawford JJ et al.,2017×筋力#3",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Culos-Reed SN et al.,2010",
+      "pmid": null,
+      "title": "Culos-Reed SN et al.,2010",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Culos-Reed SN et al.,2010×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Culos-Reed SN et al.,2010×うつ",
+          "outcome": "O:うつ",
+          "outcome_label": "うつ",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:うつ"
+          ]
+        },
+        {
+          "id": "R:Culos-Reed SN et al.,2010×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Culos-Reed SN et al.,2010×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Dieli-Conwright CM et al.,2018",
+      "pmid": null,
+      "title": "Dieli-Conwright CM et al.,2018",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Dieli-Conwright CM et al.,2018×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Dieli-Conwright CM et al.,2018×有害事象#2",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Dolan LB et al.,2016",
+      "pmid": null,
+      "title": "Dolan LB et al.,2016",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Dolan LB et al.,2016×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:Dolan LB et al.,2016×持久性体力#2",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:Dolan LB et al.,2016×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Dolan LB et al.,2016×有害事象#2",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Dolan LB et al.,2016×筋力",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        },
+        {
+          "id": "R:Dolan LB et al.,2016×筋力#2",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Fairey AS et al.,2005",
+      "pmid": null,
+      "title": "Fairey AS et al.,2005",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Fairey AS et al.,2005×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Galiano-Castillo N et al.,2016",
+      "pmid": null,
+      "title": "Galiano-Castillo N et al.,2016",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Galiano-Castillo N et al.,2016×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Galvao DA et al.,2014",
+      "pmid": null,
+      "title": "Galvao DA et al.,2014",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Galvao DA et al.,2014×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Galvao DA et al.,2014×有害事象#2",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Gaskin CJ et al.,2016",
+      "pmid": null,
+      "title": "Gaskin CJ et al.,2016",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Gaskin CJ et al.,2016×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Gaskin CJ et al.,2017",
+      "pmid": null,
+      "title": "Gaskin CJ et al.,2017",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Gaskin CJ et al.,2017×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Giallauria F et al.,2014",
+      "pmid": null,
+      "title": "Giallauria F et al.,2014",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Giallauria F et al.,2014×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Goodwin PJ et al.,2014",
+      "pmid": null,
+      "title": "Goodwin PJ et al.,2014",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Goodwin PJ et al.,2014×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Goodwin PJ et al.,2014×QOL#2",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Goodwin PJ et al.,2014×QOL#3",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Goodwin PJ et al.,2020",
+      "pmid": null,
+      "title": "Goodwin PJ et al.,2020",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Goodwin PJ et al.,2020×全生存期間",
+          "outcome": "O:全生存期間",
+          "outcome_label": "全生存期間",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:全生存期間"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Greenlee HA et al.,2013",
+      "pmid": null,
+      "title": "Greenlee HA et al.,2013",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Greenlee HA et al.,2013×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Irwin ML et al.,2008",
+      "pmid": null,
+      "title": "Irwin ML et al.,2008",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Irwin ML et al.,2008×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Irwin ML et al.,2017",
+      "pmid": null,
+      "title": "Irwin ML et al.,2017",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Irwin ML et al.,2017×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Johansson K et al.,2013",
+      "pmid": null,
+      "title": "Johansson K et al.,2013",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Johansson K et al.,2013×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Johnston MF et al.,2011",
+      "pmid": null,
+      "title": "Johnston MF et al.,2011",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Johnston MF et al.,2011×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Kampshoff CS et al.,2015",
+      "pmid": null,
+      "title": "Kampshoff CS et al.,2015",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Kampshoff CS et al.,2015×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Kampshoff CS et al.,2015×有害事象#2",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Kenfield SA et al.,2019",
+      "pmid": null,
+      "title": "Kenfield SA et al.,2019",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Kenfield SA et al.,2019×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Kim JY et al.,2019",
+      "pmid": null,
+      "title": "Kim JY et al.,2019",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Kim JY et al.,2019×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Kim JY et al.,2019×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Kim SH et al.,2016",
+      "pmid": null,
+      "title": "Kim SH et al.,2016",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Kim SH et al.,2016×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Kim SH et al.,2018",
+      "pmid": null,
+      "title": "Kim SH et al.,2018",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Kim SH et al.,2018×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Kim SH et al.,2018×筋力",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        },
+        {
+          "id": "R:Kim SH et al.,2018×筋力#2",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        },
+        {
+          "id": "R:Kim SH et al.,2018×筋力#3",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Kinney A et al.,2011",
+      "pmid": null,
+      "title": "Kinney A et al.,2011",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Kinney A et al.,2011×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Kinney A et al.,2011×QOL#2",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Kinney A et al.,2011×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:LaStayo PC et al.,2011",
+      "pmid": null,
+      "title": "LaStayo PC et al.,2011",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:LaStayo PC et al.,2011×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:LaStayo PC et al.,2011×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:LaStayo PC et al.,2011×筋力",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        },
+        {
+          "id": "R:LaStayo PC et al.,2011×筋力#2",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Lee MK et al.,2018",
+      "pmid": null,
+      "title": "Lee MK et al.,2018",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Lee MK et al.,2018×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Luca DV et al.,2016",
+      "pmid": null,
+      "title": "Luca DV et al.,2016",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Luca DV et al.,2016×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:McNeil J et al.,2019",
+      "pmid": null,
+      "title": "McNeil J et al.,2019",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:McNeil J et al.,2019×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:McNeil J et al.,2019×QOL#2",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:McNeil J et al.,2019×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:McNeil J et al.,2019×持久性体力#2",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Milne HM et al.,2008",
+      "pmid": null,
+      "title": "Milne HM et al.,2008",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Milne HM et al.,2008×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Milne HM et al.,2008×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Mulero PA et al.,2008",
+      "pmid": null,
+      "title": "Mulero PA et al.,2008",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Mulero PA et al.,2008×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Mulero PA et al.,2008×有害事象#2",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Murtezani A et al.,2014",
+      "pmid": null,
+      "title": "Murtezani A et al.,2014",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Murtezani A et al.,2014×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Nyrop KA et al.,2017",
+      "pmid": null,
+      "title": "Nyrop KA et al.,2017",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Nyrop KA et al.,2017×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Nyrop KA et al.,2017×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Nyrop KA et al.,2017×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:O'Neill LM et al.,2018",
+      "pmid": null,
+      "title": "O'Neill LM et al.,2018",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:O'Neill LM et al.,2018×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:O'Neill LM et al.,2018×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:O'Neill RF et al.,2015",
+      "pmid": null,
+      "title": "O'Neill RF et al.,2015",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:O'Neill RF et al.,2015×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Pinto BM et al.,2013",
+      "pmid": null,
+      "title": "Pinto BM et al.,2013",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Pinto BM et al.,2013×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Pinto BM et al.,2013×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Pisu M et al.,2017",
+      "pmid": null,
+      "title": "Pisu M et al.,2017",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Pisu M et al.,2017×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Pisu M et al.,2017×QOL#2",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Pisu M et al.,2017×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Rabin C et al.,2011",
+      "pmid": null,
+      "title": "Rabin C et al.,2011",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Rabin C et al.,2011×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Rogers LQ et al.,2009",
+      "pmid": null,
+      "title": "Rogers LQ et al.,2009",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Rogers LQ et al.,2009×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Rogers LQ et al.,2013",
+      "pmid": null,
+      "title": "Rogers LQ et al.,2013",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Rogers LQ et al.,2013×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Rogers LQ et al.,2014",
+      "pmid": null,
+      "title": "Rogers LQ et al.,2014",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Rogers LQ et al.,2014×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Rogers LQ et al.,2014×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:Rogers LQ et al.,2014×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        },
+        {
+          "id": "R:Rogers LQ et al.,2014×筋力",
+          "outcome": "O:筋力",
+          "outcome_label": "筋力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:筋力"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Rogers LQ et al.,2015a",
+      "pmid": null,
+      "title": "Rogers LQ et al.,2015a",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Rogers LQ et al.,2015a×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Rogers LQ et al.,2015b",
+      "pmid": null,
+      "title": "Rogers LQ et al.,2015b",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Rogers LQ et al.,2015b×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Sandel SL et al.,2005",
+      "pmid": null,
+      "title": "Sandel SL et al.,2005",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Sandel SL et al.,2005×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Saxton JM et al.,2014",
+      "pmid": null,
+      "title": "Saxton JM et al.,2014",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Saxton JM et al.,2014×うつ",
+          "outcome": "O:うつ",
+          "outcome_label": "うつ",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:うつ"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Scott C et al.,2018",
+      "pmid": null,
+      "title": "Scott C et al.,2018",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Scott C et al.,2018×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Scott E et al.,2013",
+      "pmid": null,
+      "title": "Scott E et al.,2013",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Scott E et al.,2013×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Scott E et al.,2013×持久性体力",
+          "outcome": "O:持久性体力",
+          "outcome_label": "持久性体力",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:持久性体力"
+          ]
+        },
+        {
+          "id": "R:Scott E et al.,2013×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Strunk MA et al.,2017",
+      "pmid": null,
+      "title": "Strunk MA et al.,2017",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Strunk MA et al.,2017×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Sweeney FC et al.,2018",
+      "pmid": null,
+      "title": "Sweeney FC et al.,2018",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Sweeney FC et al.,2018×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Vallance JK et al.,2007",
+      "pmid": null,
+      "title": "Vallance JK et al.,2007",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Vallance JK et al.,2007×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Vallance JK et al.,2007×QOL#2",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Vallance JK et al.,2007×QOL#3",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Vallance JK et al.,2007×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Vallance JK et al.,2007×倦怠感#2",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Vallance JK et al.,2007×倦怠感#3",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Waltman NL et al.,2010",
+      "pmid": null,
+      "title": "Waltman NL et al.,2010",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Waltman NL et al.,2010×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Winters-Stone KM et al.,2011",
+      "pmid": null,
+      "title": "Winters-Stone KM et al.,2011",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Winters-Stone KM et al.,2011×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Winters-Stone KM et al.,2014",
+      "pmid": null,
+      "title": "Winters-Stone KM et al.,2014",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Winters-Stone KM et al.,2014×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Yang Z et al.,2017",
+      "pmid": null,
+      "title": "Yang Z et al.,2017",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Yang Z et al.,2017×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Yang Z et al.,2017×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Yang Z et al.,2017×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S:Zhou Y et al.,2017",
+      "pmid": null,
+      "title": "Zhou Y et al.,2017",
+      "journal": "",
+      "year": null,
+      "design": "rct",
+      "retracted": false,
+      "trials": [],
+      "same_trial_as": [],
+      "includes": [],
+      "results": [
+        {
+          "id": "R:Zhou Y et al.,2017×QOL",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Zhou Y et al.,2017×QOL#2",
+          "outcome": "O:QOL",
+          "outcome_label": "QOL",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:QOL"
+          ]
+        },
+        {
+          "id": "R:Zhou Y et al.,2017×倦怠感",
+          "outcome": "O:倦怠感",
+          "outcome_label": "倦怠感",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:倦怠感"
+          ]
+        },
+        {
+          "id": "R:Zhou Y et al.,2017×有害事象",
+          "outcome": "O:有害事象",
+          "outcome_label": "有害事象",
+          "comparator": null,
+          "effect": null,
+          "eligible": true,
+          "contributes_to": [
+            "EB:有害事象"
+          ]
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "passed": false,
+    "violations": [
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:QOL",
+        "study": "S:Broderick JM et al.,2013",
+        "results": [
+          "R:Broderick JM et al.,2013×QOL",
+          "R:Broderick JM et al.,2013×QOL#2"
+        ],
+        "detail": "S:Broderick JM et al.,2013 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:QOL",
+        "study": "S:Brown JC et al.,2018(High vs Ctrl)",
+        "results": [
+          "R:Brown JC et al.,2018(High vs Ctrl)×QOL",
+          "R:Brown JC et al.,2018(High vs Ctrl)×QOL#2",
+          "R:Brown JC et al.,2018(High vs Ctrl)×QOL#3"
+        ],
+        "detail": "S:Brown JC et al.,2018(High vs Ctrl) の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:QOL",
+        "study": "S:Brown JC et al.,2018(Low vs Ctrl)",
+        "results": [
+          "R:Brown JC et al.,2018(Low vs Ctrl)×QOL",
+          "R:Brown JC et al.,2018(Low vs Ctrl)×QOL#2",
+          "R:Brown JC et al.,2018(Low vs Ctrl)×QOL#3"
+        ],
+        "detail": "S:Brown JC et al.,2018(Low vs Ctrl) の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:QOL",
+        "study": "S:Goodwin PJ et al.,2014",
+        "results": [
+          "R:Goodwin PJ et al.,2014×QOL",
+          "R:Goodwin PJ et al.,2014×QOL#2",
+          "R:Goodwin PJ et al.,2014×QOL#3"
+        ],
+        "detail": "S:Goodwin PJ et al.,2014 の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:QOL",
+        "study": "S:Kinney A et al.,2011",
+        "results": [
+          "R:Kinney A et al.,2011×QOL",
+          "R:Kinney A et al.,2011×QOL#2"
+        ],
+        "detail": "S:Kinney A et al.,2011 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:QOL",
+        "study": "S:McNeil J et al.,2019",
+        "results": [
+          "R:McNeil J et al.,2019×QOL",
+          "R:McNeil J et al.,2019×QOL#2"
+        ],
+        "detail": "S:McNeil J et al.,2019 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:QOL",
+        "study": "S:Pisu M et al.,2017",
+        "results": [
+          "R:Pisu M et al.,2017×QOL",
+          "R:Pisu M et al.,2017×QOL#2"
+        ],
+        "detail": "S:Pisu M et al.,2017 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:QOL",
+        "study": "S:Vallance JK et al.,2007",
+        "results": [
+          "R:Vallance JK et al.,2007×QOL",
+          "R:Vallance JK et al.,2007×QOL#2",
+          "R:Vallance JK et al.,2007×QOL#3"
+        ],
+        "detail": "S:Vallance JK et al.,2007 の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:QOL",
+        "study": "S:Zhou Y et al.,2017",
+        "results": [
+          "R:Zhou Y et al.,2017×QOL",
+          "R:Zhou Y et al.,2017×QOL#2"
+        ],
+        "detail": "S:Zhou Y et al.,2017 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:倦怠感",
+        "study": "S:Broderick JM et al.,2013",
+        "results": [
+          "R:Broderick JM et al.,2013×倦怠感",
+          "R:Broderick JM et al.,2013×倦怠感#2"
+        ],
+        "detail": "S:Broderick JM et al.,2013 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:倦怠感",
+        "study": "S:Brown JC et al.,2018",
+        "results": [
+          "R:Brown JC et al.,2018×倦怠感",
+          "R:Brown JC et al.,2018×倦怠感#2"
+        ],
+        "detail": "S:Brown JC et al.,2018 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:倦怠感",
+        "study": "S:Vallance JK et al.,2007",
+        "results": [
+          "R:Vallance JK et al.,2007×倦怠感",
+          "R:Vallance JK et al.,2007×倦怠感#2",
+          "R:Vallance JK et al.,2007×倦怠感#3"
+        ],
+        "detail": "S:Vallance JK et al.,2007 の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:持久性体力",
+        "study": "S:Dolan LB et al.,2016",
+        "results": [
+          "R:Dolan LB et al.,2016×持久性体力",
+          "R:Dolan LB et al.,2016×持久性体力#2"
+        ],
+        "detail": "S:Dolan LB et al.,2016 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:持久性体力",
+        "study": "S:McNeil J et al.,2019",
+        "results": [
+          "R:McNeil J et al.,2019×持久性体力",
+          "R:McNeil J et al.,2019×持久性体力#2"
+        ],
+        "detail": "S:McNeil J et al.,2019 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:有害事象",
+        "study": "S:Brown JC et al.,2012",
+        "results": [
+          "R:Brown JC et al.,2012×有害事象",
+          "R:Brown JC et al.,2012×有害事象#2"
+        ],
+        "detail": "S:Brown JC et al.,2012 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:有害事象",
+        "study": "S:Burnham TR et al.,2002",
+        "results": [
+          "R:Burnham TR et al.,2002×有害事象",
+          "R:Burnham TR et al.,2002×有害事象#2"
+        ],
+        "detail": "S:Burnham TR et al.,2002 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:有害事象",
+        "study": "S:Dieli-Conwright CM et al.,2018",
+        "results": [
+          "R:Dieli-Conwright CM et al.,2018×有害事象",
+          "R:Dieli-Conwright CM et al.,2018×有害事象#2"
+        ],
+        "detail": "S:Dieli-Conwright CM et al.,2018 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:有害事象",
+        "study": "S:Dolan LB et al.,2016",
+        "results": [
+          "R:Dolan LB et al.,2016×有害事象",
+          "R:Dolan LB et al.,2016×有害事象#2"
+        ],
+        "detail": "S:Dolan LB et al.,2016 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:有害事象",
+        "study": "S:Galvao DA et al.,2014",
+        "results": [
+          "R:Galvao DA et al.,2014×有害事象",
+          "R:Galvao DA et al.,2014×有害事象#2"
+        ],
+        "detail": "S:Galvao DA et al.,2014 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:有害事象",
+        "study": "S:Kampshoff CS et al.,2015",
+        "results": [
+          "R:Kampshoff CS et al.,2015×有害事象",
+          "R:Kampshoff CS et al.,2015×有害事象#2"
+        ],
+        "detail": "S:Kampshoff CS et al.,2015 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:有害事象",
+        "study": "S:Mulero PA et al.,2008",
+        "results": [
+          "R:Mulero PA et al.,2008×有害事象",
+          "R:Mulero PA et al.,2008×有害事象#2"
+        ],
+        "detail": "S:Mulero PA et al.,2008 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:筋力",
+        "study": "S:Crawford JJ et al.,2017",
+        "results": [
+          "R:Crawford JJ et al.,2017×筋力",
+          "R:Crawford JJ et al.,2017×筋力#2",
+          "R:Crawford JJ et al.,2017×筋力#3"
+        ],
+        "detail": "S:Crawford JJ et al.,2017 の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:筋力",
+        "study": "S:Dolan LB et al.,2016",
+        "results": [
+          "R:Dolan LB et al.,2016×筋力",
+          "R:Dolan LB et al.,2016×筋力#2"
+        ],
+        "detail": "S:Dolan LB et al.,2016 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:筋力",
+        "study": "S:Kim SH et al.,2018",
+        "results": [
+          "R:Kim SH et al.,2018×筋力",
+          "R:Kim SH et al.,2018×筋力#2",
+          "R:Kim SH et al.,2018×筋力#3"
+        ],
+        "detail": "S:Kim SH et al.,2018 の結果が3件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      },
+      {
+        "rule": "R2b",
+        "evidence_body": "EB:筋力",
+        "study": "S:LaStayo PC et al.,2011",
+        "results": [
+          "R:LaStayo PC et al.,2011×筋力",
+          "R:LaStayo PC et al.,2011×筋力#2"
+        ],
+        "detail": "S:LaStayo PC et al.,2011 の結果が2件、同一のエビデンス総体に寄与している。多腕試験で対照群を重複計上していないか確認が必要（単位解析エラー）"
+      }
+    ],
+    "by_rule": {
+      "R1": 0,
+      "R2": 0,
+      "R3": 0,
+      "R4": 0,
+      "R6": 0,
+      "R7": 0,
+      "R8": 0,
+      "R2b": 25
+    }
+  },
+  "cross_check": [
+    {
+      "check": "certainty",
+      "level": "block",
+      "declared": "C",
+      "derived": "D",
+      "detail": "推奨案の確実性 C は、重大アウトカムの総体から導かれる D と一致しない(重大アウトカム4件のうち最低の確実性を採用(決定元: EB:全生存期間))"
+    }
+  ],
+  "derived_certainty": {
+    "overall": "D",
+    "reason": "重大アウトカム4件のうち最低の確実性を採用(決定元: EB:全生存期間)",
+    "per_outcome": {
+      "O:QOL": {
+        "certainty": "B",
+        "importance": 8,
+        "band": "critical",
+        "evidence_body": "EB:QOL"
+      },
+      "O:うつ": {
+        "certainty": "C",
+        "importance": 6,
+        "band": "important",
+        "evidence_body": "EB:うつ"
+      },
+      "O:倦怠感": {
+        "certainty": "B",
+        "importance": 7,
+        "band": "critical",
+        "evidence_body": "EB:倦怠感"
+      },
+      "O:全生存期間": {
+        "certainty": "D",
+        "importance": 7,
+        "band": "critical",
+        "evidence_body": "EB:全生存期間"
+      },
+      "O:持久性体力": {
+        "certainty": "B",
+        "importance": 7,
+        "band": "critical",
+        "evidence_body": "EB:持久性体力"
+      },
+      "O:有害事象": {
+        "certainty": "B",
+        "importance": 6,
+        "band": "important",
+        "evidence_body": "EB:有害事象"
+      },
+      "O:筋力": {
+        "certainty": "B",
+        "importance": 6,
+        "band": "important",
+        "evidence_body": "EB:筋力"
+      }
+    }
+  },
+  "provenance": {
+    "recommendation": "REC:CQ1",
+    "chain": [
+      {
+        "evidence_body": "EB:QOL",
+        "certainty": "B",
+        "outcomes": [
+          "O:QOL"
+        ],
+        "downgraded_by": [
+          "imprecision",
+          "inconsistency",
+          "publication_bias",
+          "risk_of_bias"
+        ],
+        "studies": [
+          {
+            "result": "R:Alibhai SM et al.,2014×QOL",
+            "study": "S:Alibhai SM et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Bourke L et al.,2011×QOL",
+            "study": "S:Bourke L et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Broderick JM et al.,2013×QOL",
+            "study": "S:Broderick JM et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Broderick JM et al.,2013×QOL#2",
+            "study": "S:Broderick JM et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2018(High vs Ctrl)×QOL",
+            "study": "S:Brown JC et al.,2018(High vs Ctrl)",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2018(High vs Ctrl)×QOL#2",
+            "study": "S:Brown JC et al.,2018(High vs Ctrl)",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2018(High vs Ctrl)×QOL#3",
+            "study": "S:Brown JC et al.,2018(High vs Ctrl)",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2018(Low vs Ctrl)×QOL",
+            "study": "S:Brown JC et al.,2018(Low vs Ctrl)",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2018(Low vs Ctrl)×QOL#2",
+            "study": "S:Brown JC et al.,2018(Low vs Ctrl)",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2018(Low vs Ctrl)×QOL#3",
+            "study": "S:Brown JC et al.,2018(Low vs Ctrl)",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Courneya KS et al.,2003×QOL",
+            "study": "S:Courneya KS et al.,2003",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Culos-Reed SN et al.,2010×QOL",
+            "study": "S:Culos-Reed SN et al.,2010",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Galiano-Castillo N et al.,2016×QOL",
+            "study": "S:Galiano-Castillo N et al.,2016",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Goodwin PJ et al.,2014×QOL",
+            "study": "S:Goodwin PJ et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Goodwin PJ et al.,2014×QOL#2",
+            "study": "S:Goodwin PJ et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Goodwin PJ et al.,2014×QOL#3",
+            "study": "S:Goodwin PJ et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kim JY et al.,2019×QOL",
+            "study": "S:Kim JY et al.,2019",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kinney A et al.,2011×QOL",
+            "study": "S:Kinney A et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kinney A et al.,2011×QOL#2",
+            "study": "S:Kinney A et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:McNeil J et al.,2019×QOL",
+            "study": "S:McNeil J et al.,2019",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:McNeil J et al.,2019×QOL#2",
+            "study": "S:McNeil J et al.,2019",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Milne HM et al.,2008×QOL",
+            "study": "S:Milne HM et al.,2008",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Murtezani A et al.,2014×QOL",
+            "study": "S:Murtezani A et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Nyrop KA et al.,2017×QOL",
+            "study": "S:Nyrop KA et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Pinto BM et al.,2013×QOL",
+            "study": "S:Pinto BM et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Pisu M et al.,2017×QOL",
+            "study": "S:Pisu M et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Pisu M et al.,2017×QOL#2",
+            "study": "S:Pisu M et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Scott E et al.,2013×QOL",
+            "study": "S:Scott E et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Vallance JK et al.,2007×QOL",
+            "study": "S:Vallance JK et al.,2007",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Vallance JK et al.,2007×QOL#2",
+            "study": "S:Vallance JK et al.,2007",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Vallance JK et al.,2007×QOL#3",
+            "study": "S:Vallance JK et al.,2007",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Yang Z et al.,2017×QOL",
+            "study": "S:Yang Z et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Zhou Y et al.,2017×QOL",
+            "study": "S:Zhou Y et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Zhou Y et al.,2017×QOL#2",
+            "study": "S:Zhou Y et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          }
+        ]
+      },
+      {
+        "evidence_body": "EB:うつ",
+        "certainty": "C",
+        "outcomes": [
+          "O:うつ"
+        ],
+        "downgraded_by": [
+          "imprecision",
+          "publication_bias",
+          "risk_of_bias"
+        ],
+        "studies": [
+          {
+            "result": "R:Alibhai SM et al.,2014×うつ",
+            "study": "S:Alibhai SM et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Campbell KL et al.,2018×うつ",
+            "study": "S:Campbell KL et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Carter SJ et al.,2018×うつ",
+            "study": "S:Carter SJ et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Culos-Reed SN et al.,2010×うつ",
+            "study": "S:Culos-Reed SN et al.,2010",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Saxton JM et al.,2014×うつ",
+            "study": "S:Saxton JM et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          }
+        ]
+      },
+      {
+        "evidence_body": "EB:倦怠感",
+        "certainty": "B",
+        "outcomes": [
+          "O:倦怠感"
+        ],
+        "downgraded_by": [
+          "imprecision",
+          "inconsistency",
+          "publication_bias",
+          "risk_of_bias"
+        ],
+        "studies": [
+          {
+            "result": "R:Alibhai SM et al.,2014×倦怠感",
+            "study": "S:Alibhai SM et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Arroyo-Morales M et al.,2012×倦怠感",
+            "study": "S:Arroyo-Morales M et al.,2012",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Bourke L et al.,2011×倦怠感",
+            "study": "S:Bourke L et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Broderick JM et al.,2013×倦怠感",
+            "study": "S:Broderick JM et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Broderick JM et al.,2013×倦怠感#2",
+            "study": "S:Broderick JM et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2018×倦怠感",
+            "study": "S:Brown JC et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2018×倦怠感#2",
+            "study": "S:Brown JC et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Campbell KL et al.,2018×倦怠感",
+            "study": "S:Campbell KL et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Culos-Reed SN et al.,2010×倦怠感",
+            "study": "S:Culos-Reed SN et al.,2010",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kim JY et al.,2019×倦怠感",
+            "study": "S:Kim JY et al.,2019",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Milne HM et al.,2008×倦怠感",
+            "study": "S:Milne HM et al.,2008",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Nyrop KA et al.,2017×倦怠感",
+            "study": "S:Nyrop KA et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Pinto BM et al.,2013×倦怠感",
+            "study": "S:Pinto BM et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Rabin C et al.,2011×倦怠感",
+            "study": "S:Rabin C et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Rogers LQ et al.,2014×倦怠感",
+            "study": "S:Rogers LQ et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Rogers LQ et al.,2015a×倦怠感",
+            "study": "S:Rogers LQ et al.,2015a",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Vallance JK et al.,2007×倦怠感",
+            "study": "S:Vallance JK et al.,2007",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Vallance JK et al.,2007×倦怠感#2",
+            "study": "S:Vallance JK et al.,2007",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Vallance JK et al.,2007×倦怠感#3",
+            "study": "S:Vallance JK et al.,2007",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Yang Z et al.,2017×倦怠感",
+            "study": "S:Yang Z et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Zhou Y et al.,2017×倦怠感",
+            "study": "S:Zhou Y et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          }
+        ]
+      },
+      {
+        "evidence_body": "EB:全生存期間",
+        "certainty": "D",
+        "outcomes": [
+          "O:全生存期間"
+        ],
+        "downgraded_by": [
+          "imprecision",
+          "indirectness",
+          "publication_bias",
+          "risk_of_bias"
+        ],
+        "studies": [
+          {
+            "result": "R:Goodwin PJ et al.,2020×全生存期間",
+            "study": "S:Goodwin PJ et al.,2020",
+            "pmid": null,
+            "design": "rct"
+          }
+        ]
+      },
+      {
+        "evidence_body": "EB:持久性体力",
+        "certainty": "B",
+        "outcomes": [
+          "O:持久性体力"
+        ],
+        "downgraded_by": [
+          "imprecision",
+          "inconsistency",
+          "publication_bias",
+          "risk_of_bias"
+        ],
+        "studies": [
+          {
+            "result": "R:Alibhai SM et al.,2014×持久性体力",
+            "study": "S:Alibhai SM et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Bourke L et al.,2011×持久性体力",
+            "study": "S:Bourke L et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brocki BC et al.,2014×持久性体力",
+            "study": "S:Brocki BC et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Broderick JM et al.,2013×持久性体力",
+            "study": "S:Broderick JM et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2018×持久性体力",
+            "study": "S:Brown JC et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Campbell KL et al.,2018×持久性体力",
+            "study": "S:Campbell KL et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Cantarero-Villanueva I et al.,2016×持久性体力",
+            "study": "S:Cantarero-Villanueva I et al.,2016",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Courneya KS et al.,2003×持久性体力",
+            "study": "S:Courneya KS et al.,2003",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Crawford JJ et al.,2017×持久性体力",
+            "study": "S:Crawford JJ et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Culos-Reed SN et al.,2010×持久性体力",
+            "study": "S:Culos-Reed SN et al.,2010",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Dolan LB et al.,2016×持久性体力",
+            "study": "S:Dolan LB et al.,2016",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Dolan LB et al.,2016×持久性体力#2",
+            "study": "S:Dolan LB et al.,2016",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:LaStayo PC et al.,2011×持久性体力",
+            "study": "S:LaStayo PC et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:McNeil J et al.,2019×持久性体力",
+            "study": "S:McNeil J et al.,2019",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:McNeil J et al.,2019×持久性体力#2",
+            "study": "S:McNeil J et al.,2019",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:O'Neill LM et al.,2018×持久性体力",
+            "study": "S:O'Neill LM et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Pisu M et al.,2017×持久性体力",
+            "study": "S:Pisu M et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Rogers LQ et al.,2014×持久性体力",
+            "study": "S:Rogers LQ et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Scott E et al.,2013×持久性体力",
+            "study": "S:Scott E et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          }
+        ]
+      },
+      {
+        "evidence_body": "EB:有害事象",
+        "certainty": "B",
+        "outcomes": [
+          "O:有害事象"
+        ],
+        "downgraded_by": [
+          "imprecision",
+          "risk_of_bias"
+        ],
+        "studies": [
+          {
+            "result": "R:Adams SC et al.,2018×有害事象",
+            "study": "S:Adams SC et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Alibhai SM et al.,2014×有害事象",
+            "study": "S:Alibhai SM et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Arroyo-Morales M et al.,2012×有害事象",
+            "study": "S:Arroyo-Morales M et al.,2012",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Baruth M et al.,2015×有害事象",
+            "study": "S:Baruth M et al.,2015",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Broderick JM et al.,2013×有害事象",
+            "study": "S:Broderick JM et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2012×有害事象",
+            "study": "S:Brown JC et al.,2012",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2012×有害事象#2",
+            "study": "S:Brown JC et al.,2012",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2015×有害事象",
+            "study": "S:Brown JC et al.,2015",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Brown JC et al.,2018×有害事象",
+            "study": "S:Brown JC et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Burnham TR et al.,2002×有害事象",
+            "study": "S:Burnham TR et al.,2002",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Burnham TR et al.,2002×有害事象#2",
+            "study": "S:Burnham TR et al.,2002",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Campbell KL et al.,2018×有害事象",
+            "study": "S:Campbell KL et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Casla S et al.,2015×有害事象",
+            "study": "S:Casla S et al.,2015",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Courneya KS et al.,2003×有害事象",
+            "study": "S:Courneya KS et al.,2003",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Crawford JJ et al.,2017×有害事象",
+            "study": "S:Crawford JJ et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Dieli-Conwright CM et al.,2018×有害事象",
+            "study": "S:Dieli-Conwright CM et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Dieli-Conwright CM et al.,2018×有害事象#2",
+            "study": "S:Dieli-Conwright CM et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Dolan LB et al.,2016×有害事象",
+            "study": "S:Dolan LB et al.,2016",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Dolan LB et al.,2016×有害事象#2",
+            "study": "S:Dolan LB et al.,2016",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Fairey AS et al.,2005×有害事象",
+            "study": "S:Fairey AS et al.,2005",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Galvao DA et al.,2014×有害事象",
+            "study": "S:Galvao DA et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Galvao DA et al.,2014×有害事象#2",
+            "study": "S:Galvao DA et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Gaskin CJ et al.,2016×有害事象",
+            "study": "S:Gaskin CJ et al.,2016",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Gaskin CJ et al.,2017×有害事象",
+            "study": "S:Gaskin CJ et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Giallauria F et al.,2014×有害事象",
+            "study": "S:Giallauria F et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Greenlee HA et al.,2013×有害事象",
+            "study": "S:Greenlee HA et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Irwin ML et al.,2008×有害事象",
+            "study": "S:Irwin ML et al.,2008",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Irwin ML et al.,2017×有害事象",
+            "study": "S:Irwin ML et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Johansson K et al.,2013×有害事象",
+            "study": "S:Johansson K et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Johnston MF et al.,2011×有害事象",
+            "study": "S:Johnston MF et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kampshoff CS et al.,2015×有害事象",
+            "study": "S:Kampshoff CS et al.,2015",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kampshoff CS et al.,2015×有害事象#2",
+            "study": "S:Kampshoff CS et al.,2015",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kenfield SA et al.,2019×有害事象",
+            "study": "S:Kenfield SA et al.,2019",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kim SH et al.,2016×有害事象",
+            "study": "S:Kim SH et al.,2016",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kim SH et al.,2018×有害事象",
+            "study": "S:Kim SH et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kinney A et al.,2011×有害事象",
+            "study": "S:Kinney A et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:LaStayo PC et al.,2011×有害事象",
+            "study": "S:LaStayo PC et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Lee MK et al.,2018×有害事象",
+            "study": "S:Lee MK et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Luca DV et al.,2016×有害事象",
+            "study": "S:Luca DV et al.,2016",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Mulero PA et al.,2008×有害事象",
+            "study": "S:Mulero PA et al.,2008",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Mulero PA et al.,2008×有害事象#2",
+            "study": "S:Mulero PA et al.,2008",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Nyrop KA et al.,2017×有害事象",
+            "study": "S:Nyrop KA et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:O'Neill LM et al.,2018×有害事象",
+            "study": "S:O'Neill LM et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:O'Neill RF et al.,2015×有害事象",
+            "study": "S:O'Neill RF et al.,2015",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Rogers LQ et al.,2009×有害事象",
+            "study": "S:Rogers LQ et al.,2009",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Rogers LQ et al.,2013×有害事象",
+            "study": "S:Rogers LQ et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Rogers LQ et al.,2014×有害事象",
+            "study": "S:Rogers LQ et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Rogers LQ et al.,2015b×有害事象",
+            "study": "S:Rogers LQ et al.,2015b",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Sandel SL et al.,2005×有害事象",
+            "study": "S:Sandel SL et al.,2005",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Scott C et al.,2018×有害事象",
+            "study": "S:Scott C et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Scott E et al.,2013×有害事象",
+            "study": "S:Scott E et al.,2013",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Strunk MA et al.,2017×有害事象",
+            "study": "S:Strunk MA et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Sweeney FC et al.,2018×有害事象",
+            "study": "S:Sweeney FC et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Waltman NL et al.,2010×有害事象",
+            "study": "S:Waltman NL et al.,2010",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Winters-Stone KM et al.,2011×有害事象",
+            "study": "S:Winters-Stone KM et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Winters-Stone KM et al.,2014×有害事象",
+            "study": "S:Winters-Stone KM et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Yang Z et al.,2017×有害事象",
+            "study": "S:Yang Z et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Zhou Y et al.,2017×有害事象",
+            "study": "S:Zhou Y et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          }
+        ]
+      },
+      {
+        "evidence_body": "EB:筋力",
+        "certainty": "B",
+        "outcomes": [
+          "O:筋力"
+        ],
+        "downgraded_by": [
+          "imprecision",
+          "inconsistency",
+          "risk_of_bias"
+        ],
+        "studies": [
+          {
+            "result": "R:Ahmed RL et al.,2006×筋力",
+            "study": "S:Ahmed RL et al.,2006",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Alibhai SM et al.,2014×筋力",
+            "study": "S:Alibhai SM et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Bourke L et al.,2011×筋力",
+            "study": "S:Bourke L et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Crawford JJ et al.,2017×筋力",
+            "study": "S:Crawford JJ et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Crawford JJ et al.,2017×筋力#2",
+            "study": "S:Crawford JJ et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Crawford JJ et al.,2017×筋力#3",
+            "study": "S:Crawford JJ et al.,2017",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Dolan LB et al.,2016×筋力",
+            "study": "S:Dolan LB et al.,2016",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Dolan LB et al.,2016×筋力#2",
+            "study": "S:Dolan LB et al.,2016",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kim SH et al.,2018×筋力",
+            "study": "S:Kim SH et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kim SH et al.,2018×筋力#2",
+            "study": "S:Kim SH et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Kim SH et al.,2018×筋力#3",
+            "study": "S:Kim SH et al.,2018",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:LaStayo PC et al.,2011×筋力",
+            "study": "S:LaStayo PC et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:LaStayo PC et al.,2011×筋力#2",
+            "study": "S:LaStayo PC et al.,2011",
+            "pmid": null,
+            "design": "rct"
+          },
+          {
+            "result": "R:Rogers LQ et al.,2014×筋力",
+            "study": "S:Rogers LQ et al.,2014",
+            "pmid": null,
+            "design": "rct"
+          }
+        ]
+      }
+    ],
+    "n_studies": 152
+  },
+  "gate": {
+    "ready_for_review": false,
+    "n_blocking": 26,
+    "reason": "機械検証で不整合。委員に出す前に差し戻す"
+  },
+  "source_package": "CQ1.json"
+}

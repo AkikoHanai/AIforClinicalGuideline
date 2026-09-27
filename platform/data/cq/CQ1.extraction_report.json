@@ -1,0 +1,127 @@
+{
+  "cq": "CQ1",
+  "checks": [
+    {
+      "level": "warn",
+      "outcome": "持久性体力",
+      "detail": "研究数が一致しない: 総体表 18件 / 評価シート 19行。同一論文が複数行に出ている（多腕・複数尺度）: Dolan LB et al.,2016、McNeil J et al.,2019",
+      "duplicated_codes": [
+        "Dolan LB et al.,2016",
+        "McNeil J et al.,2019"
+      ]
+    },
+    {
+      "level": "warn",
+      "outcome": "筋力",
+      "detail": "研究数が一致しない: 総体表 9件 / 評価シート 14行。同一論文が複数行に出ている（多腕・複数尺度）: Crawford JJ et al.,2017、Dolan LB et al.,2016、Kim SH et al.,2018、LaStayo PC et al.,2011",
+      "duplicated_codes": [
+        "Crawford JJ et al.,2017",
+        "Dolan LB et al.,2016",
+        "Kim SH et al.,2018",
+        "LaStayo PC et al.,2011"
+      ]
+    },
+    {
+      "level": "warn",
+      "outcome": "QOL",
+      "detail": "研究数が一致しない: 総体表 19件 / 評価シート 34行。同一論文が複数行に出ている（多腕・複数尺度）: Broderick JM et al.,2013、Brown JC et al.,2018(High vs Ctrl)、Brown JC et al.,2018(Low vs Ctrl)、Goodwin PJ et al.,2014、Kinney A et al.,2011、McNeil J et al.,2019、Pisu M et al.,2017、Vallance JK et al.,2007、Zhou Y et al.,2017",
+      "duplicated_codes": [
+        "Broderick JM et al.,2013",
+        "Brown JC et al.,2018(High vs Ctrl)",
+        "Brown JC et al.,2018(Low vs Ctrl)",
+        "Goodwin PJ et al.,2014",
+        "Kinney A et al.,2011",
+        "McNeil J et al.,2019",
+        "Pisu M et al.,2017",
+        "Vallance JK et al.,2007",
+        "Zhou Y et al.,2017"
+      ]
+    },
+    {
+      "level": "warn",
+      "outcome": "倦怠感",
+      "detail": "研究数が一致しない: 総体表 18件 / 評価シート 21行。同一論文が複数行に出ている（多腕・複数尺度）: Broderick JM et al.,2013、Brown JC et al.,2018、Vallance JK et al.,2007",
+      "duplicated_codes": [
+        "Broderick JM et al.,2013",
+        "Brown JC et al.,2018",
+        "Vallance JK et al.,2007"
+      ]
+    },
+    {
+      "level": "warn",
+      "outcome": "有害事象",
+      "detail": "研究数が一致しない: 総体表 21件 / 評価シート 58行。同一論文が複数行に出ている（多腕・複数尺度）: Brown JC et al.,2012、Burnham TR et al.,2002、Dieli-Conwright CM et al.,2018、Dolan LB et al.,2016、Galvao DA et al.,2014、Kampshoff CS et al.,2015、Mulero PA et al.,2008",
+      "duplicated_codes": [
+        "Brown JC et al.,2012",
+        "Burnham TR et al.,2002",
+        "Dieli-Conwright CM et al.,2018",
+        "Dolan LB et al.,2016",
+        "Galvao DA et al.,2014",
+        "Kampshoff CS et al.,2015",
+        "Mulero PA et al.,2008"
+      ]
+    },
+    {
+      "level": "block",
+      "outcome": "健康関連QoL",
+      "detail": "研究数が本文と総体表で不一致: 本文 18件 / 総体表 19件"
+    },
+    {
+      "level": "block",
+      "outcome": "健康関連QoL",
+      "detail": "統合値が本文と総体表で不一致: 本文 SMD 0.7（0.25–1.14）/ 総体表 SMD 0.68（0.27–1.09）"
+    },
+    {
+      "level": "block",
+      "outcome": "倦怠感",
+      "detail": "研究数が本文と総体表で不一致: 本文 17件 / 総体表 18件"
+    },
+    {
+      "level": "block",
+      "outcome": "倦怠感",
+      "detail": "統合値が本文と総体表で不一致: 本文 SMD -0.5（-0.74–-0.26）/ 総体表 SMD -0.48（-0.7–-0.26）"
+    }
+  ],
+  "counts": {
+    "全生存期間": {
+      "総体表の研究数": 1,
+      "評価シートの行数": 1,
+      "評価シート見出し": "全生存時間"
+    },
+    "持久性体力": {
+      "総体表の研究数": 18,
+      "評価シートの行数": 19,
+      "評価シート見出し": "持久性体力"
+    },
+    "筋力": {
+      "総体表の研究数": 9,
+      "評価シートの行数": 14,
+      "評価シート見出し": "筋力(握力と脚筋力)"
+    },
+    "QOL": {
+      "総体表の研究数": 19,
+      "評価シートの行数": 34,
+      "評価シート見出し": "QoL(FACT,QLQ-C30,SF-36)"
+    },
+    "倦怠感": {
+      "総体表の研究数": 18,
+      "評価シートの行数": 21,
+      "評価シート見出し": "倦怠感"
+    },
+    "有害事象": {
+      "総体表の研究数": 21,
+      "評価シートの行数": 58,
+      "評価シート見出し": "有害事象"
+    },
+    "うつ": {
+      "総体表の研究数": 5,
+      "評価シートの行数": 5,
+      "評価シート見出し": "うつ(BDI,HADS,CES-D)"
+    }
+  },
+  "extracted": {
+    "outcomes": 7,
+    "studies": 72,
+    "results": 152
+  }
+}

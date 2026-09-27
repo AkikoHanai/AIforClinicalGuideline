@@ -1,0 +1,129 @@
+{
+  "_WARNING": "★★ これは動作確認用のダミーデータです。PMID・著者・効果量はすべて架空で、実在の研究ではありません。実データを投入する際はこのファイルを複製せず、data/cq/ に新規CQパッケージを作成してください。",
+  "cq_id": "CQ-DEMO-冷却",
+  "title": "【デモ】タキサン系抗がん薬による末梢神経障害の予防に凍結療法（冷却）は推奨されるか",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "タキサン系抗がん薬の投与を受けるがん患者",
+    "I": "手足の冷却（凍結手袋・靴下）",
+    "C": "冷却なし",
+    "O": ["CIPN発症頻度", "手足のしびれ（患者報告）", "QOL", "冷却に伴う有害事象"]
+  },
+  "outcomes": [
+    { "id": "O:CIPN発症頻度", "label": "CIPN発症頻度", "importance": 8 },
+    { "id": "O:しびれ", "label": "手足のしびれ（患者報告）", "importance": 7 },
+    { "id": "O:QOL", "label": "QOL", "importance": 5 }
+  ],
+  "evidence_bodies": [
+    {
+      "id": "EB:冷却×発症頻度",
+      "outcome": "O:CIPN発症頻度",
+      "certainty": "C",
+      "downgraded_by": ["risk_of_bias", "imprecision"],
+      "summary": "【ダミー】RCT2件・メタ解析1件。発症頻度の低下を示すが、盲検化困難によるバイアスリスクとイベント数不足がある。"
+    },
+    {
+      "id": "EB:冷却×しびれ",
+      "outcome": "O:しびれ",
+      "certainty": "D",
+      "downgraded_by": ["risk_of_bias", "inconsistency", "imprecision"],
+      "summary": "【ダミー】患者報告アウトカムは研究間で尺度が異なり、方向も一致しない。"
+    },
+    {
+      "id": "EB:冷却×QOL",
+      "outcome": "O:QOL",
+      "certainty": "C",
+      "downgraded_by": ["imprecision"],
+      "summary": "【ダミー】QOLは重要だが重大ではない（重要度5）。全体確実性の決定には用いない。"
+    }
+  ],
+  "studies": [
+    {
+      "id": "S:ダミーRCT-A主報告", "pmid": "00000001", "design": "rct",
+      "title": "【架空】Frozen gloves for prevention of taxane-induced neuropathy: a randomized trial",
+      "journal": "Demo Journal of Supportive Care", "year": 2024,
+      "trial_ids": ["UMIN000000001"]
+    },
+    {
+      "id": "S:ダミーRCT-A副次報告", "pmid": "00000002", "design": "rct",
+      "title": "【架空】Secondary analysis of the same frozen-glove trial: patient-reported numbness",
+      "journal": "Demo Journal of Supportive Care", "year": 2025,
+      "trial_ids": ["UMIN000000001"]
+    },
+    {
+      "id": "S:ダミーRCT-B", "pmid": "00000003", "design": "rct",
+      "title": "【架空】Strong cooling versus mild cooling during taxane infusion",
+      "journal": "Demo Oncology Letters", "year": 2025,
+      "trial_ids": ["NCT00000003"]
+    },
+    {
+      "id": "S:ダミーMA", "pmid": "00000004", "design": "meta_analysis",
+      "title": "【架空】Cryotherapy for CIPN prevention: systematic review and meta-analysis",
+      "journal": "Demo Reviews", "year": 2026,
+      "trial_ids": []
+    }
+  ],
+  "includes": [
+    ["S:ダミーMA", "S:ダミーRCT-A主報告"],
+    ["S:ダミーMA", "S:ダミーRCT-B"]
+  ],
+  "results": [
+    {
+      "id": "R:A主-発症頻度", "study": "S:ダミーRCT-A主報告",
+      "outcome": "O:CIPN発症頻度", "comparator": "none", "eligible": true,
+      "contributes_to": "EB:冷却×発症頻度",
+      "effect": { "measure": "RR", "point": 0.62, "ci_low": 0.41, "ci_high": 0.94 }
+    },
+    {
+      "id": "R:A副-発症頻度", "study": "S:ダミーRCT-A副次報告",
+      "outcome": "O:CIPN発症頻度", "comparator": "none", "eligible": true,
+      "contributes_to": "EB:冷却×発症頻度",
+      "effect": { "measure": "RR", "point": 0.65, "ci_low": 0.43, "ci_high": 0.98 }
+    },
+    {
+      "id": "R:B-発症頻度", "study": "S:ダミーRCT-B",
+      "outcome": "O:CIPN発症頻度", "comparator": "active_weaker", "eligible": true,
+      "contributes_to": "EB:冷却×発症頻度",
+      "effect": { "measure": "RR", "point": 0.88, "ci_low": 0.61, "ci_high": 1.27 }
+    },
+    {
+      "id": "R:MA-発症頻度", "study": "S:ダミーMA",
+      "outcome": "O:CIPN発症頻度", "comparator": "none", "eligible": true,
+      "contributes_to": "EB:冷却×発症頻度",
+      "effect": { "measure": "RR", "point": 0.71, "ci_low": 0.55, "ci_high": 0.92, "i2": 34 }
+    },
+    {
+      "id": "R:A副-しびれ", "study": "S:ダミーRCT-A副次報告",
+      "outcome": "O:しびれ", "comparator": "none", "eligible": true,
+      "contributes_to": "EB:冷却×しびれ",
+      "effect": { "measure": "SMD", "point": -0.21, "ci_low": -0.55, "ci_high": 0.13 }
+    },
+    {
+      "id": "R:B-QOL", "study": "S:ダミーRCT-B",
+      "outcome": "O:QOL", "comparator": "active_weaker", "eligible": true,
+      "contributes_to": "EB:冷却×QOL",
+      "effect": { "measure": "SMD", "point": 0.15, "ci_low": -0.20, "ci_high": 0.50 }
+    }
+  ],
+  "draft": {
+    "_note": "Phase1（推奨案生成）の出力を想定したダミー。意図的に不整合を含めてある。",
+    "generated_by": "demo (LLM未実行)",
+    "recommendation_text": "タキサン系抗がん薬による末梢神経障害の予防として、手足の冷却を行うことを提案する。",
+    "direction": "for",
+    "strength": "2",
+    "certainty": "B",
+    "cited_pmids": ["00000001", "00000004", "99999999"],
+    "mentioned_outcomes": ["CIPN発症頻度", "手足のしびれ（患者報告）", "全生存期間"],
+    "etd_judgments": {
+      "benefit_harm": "望ましい効果が望ましくない効果をやや上回る",
+      "values": "冷却の不快感の受け止めには個人差がある",
+      "resources": "凍結手袋の購入・保管に一定の負担がある"
+    },
+    "panel_vote": {
+      "n_panel": 12,
+      "distribution": { "1": 1, "2": 8, "なし": 3 },
+      "agreement_rate": 0.67
+    }
+  },
+  "narrative": ""
+}
