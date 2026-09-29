@@ -13,13 +13,16 @@ extract_cipn_guideline.py が作る CQ パッケージ(JSON)から、CQ(介入)�
     papers/               論文PDFを手作業で入れてもらうための空フォルダ
 
 Minds様式の対応(『Minds診療ガイドライン作成の手引き』準拠):
+  シート「検索式」               = Minds 3.5 (文献検索式・DB・検索期間の記録)
   シート「CQ・PICO」            = Minds 3.3-3.5 (CQ設定・PICO・アウトカム重要度)
+  シート「スクリーニングログ」    = Minds 3.5/4.2 (一次・二次スクリーニング、除外理由、PRISMAフロー用)
+  シート「RoB2_評価者1/2」      = Minds 4.3 (個別研究のバイアスリスク評価。2名が独立に記入)
+  シート「RoB2_照合」            = Minds 4.3 (2名の評価を自動照合し不一致を検出→委員が確定)
   シート「エビデンス総体評価」    = Minds 4.4 (エビデンス総体の確実性評価)
-  シート「個別研究RoB2評価」     = Minds 4.3 (個別研究のバイアスリスク評価。RoB2)
   シート「文献リスト」           = Minds 3.5/4.2 (適格文献リスト)
   シート「投票」                = Minds 6.2-6.3 (推奨作成の投票)
 
-エビデンス総体評価・個別研究RoB2評価シートは空欄で出力する。ここを
+エビデンス総体評価・RoB2評価シートは空欄で出力する。ここを
 ROB2に基づき学生/SR委員が埋めたものを merge_rob2_evidence.py で
 CQパッケージ(JSON)に戻し、platform/core/review_bundle.py の
 Minds規則検証(R1-R8)にかける設計。
@@ -28,8 +31,10 @@ import argparse
 import glob
 import json
 import os
+import re
 
 from openpyxl import Workbook
+from openpyxl.formatting.rule import CellIsRule
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
@@ -38,7 +43,72 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 HEADER_FILL = PatternFill("solid", fgColor="1F4E5F")
 HEADER_FONT = Font(color="FFFFFF", bold=True)
 NOTE_FILL = PatternFill("solid", fgColor="FFF3CD")
+WARN_FILL = PatternFill("solid", fgColor="F8D7DA")
+MISMATCH_FILL = PatternFill("solid", fgColor="F8D7DA")
 WRAP = Alignment(wrap_text=True, vertical="top")
+
+# ------------------------------------------------------------------
+# 検索式(委員会から提示されたもの。介入語句部分のみCQごとに変わる)
+# DBはPubMedのみ、期間は「前回検索から現在まで」。
+# ------------------------------------------------------------------
+SEARCH_P = '(((survivor OR (survivor AND cancer) OR "cancer survivor" OR cancer))'
+SEARCH_C = ('(neuropathy OR "neuropathy" OR "neuropathies" OR chemotherapy-induced '
+            'OR "chemotherapy-induced neuropathy" OR "chemotherapy-induced peripheral neuropathy" '
+            'OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced '
+            'OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)')
+SEARCH_I_FULL = ('(Goshajinkigan OR (Calcium and Magnesium) OR Acetyl-L-carnitine OR Alpha-lipoic acid '
+                  'OR Pregabalin OR gabapentin OR Venlafaxine OR duloxetine OR Vitamin E '
+                  'OR Ganglioside-monosialic acid OR amitriptyline/ketamine OR cannabinoid OR nabiximols '
+                  'OR LC07 OR cryotherapy OR scrambler therapy)')
+SEARCH_DB = "PubMed"
+SEARCH_PERIOD = "前回検索日(要確認) 〜 今回検索実施日"
+
+# CQごとに検索式の第3節(介入語)のうち対応する語句。無いCQは
+# 「本検索式に個別対応語なし」として要確認フラグを立てる(機械マッチではなく
+# 人手で確認した対応表。誤りに気づいたら書き換えてよい)
+SEARCH_TERM_MAP = {
+    "CQ1-牛車腎気丸": (["Goshajinkigan"], None),
+    "CQ1-プレガバリン": (["Pregabalin"], None),
+    "CQ1-カルニチン-アセチル‒L‒カルニチン": (["Acetyl-L-carnitine"], None),
+    "CQ1-冷却": (["cryotherapy"], None),
+    "CQ1-圧迫": ([], "本検索式に圧迫療法(compression)に対応する語がありません。ハンドサーチ等の追加検討が必要です"),
+    "CQ1-運動": ([], "本検索式に運動(exercise)に対応する語がありません。ハンドサーチ等の追加検討が必要です"),
+    "CQ1-鍼灸": ([], "本検索式に鍼灸(acupuncture)に対応する語がありません。ハンドサーチ等の追加検討が必要です"),
+    "CQ2-デュロキセチン": (["duloxetine"], None),
+    "CQ2-アミトリプチリン": (["amitriptyline/ketamine"], None),
+    "CQ2-プレガバリン": (["Pregabalin", "gabapentin"], None),
+    "CQ2-ミロガバリン": (["gabapentin"], "gabapentinoidとしてgabapentin語でヒットする可能性があるが、"
+                       "ミロガバリン(mirogabalin)自体の語は含まれていません。担当者で要確認"),
+    "CQ2-ビタミン-B12": ([], "検索式には Vitamin E は含まれますが Vitamin B12 は含まれていません。"
+                        "担当者は検索式の追加・別途検索を検討してください"),
+    "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs": ([], "本検索式にNSAIDsに対応する語がありません。ハンドサーチ等の追加検討が必要です"),
+    "CQ2-オピオイド": ([], "本検索式にオピオイドに対応する語がありません(FRQ)。ハンドサーチ等の追加検討が必要です"),
+    "CQ2-薬物の併用療法": ([], "本検索式に併用療法に対応する語がありません(FRQ)。ハンドサーチ等の追加検討が必要です"),
+    "CQ2-運動": ([], "本検索式に運動(exercise)に対応する語がありません。ハンドサーチ等の追加検討が必要です"),
+    "CQ2-鍼灸": ([], "本検索式に鍼灸(acupuncture)に対応する語がありません。ハンドサーチ等の追加検討が必要です"),
+}
+
+# CQごとの担当委員2名(2026/09収集の割り振り表より)。RoB2の独立二重評価シートの
+# 見出しに使う。ここに無いcq_idは "評価者1"/"評価者2" の汎用名で出力する
+REVIEWERS_BY_CQ = {
+    "CQ1-牛車腎気丸": ["元雄", "菊池"],
+    "CQ1-プレガバリン": ["中島", "伊藤"],
+    "CQ1-カルニチン-アセチル‒L‒カルニチン": ["内藤"],
+    "CQ1-冷却": ["川口", "上野"],
+    "CQ1-圧迫": ["川口", "上野"],
+    "CQ1-運動": ["山本", "中川夏樹"],
+    "CQ1-鍼灸": ["在原", "田辺"],
+    "CQ2-デュロキセチン": ["神林", "武井"],
+    "CQ2-アミトリプチリン": ["縄田", "平川"],
+    "CQ2-プレガバリン": ["渡辺", "釆野"],
+    "CQ2-ミロガバリン": ["渡辺", "釆野"],
+    "CQ2-ビタミン-B12": ["坂下", "中川貴之"],
+    "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs": ["松岡宏", "松坂"],
+    "CQ2-オピオイド": ["高木", "山田"],
+    "CQ2-薬物の併用療法": ["宇和川", "佐藤"],
+    "CQ2-運動": ["荒尾", "大岩"],
+    "CQ2-鍼灸": ["神田", "京田", "草場", "久保"],
+}
 
 STRENGTH_TEXT = {
     "1": "1(強い推奨・実施)", "2": "2(弱い推奨・実施を提案)",
@@ -66,9 +136,69 @@ def header_row(ws, row, headers, widths=None):
     ws.freeze_panes = f"A{row + 1}"
 
 
-def sheet_pico(wb, item):
+def sheet_search(wb, item):
     ws = wb.active
-    ws.title = "CQ・PICO"
+    ws.title = "検索式"
+    terms, warn = SEARCH_TERM_MAP.get(item["cq_id"], ([], "対応表未登録。要確認"))
+    ws.append(["項目", "内容"])
+    for i in range(1, 3):
+        ws.cell(row=1, column=i).fill = HEADER_FILL
+        ws.cell(row=1, column=i).font = HEADER_FONT
+    ws.column_dimensions["A"].width = 22
+    ws.column_dimensions["B"].width = 100
+    rows = [
+        ("DB", SEARCH_DB),
+        ("検索期間", SEARCH_PERIOD),
+        ("検索実施日(委員記入)", ""),
+        ("検索実施者(委員記入)", ""),
+        ("P節(対象)", SEARCH_P),
+        ("C節(病態)", SEARCH_C),
+        ("I節(介入・全CQ共通の検索式全文)", SEARCH_I_FULL),
+        ("本CQに対応する語句", ", ".join(terms) if terms else "(なし)"),
+        ("ヒット件数(委員記入)", ""),
+        ("重複除去後件数(委員記入)", ""),
+    ]
+    for label, val in rows:
+        ws.append([label, val])
+    for r in ws.iter_rows(min_row=2):
+        r[1].alignment = WRAP
+    if warn:
+        ws.append(["⚠要確認", warn])
+        ws.cell(row=ws.max_row, column=1).fill = WARN_FILL
+        ws.cell(row=ws.max_row, column=2).fill = WARN_FILL
+        ws.cell(row=ws.max_row, column=2).alignment = WRAP
+
+
+def sheet_screening(wb, item):
+    ws = wb.create_sheet("スクリーニングログ")
+    headers = ["PMID", "タイトル", "出典(検索/ハンドサーチ)",
+               "一次スクリーニング(採用/除外/保留)", "一次除外理由",
+               "二次スクリーニング(採用/除外)", "二次除外理由", "備考"]
+    header_row(ws, 1, headers, widths=[12, 40, 16, 22, 26, 22, 26, 26])
+    r = 2
+    for ref in item["references"]:
+        ws.cell(row=r, column=1, value=ref["pmid"] or "")
+        ws.cell(row=r, column=2, value=ref["citation"][:120])
+        ws.cell(row=r, column=2).alignment = WRAP
+        ws.cell(row=r, column=3, value="2023年版で採用済み")
+        ws.cell(row=r, column=4, value="採用")
+        ws.cell(row=r, column=6, value="採用")
+        r += 1
+    ws.append(["", "", "", "", "", "", "",
+               "(新規文献はここに1行ずつ追記。除外した文献も理由とともに必ず残す = PRISMAフロー用)"])
+    note_row = ws.max_row
+    ws.cell(row=note_row, column=8).fill = NOTE_FILL
+    ws.cell(row=note_row, column=8).alignment = WRAP
+    ws.append(["", "", "", "", "", "", "", ""])
+    ws.append(["── 除外理由コードの例 ──", "PICO不一致 / 対象外デザイン(RCT以外等) / "
+               "重複掲載 / 全文入手不可 / 会議抄録のみ / その他(備考に記載)", "", "", "", "", "", ""])
+    ws.cell(row=ws.max_row, column=1).fill = NOTE_FILL
+    ws.cell(row=ws.max_row, column=2).fill = NOTE_FILL
+    ws.cell(row=ws.max_row, column=2).alignment = WRAP
+
+
+def sheet_pico(wb, item):
+    ws = wb.create_sheet("CQ・PICO")
     d = item["draft"]
     rows = [
         ("cq_id", item["cq_id"]),
@@ -113,13 +243,18 @@ def sheet_evidence_body(wb, item):
     ws.cell(row=2, column=1).fill = NOTE_FILL
 
 
-def sheet_rob2(wb, item):
-    ws = wb.create_sheet("個別研究RoB2評価")
-    headers = (["PMID", "研究(著者,年)", "対応するアウトカムID", "デザイン",
-               "comparator(none/usual_care/placebo/active_weaker/active_different)",
-               "適格性(eligible)"] + ROB2_DOMAINS
-               + ["2023年版で引用", "新規追加", "備考(委員記入)"])
-    header_row(ws, 1, headers, widths=[12, 30, 16, 10, 34, 10, 14, 14, 14, 14, 12, 10, 14, 12, 30])
+ROB2_HEADERS = (["PMID", "研究(著者,年)", "対応するアウトカムID", "デザイン",
+                 "comparator(none/usual_care/placebo/active_weaker/active_different)",
+                 "適格性(eligible)"] + ROB2_DOMAINS
+                + ["2023年版で引用", "新規追加", "備考(委員記入)"])
+ROB2_WIDTHS = [12, 30, 16, 10, 34, 10, 14, 14, 14, 14, 12, 10, 14, 12, 30]
+# D1〜総合(Overall)の列(A=1起点)。照合シートで評価者1/2を突き合わせる対象
+ROB2_DOMAIN_COLS = list(range(7, 13))  # G〜L
+
+
+def _rob2_sheet(wb, title, item):
+    ws = wb.create_sheet(title)
+    header_row(ws, 1, ROB2_HEADERS, widths=ROB2_WIDTHS)
     r = 2
     for ref in item["references"]:
         ws.cell(row=r, column=1, value=ref["pmid"] or "")
@@ -128,6 +263,56 @@ def sheet_rob2(wb, item):
         ws.cell(row=r, column=13, value="○")   # 2023年版で引用
         r += 1
     ws.append([""] * 13 + ["", "(新規追加論文はここに1行ずつ追記。○を「新規追加」列に)"])
+    return ws
+
+
+def sheet_rob2_pair(wb, item):
+    """独立二重レビュー: 評価者1・評価者2が別シートに互いを見ずに記入する"""
+    reviewers = REVIEWERS_BY_CQ.get(item["cq_id"], ["評価者1", "評価者2"])
+    r1_name = reviewers[0] if len(reviewers) > 0 else "評価者1"
+    r2_name = reviewers[1] if len(reviewers) > 1 else "評価者2(未割当)"
+    ws1 = _rob2_sheet(wb, f"RoB2_{r1_name}", item)
+    ws2 = _rob2_sheet(wb, f"RoB2_{r2_name}", item)
+    n_refs = len(item["references"])
+    return ws1, ws2, r1_name, r2_name, n_refs
+
+
+def sheet_rob2_reconcile(wb, item, r1_name, r2_name, n_refs):
+    """2名の評価を自動照合し、ドメインごとの不一致を検出する(Minds/コクラン標準の
+    独立二重レビュー→照合の手順)。値はすべて評価者シートを参照する数式で、
+    このシート自体には手入力しない(確定列だけ委員が記入する)"""
+    ws = wb.create_sheet("RoB2_照合")
+    headers = ["PMID", "研究", "ドメイン", f"評価者1({r1_name})", f"評価者2({r2_name})",
+               "判定", "確定(委員記入・不一致時は協議のうえ決定)"]
+    header_row(ws, 1, headers, widths=[12, 34, 20, 16, 16, 10, 34])
+
+    s1, s2 = f"'RoB2_{r1_name}'", f"'RoB2_{r2_name}'"
+    row = 2
+    for i in range(n_refs):
+        src_row = i + 2  # 評価者シート側の行(ヘッダ分+1)
+        for col in ROB2_DOMAIN_COLS:
+            col_letter = get_column_letter(col)
+            domain_label = ROB2_HEADERS[col - 1]
+            ws.cell(row=row, column=1, value=f"={s1}!A{src_row}")
+            ws.cell(row=row, column=2, value=f"={s1}!B{src_row}")
+            ws.cell(row=row, column=3, value=domain_label)
+            ws.cell(row=row, column=4, value=f"={s1}!{col_letter}{src_row}")
+            ws.cell(row=row, column=5, value=f"={s2}!{col_letter}{src_row}")
+            ws.cell(row=row, column=6, value=(
+                f'=IF({s1}!{col_letter}{src_row}={s2}!{col_letter}{src_row},'
+                f'IF({s1}!{col_letter}{src_row}="","未入力","一致"),"不一致")'
+            ))
+            row += 1
+    last_row = row - 1
+    if last_row >= 2:
+        ws.conditional_formatting.add(
+            f"F2:F{last_row}",
+            CellIsRule(operator="equal", formula=['"不一致"'], fill=MISMATCH_FILL),
+        )
+    for r in ws.iter_rows(min_row=2, max_row=max(last_row, 2)):
+        r[1].alignment = WRAP
+        r[6].alignment = WRAP
+    ws.freeze_panes = "A2"
 
 
 def sheet_references(wb, item):
@@ -161,9 +346,12 @@ def sheet_vote(wb, item):
 
 def build_workbook(item):
     wb = Workbook()
+    sheet_search(wb, item)          # active/1枚目
     sheet_pico(wb, item)
+    sheet_screening(wb, item)
+    _, _, r1, r2, n_refs = sheet_rob2_pair(wb, item)
+    sheet_rob2_reconcile(wb, item, r1, r2, n_refs)
     sheet_evidence_body(wb, item)
-    sheet_rob2(wb, item)
     sheet_references(wb, item)
     sheet_vote(wb, item)
     return wb
