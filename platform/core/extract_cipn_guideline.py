@@ -79,8 +79,20 @@ def find_page(pdf, needle, start_page=1, max_pages=140):
     return None
 
 
+def strip_ctrl(s: str) -> str:
+    """印字不能な制御文字を除去する。
+
+    このPDFの一部ページはpdftotextが単語間にBEL(\\x07)等の制御文字を
+    吐く(フォントのリガチャ処理由来と見られる)。正規表現の^\\s*が
+    拾えず見出し検出が壊れたり、表示テキストに紛れ込んだりするため、
+    生の行を扱う最初の時点で取り除く
+    """
+    return "".join(ch for ch in s if ch == "\t" or ch >= " ")
+
+
 def norm(s: str) -> str:
     """全角記号・空白の正規化"""
+    s = strip_ctrl(s)
     s = (s.replace("　", " ").replace("～", "~").replace("，", ",")
            .replace("（", "(").replace("）", ")")
            .replace("：", ":").replace("／", "/").replace("、", ","))
@@ -130,7 +142,7 @@ def split_blocks(text):
             blocks.append(cur)
 
     for raw in lines:
-        line = raw
+        line = strip_ctrl(raw)
         s = norm(line)
 
         m = CQ_SECTION_RE.match(s)
@@ -150,6 +162,10 @@ def split_blocks(text):
             cur_category = f"{m.group(2)}による{m.group(3)}"
             cur_cq = CQ_OF_CATEGORY[m.group(3)]
             pending_name = None
+            # state="文献"のままだと、次に来る"N)介入名"見出し行が
+            # (直前ブロックの)文献リストへの追記だと誤認される。
+            # カテゴリ境界を越えたら文献収集は一旦区切る
+            state = None
             continue
 
         # ページフッタ・縦組みの柱(欄外に"第\n3\n章\nクリニカルクエスチョンと推奨"が
@@ -162,16 +178,31 @@ def split_blocks(text):
 
         m = INTERVENTION_RE.match(s)
         if m and s not in SECTION_KEYWORDS:
-            if state == "推奨文":  # 同上: 概要ページの残骸を破棄
+            if state == "文献" and cur is not None:
+                # 文献行("1）Nishioka M, ...")も介入見出しと同じ"N)text"の形をして
+                # いる。文献リストを読んでいる最中なら普通に1件として取り込む
+                # (次の介入見出しかどうかは、次に"推奨文"が来た時点でまとめて
+                #  末尾を見直して判定する。下のflush直前の処理を参照)
+                cur["文献"].append(line)
+                continue
+            if state == "推奨文":  # 概要ページの残骸を破棄(別コメント参照)
                 cur = None
-            # 文献行("1）Nishioka M, ...")も同じ"N)text"の形をしているが、
-            # 直後に"推奨文"が来た時点のpending_nameだけが介入名として採用される
-            # (=文献リストの最後の行のNo.が次の介入番号1)と偶然一致しても、
-            #  その次の実際の見出し行で必ず上書きされるので実害はない)
             pending_name = re.sub(r"[.．…\s]{2,}\d*$", "", m.group(2)).strip()
             continue
 
         if s == "推奨文":
+            if cur is not None and cur["文献"]:
+                # 直前ブロックの文献リストの末尾が"N)text"単独行なら、それは
+                # 文献ではなく次の介入見出しだった可能性が高い(解説が無い分、
+                # 文献の直後にすぐ次の介入見出しが来るため区別がつかない)。
+                # 末尾から非空行を探し、見出しらしければ文献から追い出して
+                # pending_nameに回す
+                idx = max((i for i, l in enumerate(cur["文献"]) if norm(l)), default=None)
+                if idx is not None:
+                    mm = INTERVENTION_RE.match(norm(cur["文献"][idx]))
+                    if mm and pending_name is None:
+                        pending_name = re.sub(r"[.．…\s]{2,}\d*$", "", mm.group(2)).strip()
+                        del cur["文献"][idx:]
             flush()
             cur = {"cq": cur_cq, "category": cur_category,
                    "intervention": pending_name, "推奨文": [], "解説": [],
@@ -213,6 +244,37 @@ PANEL_SIZE_RE = re.compile(r"(\d+)\s*名\s*\(棄権")
 PMID_RE = re.compile(r"PMID\s*:\s*(\d+)")
 
 
+REF_ITEM_RE = re.compile(r"^\s*(\d+)\)\s*(.*)$")
+
+
+def parse_references(raw_lines):
+    """文献の生行リストを、1文献1レコードに分解する。
+
+    "N)著者...雑誌名.年；巻：頁.［PMID：xxxxx］" が1行または複数行に
+    わたって書かれている。次の"N)"行が来るまでを1件として結合する。
+    """
+    items = []
+    cur_no, cur_lines = None, []
+
+    def flush():
+        if cur_no is None:
+            return
+        text = join_text(cur_lines)
+        m = PMID_RE.search(norm(text))
+        items.append({"no": cur_no, "citation": text, "pmid": m.group(1) if m else None})
+
+    for raw in raw_lines:
+        s = norm(raw)
+        m = REF_ITEM_RE.match(s)
+        if m:
+            flush()
+            cur_no, cur_lines = int(m.group(1)), [raw]
+        elif cur_no is not None:
+            cur_lines.append(raw)
+    flush()
+    return items
+
+
 def parse_block(b):
     # 表示用は全角のまま保持し、正規表現照合にだけ正規化版を使う。
     # norm()の変換はすべて1文字→1文字(全角記号→半角/NFKC)なので、
@@ -226,16 +288,15 @@ def parse_block(b):
     vote_joined = norm(join_text(b["投票結果"]))
     pm = PANEL_SIZE_RE.search(vote_joined)
 
-    refs_text = "\n".join(b["文献"])
-    pmids = PMID_RE.findall(norm(refs_text))
+    references = parse_references(b["文献"])
+    pmids = [r["pmid"] for r in references if r["pmid"]]
 
     out = {
         "cq": b["cq"], "category": b["category"], "intervention": b["intervention"],
         "recommendation_text": rec_text,
         "rationale_text": rationale,
         "cited_pmids": sorted(set(pmids), key=pmids.index),
-        "n_references": len(re.findall(r"^\s*\d+）", "\n".join(b["文献"]), re.M)),
-        "_raw_references": [l.strip() for l in b["文献"] if l.strip()],
+        "references": references,
         "_parse_warnings": [],
     }
     if m:
@@ -309,6 +370,7 @@ def to_package(rec, source_pdf):
             },
         },
         "narrative": rec["rationale_text"],
+        "references": rec["references"],
     }
 
 
