@@ -27,7 +27,16 @@ COMPARATOR_JA = {
     "none": "無介入", "usual_care": "通常ケア", "placebo": "プラセボ",
     "active_weaker": "実対照（弱い介入）", "active_different": "実対照（別介入）",
 }
-STRENGTH_JA = {"1": "1（強い推奨）", "2": "2（弱い推奨）", "なし": "推奨なし"}
+# Minds 5段階(CIPN診療GL 2023年版の表記)。旧来の "なし" もデモ互換で残す
+STRENGTH_JA = {
+    "1": "1（強い推奨・実施）", "2": "2（弱い推奨・実施を提案）", "3": "3（推奨なし）",
+    "4": "4（弱い推奨・非実施を提案）", "5": "5（強い推奨・非実施）", "なし": "推奨なし",
+}
+DIRECTION_JA = {
+    "for_strong": "行うことを強く推奨", "for": "行うことを提案", "none": "推奨なし",
+    "against": "行わないことを提案", "against_strong": "行わないことを強く推奨",
+}
+CERT_JA = {"A": "A（強）", "B": "B（中）", "C": "C（弱）", "D": "D（非常に弱い）"}
 
 CSS = """
 *{box-sizing:border-box}
@@ -63,7 +72,12 @@ details.study[open]>summary:before{content:"▾ "}
 .sbody{padding:0 14px 13px;font-size:13.5px}
 .tag{display:inline-block;background:#e7edf1;border-radius:4px;padding:1px 7px;font-size:11.5px;margin-left:6px}
 .tag.r{background:#b3261e;color:#fff}.tag.ma{background:#3d5a80;color:#fff}
-.tag.dup{background:#a86200;color:#fff}
+.tag.dup{background:#a86200;color:#fff}.tag.new{background:#1c7c4a;color:#fff}
+.issue.i{border-color:#3d5a80;background:#eef3f9}
+select{padding:7px;border:1px solid #ccd3da;border-radius:6px;font-size:14px;font-family:inherit}
+.change{display:none;margin-top:10px;padding:12px 14px;border:1px dashed #a86200;border-radius:8px;background:#fdf8ee}
+.change.on{display:block}
+.change label{display:inline-block;margin:4px 14px 4px 0}
 a{color:#0b6ea8}
 .chain{border-left:3px solid #17a398;padding-left:13px;margin:10px 0;font-size:13.5px}
 .chk{border-top:1px solid #eceff2;padding:9px 0;display:flex;gap:10px;align-items:flex-start}
@@ -100,6 +114,9 @@ button.ghost{background:transparent;border:1.5px solid #6ecfc4;color:#6ecfc4}
 
 # 委員が必ず答えるチェック項目。AGREE II の該当項目を併記する
 CHECKLIST = [
+    ("2023年版以降の新規文献（「新規」タグの論文）を読んだうえで、推奨の方向・強さを"
+     "変える根拠の有無を判断した",
+     "改訂の要点：踏襲するなら「変える根拠がない」ことの確認、変えるなら新規文献との対応"),
     ("推奨文が、この画面に並ぶ根拠だけで説明できる（書かれていない根拠を前提にしていない）",
      "AGREE II 項目12：推奨とエビデンスの対応関係"),
     ("採用文献に、除外すべき研究（同一試験の重複・撤回論文・適格基準外）が混じっていない",
@@ -134,17 +151,19 @@ def _effect(e):
     return s
 
 
-def _issues_html(b):
+def _issues_html(b, baseline=False):
     out = []
     for v in b["validation"]["violations"]:
         out.append(f'<div class="issue"><div class="rule">{esc(v["rule"])} 違反</div>'
                    f'<div class="d">{esc(v["detail"])}</div></div>')
+    # 改訂レビューでは draft は刊行版(2023年版)なので「AI生成」とは呼ばない
+    block_label = "2023年版の記載と今回の根拠の不一致" if baseline else "AI生成の申告と根拠の不一致"
     for c in b["cross_check"]:
         lv = c.get("level")
         if lv == "info":
             continue
         cls = "issue" if lv == "block" else "issue w"
-        label = "AI生成の申告と根拠の不一致" if lv == "block" else "要確認"
+        label = block_label if lv == "block" else "要確認"
         out.append(f'<div class="{cls}"><div class="rule">{label}（{esc(c["check"])}）</div>'
                    f'<div class="d">{esc(c["detail"])}</div></div>')
     return "\n".join(out) or '<p class="note">機械検証で検出された不整合はありません。</p>'
@@ -170,6 +189,10 @@ def _studies_html(b):
     out = []
     for s in b["studies"]:
         tags = ""
+        if s.get("newly_added"):
+            tags += '<span class="tag new">新規（2023年版以降）</span>'
+        elif s.get("cited_in_2023"):
+            tags += '<span class="tag">2023年版採用</span>'
         if s["retracted"]:
             tags += '<span class="tag r">撤回論文</span>'
         if s["design"] == "meta_analysis":
@@ -203,6 +226,20 @@ def _studies_html(b):
     return "\n".join(out)
 
 
+def _incomplete_html(b):
+    """RoB2は入力したがアウトカム未割当など、入力途中の結果を「未完了」として見せる"""
+    items = b.get("incomplete_results") or []
+    if not items:
+        return ""
+    rows = "".join(f'<div class="issue i"><div class="rule">入力未完了</div>'
+                   f'<div class="d">{esc(x["result"])}：{esc(x["reason"])}</div></div>'
+                   for x in items[:20])
+    more = (f'<p class="note">ほか {len(items) - 20} 件</p>' if len(items) > 20 else "")
+    return (f'<section><h2>入力が未完了の項目（{len(items)}件）</h2>{rows}{more}'
+            '<p class="note">minds_review.xlsx の RoB2 評価シートで「対応するアウトカムID」'
+            '「適格性」を埋め、merge_rob2_evidence.py を再実行すると解消します。</p></section>')
+
+
 def _provenance_html(b):
     out = []
     for c in b["provenance"]["chain"]:
@@ -230,22 +267,42 @@ def render(bundle: dict) -> str:
                 'PMID・効果量・推奨文はすべて架空で、実在の研究ではありません。'
                 'この画面の動きを確認するためのものです。</div>')
 
+    # 改訂レビュー: draft が刊行版(2023年版)の推奨なら「踏襲の出発点」として扱う。
+    # AI生成の推奨案(Phase1)なら従来どおり「未承認」として扱う
+    baseline = str(d.get("generated_by", "")).startswith("published_guideline")
+    n_new = sum(1 for s in bundle["studies"] if s.get("newly_added"))
+    n_old = sum(1 for s in bundle["studies"] if s.get("cited_in_2023"))
+
+    if baseline:
+        rec_title = "2023年版の推奨（改訂の出発点・原文）"
+        cert_label = "2023年版の確実性"
+        rec_note = ("これは刊行済み2023年版の推奨文です。改訂では原則としてこれを踏襲し、"
+                    "新規文献（下の採用文献で「新規」タグ）が方向・強さを変える根拠になる場合だけ変更します。")
+    else:
+        rec_title = "推奨案（AI生成・未承認）"
+        cert_label = "AI申告の確実性"
+        rec_note = ""
+
     rec_block = f"""
 <section>
-  <h2>推奨案（AI生成・未承認）</h2>
+  <h2>{rec_title}</h2>
   <div class="rec">{esc(d.get('recommendation_text') or '（推奨案が未生成です）')}</div>
   <div class="kv">
     <div><b>推奨の強さ</b> {esc(STRENGTH_JA.get(d.get('strength'), d.get('strength') or '—'))}</div>
-    <div><b>方向</b> {esc({'for': '行うことを推奨', 'against': '行わないことを推奨'}.get(d.get('direction'), d.get('direction') or '—'))}</div>
-    <div><b>AI申告の確実性</b> {esc(d.get('certainty') or '—')}</div>
-    <div><b>グラフから導いた確実性</b> {esc(derived.get('overall') or '—')}</div>
-    <div><b>合意率</b> {esc(f"{vote.get('agreement_rate'):.0%}" if vote.get('agreement_rate') is not None else '—')}
+    <div><b>方向</b> {esc(DIRECTION_JA.get(d.get('direction'), d.get('direction') or '—'))}</div>
+    <div><b>{cert_label}</b> {esc(CERT_JA.get(d.get('certainty'), d.get('certainty') or '—'))}</div>
+    <div><b>今回のエビデンスから導いた確実性</b> {esc(derived.get('overall') or '—（総体評価が未入力）')}</div>
+    <div><b>2023年版の合意率</b> {esc(f"{vote.get('agreement_rate'):.0%}" if vote.get('agreement_rate') is not None else '—')}
       {esc(f"（{vote.get('n_panel')}名）" if vote.get('n_panel') else '')}</div>
+    <div><b>文献</b> 2023年版採用 {n_old}件 ／ <b>新規 {n_new}件</b></div>
   </div>
+  {f'<p class="note">{esc(rec_note)}</p>' if rec_note else ''}
   <p class="note">確実性は「重大アウトカムの総体のうち最も低いもの」として機械的に導出しています：{esc(derived.get('reason') or '')}</p>
 </section>"""
 
-    if not ready:
+    # AI生成案は機械検証不合格なら畳む(もっともらしい文章を先に読ませない)。
+    # 刊行版の推奨は承認済みの出発点なので畳まない
+    if not ready and not baseline:
         rec_block = ('<section><h2>推奨案（AI生成・未承認）</h2>'
                      '<p class="note">機械検証で不整合が残っているため、推奨文は畳んでいます。'
                      '先に上の「機械検証の結果」を確認してください。</p>'
@@ -262,8 +319,39 @@ def render(bundle: dict) -> str:
 
     narrative = ""
     if bundle.get("narrative"):
-        narrative = (f'<section><h2>解説文（Phase2生成）</h2>'
+        nar_title = "2023年版の解説（原文）" if baseline else "解説文（Phase2生成）"
+        narrative = (f'<section><h2>{nar_title}</h2>'
                      f'<div style="white-space:pre-wrap">{esc(bundle["narrative"])}</div></section>')
+
+    # 判定の選択肢。改訂レビューでは「踏襲／変更／削除・FRQ化」、AI案では従来の承認系
+    if baseline:
+        verdict_html = """
+  <div class="verdicts">
+    <label><input type="radio" name="verdict" value="keep">2023年版を踏襲する</label>
+    <label><input type="radio" name="verdict" value="change">推奨を変更する（下に変更案・コメント必須）</label>
+    <label><input type="radio" name="verdict" value="withdraw">推奨を削除・FRQ化する（コメント必須）</label>
+  </div>
+  <div class="change" id="changeBox">
+    <label>変更後の推奨の強さ
+      <select id="newStrength"><option value="">—</option>
+        <option value="1">1 強い推奨・実施</option><option value="2">2 弱い推奨・実施</option>
+        <option value="3">3 推奨なし</option><option value="4">4 弱い推奨・非実施</option>
+        <option value="5">5 強い推奨・非実施</option></select></label>
+    <label>変更後の確実性
+      <select id="newCertainty"><option value="">—</option>
+        <option>A</option><option>B</option><option>C</option><option>D</option></select></label>
+    <div style="margin-top:8px"><label style="display:block">変更後の推奨文（案）</label>
+      <textarea id="newText" placeholder="変更後の推奨文を書いてください"></textarea></div>
+  </div>"""
+        verdict_status = ('{"keep":"踏襲","change":"変更","withdraw":"削除・FRQ化"}')
+    else:
+        verdict_html = """
+  <div class="verdicts">
+    <label><input type="radio" name="verdict" value="approve">承認する</label>
+    <label><input type="radio" name="verdict" value="conditional">条件付き承認（コメント必須）</label>
+    <label><input type="radio" name="verdict" value="revise">差し戻す（コメント必須）</label>
+  </div>"""
+        verdict_status = "{}"
 
     return f"""<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -278,9 +366,10 @@ def render(bundle: dict) -> str:
 {demo}
 <section>
   <h2>機械検証の結果（LLMではなく規則で判定）</h2>
-  {_issues_html(bundle)}
+  {_issues_html(bundle, baseline)}
   <p class="note">Minds規則 R1–R8（適格性・二重計上・撤回・非直接性・重大アウトカム・格下げ理由）と、
-  AI生成の申告値の照合を、決定論的に実行した結果です。</p>
+  {'2023年版の記載（確実性・引用PMID）と今回整備した根拠' if baseline else 'AI生成の申告値'}の照合を、決定論的に実行した結果です。
+  {'RoB2評価・エビデンス総体が未入力の段階では、引用文献が根拠グラフに未接続のため不一致として並びます。入力が進むと消えていきます。' if baseline else ''}</p>
 </section>
 
 <section>
@@ -302,6 +391,8 @@ def render(bundle: dict) -> str:
 <section><h2>推奨の由来（AGREE II 項目12の証跡）</h2>{_provenance_html(bundle)}
 <p class="note">推奨 → エビデンス総体 → 格下げ要因 → 論文PMID の連鎖です。この鎖に載っていない根拠は、推奨の裏づけになりません。</p></section>
 
+{_incomplete_html(bundle)}
+
 {"<section><h2>EtD（判断の枠組み）</h2><div class='scroll'><table>" + etd_rows + "</table></div></section>" if etd_rows else ""}
 
 {narrative}
@@ -309,12 +400,8 @@ def render(bundle: dict) -> str:
 <section>
   <h2>あなたの確認</h2>
   {checklist}
-  <div class="verdicts">
-    <label><input type="radio" name="verdict" value="approve">承認する</label>
-    <label><input type="radio" name="verdict" value="conditional">条件付き承認（コメント必須）</label>
-    <label><input type="radio" name="verdict" value="revise">差し戻す（コメント必須）</label>
-  </div>
-  <textarea id="comment" placeholder="コメント（差し戻し・条件付き承認の場合は必須。どの記述を、何を根拠に、どう直すかを書いてください）"></textarea>
+  {verdict_html}
+  <textarea id="comment" placeholder="コメント（変更・削除・差し戻し・条件付き承認の場合は必須。どの記述を、何を根拠に（新規文献のPMID等）、どう直すかを書いてください）"></textarea>
   <p style="margin-top:10px">
     お名前：<input id="reviewer" style="padding:7px;border:1px solid #ccd3da;border-radius:6px;font-size:14px" placeholder="委員名">
   </p>
@@ -331,14 +418,23 @@ def render(bundle: dict) -> str:
 <script>
 const CQ = {json.dumps(bundle['cq']['id'], ensure_ascii=False)};
 const KEY = "cipn-review-" + CQ;
+const VERDICT_JA = {verdict_status};
+const val = id => {{ const e = document.getElementById(id); return e ? e.value : null; }};
 function collect() {{
   const chk = {{}};
   document.querySelectorAll('[data-chk]').forEach(e => chk[e.dataset.chk] = e.checked);
   const v = document.querySelector('input[name=verdict]:checked');
   return {{cq: CQ, reviewer: document.getElementById('reviewer').value,
-          verdict: v ? v.value : null, checklist: chk,
+          verdict: v ? v.value : null, verdict_ja: v ? (VERDICT_JA[v.value] || v.value) : null,
+          checklist: chk,
+          proposed: {{strength: val('newStrength'), certainty: val('newCertainty'), text: val('newText')}},
           comment: document.getElementById('comment').value,
           saved_at: new Date().toISOString()}};
+}}
+function syncChangeBox() {{
+  const box = document.getElementById('changeBox'); if (!box) return;
+  const v = document.querySelector('input[name=verdict]:checked');
+  box.classList.toggle('on', !!v && v.value === 'change');
 }}
 function save() {{
   localStorage.setItem(KEY, JSON.stringify(collect()));
@@ -356,12 +452,20 @@ function restore() {{
     const e = document.querySelector('input[name=verdict][value="' + d.verdict + '"]');
     if (e) e.checked = true;
   }}
+  const p = d.proposed || {{}};
+  [['newStrength', p.strength], ['newCertainty', p.certainty], ['newText', p.text]].forEach(([id, v]) => {{
+    const e = document.getElementById(id); if (e && v != null) e.value = v;
+  }});
+  syncChangeBox();
 }}
 function exportJSON() {{
   const d = collect();
   if (!d.reviewer) {{ alert("お名前を入力してください"); return; }}
-  if (!d.verdict) {{ alert("承認・条件付き承認・差し戻しのいずれかを選んでください"); return; }}
-  if (d.verdict !== "approve" && !d.comment.trim()) {{ alert("コメントを入力してください"); return; }}
+  if (!d.verdict) {{ alert("判定を選んでください"); return; }}
+  const needComment = !["approve", "keep"].includes(d.verdict);
+  if (needComment && !d.comment.trim()) {{ alert("コメントを入力してください"); return; }}
+  if (d.verdict === "change" && !(d.proposed.strength || d.proposed.text.trim())) {{
+    alert("変更後の推奨の強さ、または推奨文（案）を入力してください"); return; }}
   const blob = new Blob([JSON.stringify(d, null, 2)], {{type: "application/json"}});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -373,7 +477,7 @@ function clearAll() {{
   localStorage.removeItem(KEY); location.reload();
 }}
 document.addEventListener("input", save);
-document.addEventListener("change", save);
+document.addEventListener("change", () => {{ syncChangeBox(); save(); }});
 restore();
 </script>
 </body></html>"""

@@ -55,7 +55,9 @@ def build_graph(pkg: dict) -> EvidenceGraph:
         g.add_node(st["id"], NodeType.STUDY, pmid=st.get("pmid"),
                    design=st.get("design"), retracted=st.get("retracted", False),
                    title=st.get("title", ""), journal=st.get("journal", ""),
-                   year=st.get("year"))
+                   year=st.get("year"),
+                   cited_in_2023=st.get("cited_in_2023", False),
+                   newly_added=st.get("newly_added", False))
         for tid in st.get("trial_ids", []):
             node = f"T:{tid}"
             if node not in g.nodes:
@@ -184,10 +186,12 @@ def cross_check_draft(pkg: dict, g: EvidenceGraph) -> list:
             })
 
     # 4. 推奨の強さの語彙
-    if draft.get("strength") not in (None, "1", "2", "なし"):
+    # CIPN診療GL(2023)はMindsの5段階(1:強く実施 2:弱く実施 3:推奨なし
+    # 4:弱く非実施 5:強く非実施)を使う。旧来の "なし" もデモ互換で許容する
+    if draft.get("strength") not in (None, "1", "2", "3", "4", "5", "なし"):
         issues.append({
             "check": "vocabulary", "level": "block", "value": draft.get("strength"),
-            "detail": "推奨の強さは 1(強い) / 2(弱い) / なし のいずれかで記述する",
+            "detail": "推奨の強さは 1〜5(Minds 5段階) のいずれかで記述する",
         })
 
     # 5. 合意率の記録
@@ -222,6 +226,8 @@ def _study_card(g: EvidenceGraph, sid: str, pkg: dict) -> dict:
         "id": sid, "pmid": a.get("pmid"), "title": a.get("title"),
         "journal": a.get("journal"), "year": a.get("year"),
         "design": a.get("design"), "retracted": bool(a.get("retracted")),
+        "cited_in_2023": bool(a.get("cited_in_2023")),
+        "newly_added": bool(a.get("newly_added")),
         "trials": sorted(g.succ(sid, EdgeType.REPORTS)),
         "same_trial_as": sorted(g.succ(sid, EdgeType.SAME_TRIAL_AS)),
         "includes": sorted(g.succ(sid, EdgeType.INCLUDES)),

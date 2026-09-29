@@ -56,10 +56,13 @@ def read_rob2_rows(ws):
             continue
         pmid, citation, outcome_id, design, comparator, eligible = r[:6]
         domains = r[6:12]  # D1..D5, Overall
+        cited_2023 = bool(r[12]) if len(r) > 12 else False   # 「2023年版で引用」列
+        newly_added = bool(r[13]) if len(r) > 13 else False  # 「新規追加」列
         rows.append({
             "pmid": str(pmid), "citation": citation, "outcome_id": outcome_id,
             "design": design, "comparator": comparator, "eligible": eligible,
             "domains": list(domains),
+            "cited_in_2023": cited_2023, "newly_added": newly_added,
         })
     return rows
 
@@ -97,6 +100,8 @@ def reconcile(rows1, rows2, recon_final):
             "eligible": r1["eligible"] or r2["eligible"],
             "domains": final_domains,
             "_unresolved_domains": unresolved,
+            "cited_in_2023": r1["cited_in_2023"] or r2["cited_in_2023"],
+            "newly_added": r1["newly_added"] or r2["newly_added"],
         })
     return merged
 
@@ -200,6 +205,8 @@ def merge_one(cq_dir):
         studies.append({
             "id": sid, "pmid": row["pmid"], "design": row["design"],
             "title": row["citation"], "trial_ids": [],
+            # 改訂レビューで「2023年版から何が増えたか」を見せるための旗
+            "cited_in_2023": row["cited_in_2023"], "newly_added": row["newly_added"],
         })
         oid = row["outcome_id"]
         rob2 = dict(zip(
