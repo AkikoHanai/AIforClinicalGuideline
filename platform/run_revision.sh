@@ -27,7 +27,14 @@ fi
 step() { printf '\n== %s ==\n' "$1"; }
 
 step "0. 依存"
-$PY -c "import openpyxl" 2>/dev/null || $PY -m pip install -q openpyxl
+# Homebrew の Python(PEP 668)は直接 pip install できないので platform/.venv に閉じて入れる
+VENV="$HERE/.venv"
+if [ ! -x "$VENV/bin/python" ]; then
+  echo "仮想環境を作成: $VENV"
+  $PY -m venv "$VENV"
+fi
+PY="$VENV/bin/python"
+$PY -c "import openpyxl, boto3" 2>/dev/null || $PY -m pip install -q --upgrade pip openpyxl boto3
 command -v pdftotext >/dev/null || { echo "pdftotext がありません: brew install poppler"; exit 1; }
 
 if [ -n "$PDF" ]; then
