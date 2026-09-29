@@ -285,6 +285,9 @@ def build_bundle(pkg: dict) -> dict:
         "validation": validation,
         "cross_check": cross,
         "incomplete_results": getattr(g, "incomplete_results", []),
+        # 検索/ハンドサーチで挙がった採用候補(スクリーニングログ由来)。採否は委員が画面で判断
+        "candidates": pkg.get("candidates", []),
+        "references_2023": pkg.get("references", []),
         "derived_certainty": certainty,
         "provenance": prov,
         "gate": {

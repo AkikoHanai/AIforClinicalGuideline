@@ -141,6 +141,31 @@ def read_evidence_body_rows(wb):
     return rows
 
 
+def read_candidates(wb, known_pmids):
+    """スクリーニングログから、検索/ハンドサーチで新たに挙がった文献(=2023年版採用
+    以外の行)を「採用候補」として読む。採否はレビュー画面で委員が判断する"""
+    if "スクリーニングログ" not in wb.sheetnames:
+        return []
+    ws = wb["スクリーニングログ"]
+    out = []
+    for r in ws.iter_rows(min_row=2, values_only=True):
+        if not r or not (r[0] or r[1]):
+            continue
+        pmid = str(r[0]).strip() if r[0] else ""
+        if pmid.startswith("──"):
+            continue
+        source = r[2] or ""
+        if source == "2023年版で採用済み" or (pmid and pmid in known_pmids):
+            continue
+        out.append({
+            "pmid": pmid or None, "title": r[1] or "", "source": source,
+            "primary": r[3] or "", "primary_reason": r[4] or "",
+            "secondary": r[5] or "", "secondary_reason": r[6] or "",
+            "note": r[7] if len(r) > 7 and r[7] else "",
+        })
+    return out
+
+
 def read_pico(wb):
     if "CQ・PICO" not in wb.sheetnames:
         return {}
@@ -175,6 +200,8 @@ def merge_one(cq_dir):
 
     eb_rows = read_evidence_body_rows(wb)
     pico = read_pico(wb)
+    known_2023 = {str(ref.get("pmid")) for ref in pkg.get("references", []) if ref.get("pmid")}
+    pkg["candidates"] = read_candidates(wb, known_2023)
 
     # --- PICO/comparator_kindの確定値があれば反映(空欄なら既存値を維持) ---
     for key, pico_key in [("P(対象)", "P"), ("I(介入)", "I"), ("C(対照)", "C")]:
@@ -234,6 +261,7 @@ def merge_one(cq_dir):
     return {
         "cq_id": pkg["cq_id"], "status": "merged",
         "n_studies": len(studies), "n_outcomes": len(outcomes),
+        "n_candidates": len(pkg["candidates"]),
         "n_unresolved_domains": unresolved_total,
         "evaluators": [r1_name, r2_name],
     }

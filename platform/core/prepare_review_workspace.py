@@ -40,8 +40,9 @@ from openpyxl.utils import get_column_letter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
-HEADER_FILL = PatternFill("solid", fgColor="1F4E5F")
-HEADER_FONT = Font(color="FFFFFF", bold=True)
+# 印刷時のインク消費を抑えるため、濃い塗り＋白抜き文字は使わない(白地に黒文字)
+HEADER_FILL = PatternFill("solid", fgColor="EDEDED")
+HEADER_FONT = Font(color="000000", bold=True)
 NOTE_FILL = PatternFill("solid", fgColor="FFF3CD")
 WARN_FILL = PatternFill("solid", fgColor="F8D7DA")
 MISMATCH_FILL = PatternFill("solid", fgColor="F8D7DA")
@@ -71,21 +72,21 @@ SEARCH_TERM_MAP = {
     "CQ1-プレガバリン": (["Pregabalin"], None),
     "CQ1-カルニチン-アセチル‒L‒カルニチン": (["Acetyl-L-carnitine"], None),
     "CQ1-冷却": (["cryotherapy"], None),
-    "CQ1-圧迫": ([], "本検索式に圧迫療法(compression)に対応する語がありません。ハンドサーチ等の追加検討が必要です"),
-    "CQ1-運動": ([], "本検索式に運動(exercise)に対応する語がありません。ハンドサーチ等の追加検討が必要です"),
-    "CQ1-鍼灸": ([], "本検索式に鍼灸(acupuncture)に対応する語がありません。ハンドサーチ等の追加検討が必要です"),
+    # 以下は共通のI節に語が無いCQ。委員会指定のMeSH語をI節として使う
+    "CQ1-圧迫": (['"Compression Bandages"[Mesh]'], None),
+    "CQ1-運動": (['"Exercise"[Mesh] OR "Exercise Therapy"[Mesh]'], None),
+    "CQ1-鍼灸": (['"Acupuncture Therapy"[Mesh]'], None),
     "CQ2-デュロキセチン": (["duloxetine"], None),
     "CQ2-アミトリプチリン": (["amitriptyline/ketamine"], None),
     "CQ2-プレガバリン": (["Pregabalin", "gabapentin"], None),
     "CQ2-ミロガバリン": (["gabapentin"], "gabapentinoidとしてgabapentin語でヒットする可能性があるが、"
                        "ミロガバリン(mirogabalin)自体の語は含まれていません。担当者で要確認"),
-    "CQ2-ビタミン-B12": ([], "検索式には Vitamin E は含まれますが Vitamin B12 は含まれていません。"
-                        "担当者は検索式の追加・別途検索を検討してください"),
-    "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs": ([], "本検索式にNSAIDsに対応する語がありません。ハンドサーチ等の追加検討が必要です"),
-    "CQ2-オピオイド": ([], "本検索式にオピオイドに対応する語がありません(FRQ)。ハンドサーチ等の追加検討が必要です"),
-    "CQ2-薬物の併用療法": ([], "本検索式に併用療法に対応する語がありません(FRQ)。ハンドサーチ等の追加検討が必要です"),
-    "CQ2-運動": ([], "本検索式に運動(exercise)に対応する語がありません。ハンドサーチ等の追加検討が必要です"),
-    "CQ2-鍼灸": ([], "本検索式に鍼灸(acupuncture)に対応する語がありません。ハンドサーチ等の追加検討が必要です"),
+    "CQ2-ビタミン-B12": (['"Vitamin B 12"[Mesh]'], None),
+    "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs": (['"Anti-Inflammatory Agents, Non-Steroidal"[Mesh]'], None),
+    "CQ2-オピオイド": (['"Analgesics, Opioid"[Mesh]'], None),
+    "CQ2-薬物の併用療法": (['"Drug Therapy, Combination"[Mesh]'], None),
+    "CQ2-運動": (['"Exercise"[Mesh] OR "Exercise Therapy"[Mesh]'], None),
+    "CQ2-鍼灸": (['"Acupuncture Therapy"[Mesh]'], None),
 }
 
 # CQごとの担当委員2名(2026/09収集の割り振り表より)。RoB2の独立二重評価シートの
@@ -154,7 +155,9 @@ def sheet_search(wb, item):
         ("P節(対象)", SEARCH_P),
         ("C節(病態)", SEARCH_C),
         ("I節(介入・全CQ共通の検索式全文)", SEARCH_I_FULL),
-        ("本CQに対応する語句", ", ".join(terms) if terms else "(なし)"),
+        ("本CQのI節(介入語)", " OR ".join(terms) if terms else "(なし)"),
+        ("本CQの完成検索式", f"{SEARCH_P} AND {SEARCH_C} AND ({' OR '.join(terms)})"
+                          if terms else "(I節が未定のため未生成)"),
         ("ヒット件数(委員記入)", ""),
         ("重複除去後件数(委員記入)", ""),
     ]

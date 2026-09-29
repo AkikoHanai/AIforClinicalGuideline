@@ -39,76 +39,79 @@ DIRECTION_JA = {
 CERT_JA = {"A": "A（強）", "B": "B（中）", "C": "C（弱）", "D": "D（非常に弱い）"}
 
 CSS = """
+/* 印刷を前提にした白地・黒文字。濃い塗りつぶし・白抜き文字は使わない */
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
- background:#f6f7f9;color:#16202b;line-height:1.7;font-size:15px}
-header{background:#0f3d3e;color:#fff;padding:18px 28px}
-header .cqid{font-size:12px;letter-spacing:.12em;color:#6ecfc4}
-header h1{margin:4px 0 10px;font-size:20px;font-weight:700}
-.wrap{max-width:1180px;margin:0 auto;padding:22px 28px 90px}
-.badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
-.ok{background:#1c7c4a;color:#fff}.ng{background:#b3261e;color:#fff}
-.warn{background:#a86200;color:#fff}.mute{background:#e3e6ea;color:#41505f}
-section{background:#fff;border:1px solid #e0e4e9;border-radius:10px;padding:18px 20px;margin:16px 0}
-section>h2{margin:0 0 12px;font-size:15px;font-weight:700;color:#0f3d3e;
- border-left:4px solid #17a398;padding-left:9px}
+ background:#fff;color:#000;line-height:1.7;font-size:15px}
+header{background:#fff;color:#000;padding:16px 28px 12px;border-bottom:2px solid #000}
+header .cqid{font-size:12px;letter-spacing:.12em;color:#444}
+header h1{margin:4px 0 8px;font-size:20px;font-weight:700}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 28px 90px}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;
+ border:1.5px solid #000;background:#fff;color:#000}
+.badge.ng{border-style:double;border-width:3px}
+.badge.mute{border-color:#888;color:#444}
+section{background:#fff;border:1px solid #bbb;border-radius:6px;padding:16px 20px;margin:14px 0;
+ break-inside:avoid}
+section>h2{margin:0 0 12px;font-size:15px;font-weight:700;color:#000;
+ border-left:4px solid #000;padding-left:9px}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{border-bottom:1px solid #eceff2;padding:8px 9px;text-align:left;vertical-align:top}
-th{background:#f2f5f6;font-weight:600;font-size:13px;color:#41505f}
+th,td{border-bottom:1px solid #ccc;padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#fff;font-weight:700;font-size:13px;color:#000;border-bottom:2px solid #000}
 .scroll{overflow-x:auto}
-.issue{border-left:4px solid #b3261e;background:#fdf3f2;padding:10px 13px;margin:8px 0;border-radius:5px}
-.issue.w{border-color:#a86200;background:#fdf8ee}
+.issue{border-left:4px solid #000;border-top:1px solid #ddd;border-bottom:1px solid #ddd;
+ padding:9px 13px;margin:8px 0;background:#fff}
+.issue.w{border-left-style:dashed}
+.issue.i{border-left-style:dotted}
 .issue .rule{font-weight:700;font-size:13px}
-.issue .d{font-size:13.5px;color:#3b4854;margin-top:3px}
-.rec{background:#f0f8f7;border:1px solid #bfe0dc;border-radius:8px;padding:14px 16px;font-size:16px;font-weight:600}
+.issue .d{font-size:13.5px;color:#222;margin-top:3px}
+.rec{background:#fff;border:2px solid #000;border-radius:6px;padding:14px 16px;font-size:16px;font-weight:600}
 .kv{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.kv div{background:#f2f5f6;border-radius:6px;padding:5px 11px;font-size:13px}
-.kv b{color:#0f3d3e}
-details.study{border:1px solid #e0e4e9;border-radius:8px;margin:8px 0;background:#fcfdfd}
-details.study>summary{cursor:pointer;padding:10px 13px;font-size:14px;list-style:none}
+.kv div{border:1px solid #bbb;border-radius:4px;padding:4px 10px;font-size:13px;background:#fff}
+.kv b{color:#000}
+details.study{border:1px solid #bbb;border-radius:6px;margin:8px 0;background:#fff}
+details.study>summary{cursor:pointer;padding:9px 13px;font-size:14px;list-style:none}
 details.study>summary::-webkit-details-marker{display:none}
-details.study>summary:before{content:"▸ ";color:#17a398}
+details.study>summary:before{content:"▸ ";color:#000}
 details.study[open]>summary:before{content:"▾ "}
-.sbody{padding:0 14px 13px;font-size:13.5px}
-.tag{display:inline-block;background:#e7edf1;border-radius:4px;padding:1px 7px;font-size:11.5px;margin-left:6px}
-.tag.r{background:#b3261e;color:#fff}.tag.ma{background:#3d5a80;color:#fff}
-.tag.dup{background:#a86200;color:#fff}.tag.new{background:#1c7c4a;color:#fff}
-.issue.i{border-color:#3d5a80;background:#eef3f9}
-select{padding:7px;border:1px solid #ccd3da;border-radius:6px;font-size:14px;font-family:inherit}
-.change{display:none;margin-top:10px;padding:12px 14px;border:1px dashed #a86200;border-radius:8px;background:#fdf8ee}
+.sbody{padding:0 14px 12px;font-size:13.5px}
+.tag{display:inline-block;border:1px solid #666;border-radius:3px;padding:0 6px;font-size:11.5px;margin-left:6px;
+ background:#fff;color:#000}
+.tag.r{border:2px solid #000;font-weight:700}.tag.ma{border-style:dashed}
+.tag.dup{border-style:dotted}.tag.new{border:2px solid #000;font-weight:700}
+a{color:#000;text-decoration:underline}
+.chain{border-left:3px solid #000;padding-left:13px;margin:10px 0;font-size:13.5px}
+.chk{border-top:1px solid #ddd;padding:9px 0;display:flex;gap:10px;align-items:flex-start}
+.chk input[type=checkbox]{margin-top:5px;width:17px;height:17px;flex:none}
+.chk .q{flex:1}.chk .q small{color:#444;display:block;font-size:12.5px}
+textarea,input[type=text],select{width:100%;border:1px solid #888;border-radius:4px;padding:8px;
+ font-family:inherit;font-size:14px;background:#fff;color:#000}
+textarea{min-height:78px;resize:vertical}
+textarea.narr{min-height:260px;line-height:1.8}
+.verdicts{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+.verdicts label{border:1.5px solid #000;border-radius:5px;padding:8px 14px;cursor:pointer;font-size:14px;background:#fff}
+.verdicts input{margin-right:6px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;color:#000;padding:10px 28px;
+ display:flex;gap:12px;align-items:center;font-size:13.5px;border-top:2px solid #000}
+button{background:#fff;color:#000;border:1.5px solid #000;border-radius:5px;padding:8px 16px;font-size:14px;
+ font-weight:700;cursor:pointer}
+button.ghost{border-color:#888;color:#333;font-weight:400}
+button.small{padding:4px 10px;font-size:12.5px;font-weight:400}
+.note{font-size:12.5px;color:#444}
+.demo{border:1.5px dashed #000;border-radius:6px;padding:10px 14px;font-size:13.5px;margin:14px 0}
+.change{display:none;margin-top:10px;padding:12px 14px;border:1px dashed #000;border-radius:6px}
 .change.on{display:block}
 .change label{display:inline-block;margin:4px 14px 4px 0}
-a{color:#0b6ea8}
-.chain{border-left:3px solid #17a398;padding-left:13px;margin:10px 0;font-size:13.5px}
-.chk{border-top:1px solid #eceff2;padding:9px 0;display:flex;gap:10px;align-items:flex-start}
-.chk input[type=checkbox]{margin-top:5px;width:17px;height:17px;flex:none}
-.chk .q{flex:1}.chk .q small{color:#5b6a78;display:block;font-size:12.5px}
-textarea{width:100%;min-height:78px;border:1px solid #ccd3da;border-radius:6px;padding:9px;
- font-family:inherit;font-size:14px;resize:vertical}
-.verdicts{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
-.verdicts label{border:1.5px solid #ccd3da;border-radius:7px;padding:8px 14px;cursor:pointer;font-size:14px;background:#fff}
-.verdicts input{margin-right:6px}
-.bar{position:fixed;left:0;right:0;bottom:0;background:#0f3d3e;color:#fff;padding:11px 28px;
- display:flex;gap:12px;align-items:center;font-size:13.5px}
-button{background:#17a398;color:#fff;border:0;border-radius:7px;padding:9px 17px;font-size:14px;
- font-weight:700;cursor:pointer}
-button.ghost{background:transparent;border:1.5px solid #6ecfc4;color:#6ecfc4}
-.note{font-size:12.5px;color:#5b6a78}
-.demo{background:#fdf8ee;border:1px solid #e3c98a;border-radius:8px;padding:11px 14px;
- font-size:13.5px;color:#6b4d00;margin:14px 0}
-@media(prefers-color-scheme:dark){
- body{background:#11171d;color:#e6eaee}
- section{background:#1a222b;border-color:#2b3742}
- th{background:#222c36;color:#a9b7c4}td,th{border-color:#2b3742}
- .rec{background:#14302e;border-color:#2a5c56}.kv div{background:#222c36}
- .kv b{color:#6ecfc4}details.study{background:#1a222b;border-color:#2b3742}
- .issue{background:#2c1a19}.issue.w{background:#2b2415}.issue .d{color:#c3cdd6}
- textarea{background:#141b22;color:#e6eaee;border-color:#38454f}
- .verdicts label{background:#1a222b;border-color:#38454f;color:#e6eaee}
- .mute{background:#2b3742;color:#c3cdd6}.tag{background:#2b3742;color:#dbe3ea}
- a{color:#6ab7e8}.note,.chk .q small{color:#9dabb8}
- .demo{background:#2b2415;border-color:#5a4a1e;color:#e8d5a3}
- section>h2{color:#6ecfc4}
+.change select{width:auto}
+.cand td{vertical-align:middle}
+.cand .dec label{display:inline-block;margin-right:10px;white-space:nowrap}
+.cand input[type=text]{font-size:13px;padding:5px}
+@media print{
+ .bar,button{display:none}
+ .wrap{padding-bottom:0}
+ details.study{break-inside:avoid}
+ details:not([open])>*:not(summary){display:block}
+ textarea{border:1px solid #000}
 }
 """
 
@@ -249,13 +252,52 @@ def _incomplete_html(b):
     items = b.get("incomplete_results") or []
     if not items:
         return ""
-    rows = "".join(f'<div class="issue i"><div class="rule">入力未完了</div>'
-                   f'<div class="d">{esc(x["result"])}：{esc(x["reason"])}</div></div>'
-                   for x in items[:20])
-    more = (f'<p class="note">ほか {len(items) - 20} 件</p>' if len(items) > 20 else "")
+    # 同じ理由が文献数ぶん並ぶので、理由ごとにまとめて対象IDは畳む
+    by_reason = {}
+    for x in items:
+        by_reason.setdefault(x["reason"], []).append(x["result"])
+    rows = "".join(
+        f'<div class="issue i"><div class="rule">入力未完了　{len(ids)}件</div>'
+        f'<div class="d">{esc(reason)}'
+        f'<details><summary style="cursor:pointer">対象</summary>{"、".join(esc(i) for i in ids)}</details></div></div>'
+        for reason, ids in by_reason.items())
+    more = ""
     return (f'<section><h2>入力が未完了の項目（{len(items)}件）</h2>{rows}{more}'
             '<p class="note">minds_review.xlsx の RoB2 評価シートで「対応するアウトカムID」'
             '「適格性」を埋め、merge_rob2_evidence.py を再実行すると解消します。</p></section>')
+
+
+def _candidates_html(b):
+    """検索/ハンドサーチで挙がった候補文献の採否を委員が判断する欄。
+    候補はスクリーニングログの新規行から merge_rob2_evidence.py が拾う"""
+    cands = b.get("candidates") or []
+    if not cands:
+        return ('<section><h2>採用文献候補（検索結果から）</h2>'
+                '<p class="note">候補はまだありません。minds_review.xlsx の「スクリーニングログ」に'
+                '検索・ハンドサーチで挙がった文献を追記し、merge_rob2_evidence.py → review_bundle.py → '
+                'render_console.py を再実行するとここに並びます。</p></section>')
+    rows = []
+    for i, c in enumerate(cands):
+        pmid = c.get("pmid")
+        link = (f'<a href="https://pubmed.ncbi.nlm.nih.gov/{esc(pmid)}/" target="_blank" '
+                f'rel="noopener">{esc(pmid)}</a>' if pmid else "—")
+        scr = " / ".join(x for x in [
+            f"一次: {c['primary']}" if c.get("primary") else "",
+            f"二次: {c['secondary']}" if c.get("secondary") else ""] if x) or "未記入"
+        rows.append(
+            f'<tr class="cand" data-cand="{i}"><td>{link}</td>'
+            f'<td>{esc(c.get("title"))}<br><span class="note">{esc(c.get("source"))}｜ログ: {esc(scr)}'
+            f'{("｜" + esc(c.get("primary_reason") or c.get("secondary_reason"))) if (c.get("primary_reason") or c.get("secondary_reason")) else ""}</span></td>'
+            f'<td class="dec"><label><input type="radio" name="cand{i}" value="adopt">採用</label>'
+            f'<label><input type="radio" name="cand{i}" value="exclude">除外</label>'
+            f'<label><input type="radio" name="cand{i}" value="hold">保留</label></td>'
+            f'<td><input type="text" data-candreason="{i}" placeholder="理由（除外時は必須）"></td></tr>')
+    return ('<section><h2>採用文献候補（検索結果から）　' + f'{len(cands)}件</h2>'
+            '<p class="note">2023年版の採用文献は下の「採用文献」欄にあります。ここは今回の検索で新たに挙がった'
+            '文献です。採用したものは RoB2 評価シートに「新規追加」として1行ずつ追記してください。</p>'
+            '<div class="scroll"><table><tr><th style="width:8em">PMID</th><th>文献</th>'
+            '<th style="width:16em">採否</th><th style="width:18em">理由</th></tr>'
+            + "".join(rows) + '</table></div></section>')
 
 
 def _provenance_html(b):
@@ -338,8 +380,13 @@ def render(bundle: dict) -> str:
     narrative = ""
     if bundle.get("narrative"):
         nar_title = "2023年版の解説（原文）" if baseline else "解説文（Phase2生成）"
-        narrative = (f'<section><h2>{nar_title}</h2>'
-                     f'<div style="white-space:pre-wrap">{esc(bundle["narrative"])}</div></section>')
+        narrative = (
+            f'<section><h2>{nar_title}　— 加筆修正はこの欄に直接</h2>'
+            f'<p class="note">2023年版の解説を全文載せています。踏襲するならそのまま、変更するなら'
+            f'この欄で直してください（書き出すJSONに編集後の全文と「変更あり/なし」が入ります）。'
+            f'<button class="small" type="button" onclick="resetNarrative()">原文に戻す</button></p>'
+            f'<textarea id="narrative" class="narr">{esc(bundle["narrative"])}</textarea>'
+            f'<p class="note" id="narrStatus"></p></section>')
 
     # 判定の選択肢。改訂レビューでは「踏襲／変更／削除・FRQ化」、AI案では従来の承認系
     if baseline:
@@ -404,7 +451,9 @@ def render(bundle: dict) -> str:
 
 <section><h2>エビデンス総体（アウトカムごと）</h2>{_bodies_html(bundle)}</section>
 
-<section><h2>採用文献（クリックで結果を展開）</h2>{_studies_html(bundle)}</section>
+<section><h2>採用文献（2023年版採用＋新規追加。クリックで結果を展開）</h2>{_studies_html(bundle)}</section>
+
+{_candidates_html(bundle)}
 
 <section><h2>推奨の由来（AGREE II 項目12の証跡）</h2>{_provenance_html(bundle)}
 <p class="note">推奨 → エビデンス総体 → 格下げ要因 → 論文PMID の連鎖です。この鎖に載っていない根拠は、推奨の裏づけになりません。</p></section>
@@ -437,17 +486,40 @@ def render(bundle: dict) -> str:
 const CQ = {json.dumps(bundle['cq']['id'], ensure_ascii=False)};
 const KEY = "cipn-review-" + CQ;
 const VERDICT_JA = {verdict_status};
+const NARRATIVE_ORIG = {json.dumps(bundle.get("narrative") or "", ensure_ascii=False)};
 const val = id => {{ const e = document.getElementById(id); return e ? e.value : null; }};
 function collect() {{
   const chk = {{}};
   document.querySelectorAll('[data-chk]').forEach(e => chk[e.dataset.chk] = e.checked);
   const v = document.querySelector('input[name=verdict]:checked');
+  const cands = [];
+  document.querySelectorAll('tr.cand').forEach(tr => {{
+    const i = tr.dataset.cand;
+    const d = tr.querySelector('input[name="cand' + i + '"]:checked');
+    cands.push({{index: +i, pmid: (tr.querySelector('td a') || {{}}).textContent || null,
+                decision: d ? d.value : null,
+                reason: (tr.querySelector('[data-candreason]') || {{}}).value || ""}});
+  }});
+  const narr = document.getElementById('narrative');
   return {{cq: CQ, reviewer: document.getElementById('reviewer').value,
           verdict: v ? v.value : null, verdict_ja: v ? (VERDICT_JA[v.value] || v.value) : null,
           checklist: chk,
           proposed: {{strength: val('newStrength'), certainty: val('newCertainty'), text: val('newText')}},
+          narrative_edited: narr ? narr.value : null,
+          narrative_changed: narr ? narr.value !== NARRATIVE_ORIG : false,
+          candidates: cands,
           comment: document.getElementById('comment').value,
           saved_at: new Date().toISOString()}};
+}}
+function resetNarrative() {{
+  const n = document.getElementById('narrative'); if (!n) return;
+  if (n.value !== NARRATIVE_ORIG && !confirm("編集内容を破棄して2023年版の原文に戻します。よろしいですか。")) return;
+  n.value = NARRATIVE_ORIG; syncNarrStatus(); save();
+}}
+function syncNarrStatus() {{
+  const n = document.getElementById('narrative'), st = document.getElementById('narrStatus');
+  if (!n || !st) return;
+  st.textContent = n.value === NARRATIVE_ORIG ? "原文のまま（変更なし）" : "※ 原文から変更あり";
 }}
 function syncChangeBox() {{
   const box = document.getElementById('changeBox'); if (!box) return;
@@ -474,7 +546,17 @@ function restore() {{
   [['newStrength', p.strength], ['newCertainty', p.certainty], ['newText', p.text]].forEach(([id, v]) => {{
     const e = document.getElementById(id); if (e && v != null) e.value = v;
   }});
-  syncChangeBox();
+  const n = document.getElementById('narrative');
+  if (n && typeof d.narrative_edited === "string") n.value = d.narrative_edited;
+  (d.candidates || []).forEach(c => {{
+    if (c.decision) {{
+      const e = document.querySelector('input[name="cand' + c.index + '"][value="' + c.decision + '"]');
+      if (e) e.checked = true;
+    }}
+    const r = document.querySelector('[data-candreason="' + c.index + '"]');
+    if (r && c.reason) r.value = c.reason;
+  }});
+  syncChangeBox(); syncNarrStatus();
 }}
 function exportJSON() {{
   const d = collect();
@@ -484,6 +566,8 @@ function exportJSON() {{
   if (needComment && !d.comment.trim()) {{ alert("コメントを入力してください"); return; }}
   if (d.verdict === "change" && !(d.proposed.strength || d.proposed.text.trim())) {{
     alert("変更後の推奨の強さ、または推奨文（案）を入力してください"); return; }}
+  const bad = d.candidates.filter(c => c.decision === "exclude" && !c.reason.trim());
+  if (bad.length) {{ alert("除外にした候補文献には理由を入力してください（" + bad.length + "件）"); return; }}
   const blob = new Blob([JSON.stringify(d, null, 2)], {{type: "application/json"}});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -495,6 +579,7 @@ function clearAll() {{
   localStorage.removeItem(KEY); location.reload();
 }}
 document.addEventListener("input", save);
+document.addEventListener("input", syncNarrStatus);
 document.addEventListener("change", () => {{ syncChangeBox(); save(); }});
 restore();
 </script>

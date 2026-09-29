@@ -23,8 +23,9 @@ from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-HEADER_FILL = PatternFill("solid", fgColor="1F4E5F")
-HEADER_FONT = Font(color="FFFFFF", bold=True)
+# 印刷時のインク消費を抑えるため、濃い塗り＋白抜き文字は使わない(白地に黒文字)
+HEADER_FILL = PatternFill("solid", fgColor="EDEDED")
+HEADER_FONT = Font(color="000000", bold=True)
 CERT_FILL = {
     "A": PatternFill("solid", fgColor="D4EDDA"),
     "B": PatternFill("solid", fgColor="D1ECF1"),
