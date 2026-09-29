@@ -200,10 +200,15 @@ def _bodies_html(b):
 
 
 def _ref_no(s):
-    """タイトル先頭の "7）" (2023年版の文献番号)で並べる。無ければ末尾"""
+    """2023年版採用 → 新規 の順、その中は 年 → 第一著者 で並べる
+    (title は "Loprinzi 2020" 形式。旧形式 "7）..." なら番号順)"""
     import re
-    m = re.match(r"\s*(\d+)[）)]", str(s.get("title") or ""))
-    return (0, int(m.group(1))) if m else (1, str(s.get("pmid") or ""))
+    t = str(s.get("title") or "")
+    m = re.match(r"\s*(\d+)[）)]", t)
+    if m:
+        return (0, int(m.group(1)), "")
+    y = re.search(r"(19|20)\d{2}", t)
+    return (1 if s.get("newly_added") else 0, int(y.group(0)) if y else 9999, t)
 
 
 def _studies_html(b):
@@ -226,9 +231,12 @@ def _studies_html(b):
         res = []
         for r in s["results"]:
             comp = COMPARATOR_JA.get(r["comparator"], r["comparator"] or "—")
-            res.append(f"<tr><td>{esc(r['outcome_label'])}</td><td>{esc(comp)}</td>"
-                       f"<td>{esc(_effect(r['effect']))}</td>"
-                       f"<td>{'適格' if r['eligible'] else '<b>適格性の記録なし</b>'}</td></tr>")
+            rob = r.get("rob2") or {}
+            rob_txt = ("／".join(f"{k}:{v}" for k, v in rob.items() if v) if any(rob.values()) else "—") if rob else "—"
+            res.append(f"<tr><td>{esc(r['outcome_label'] or '（未割当）')}</td>"
+                       f"<td>{esc(r.get('instrument') or '—')}</td><td>{esc(comp)}</td>"
+                       f"<td>{esc(_effect(r['effect']))}</td><td>{esc(rob_txt)}</td>"
+                       f"<td>{'適格' if r['eligible'] else '未判定'}</td></tr>")
         inc = ""
         if s["includes"]:
             inc = ("<p class='note'>このメタ解析が含む研究：" +
@@ -242,8 +250,8 @@ def _studies_html(b):
             f'<details class="study"><summary>{esc(s["title"] or s["id"])}{tags}</summary>'
             f'<div class="sbody">{link}｜{esc(s.get("journal") or "")} '
             f'{esc(s.get("year") or "")}｜デザイン: {esc(s.get("design") or "—")}'
-            f'<div class="scroll"><table><tr><th>アウトカム</th><th>対照</th>'
-            f'<th>効果</th><th>適格性</th></tr>{"".join(res)}</table></div>{inc}{same}</div></details>')
+            f'<div class="scroll"><table><tr><th>アウトカム</th><th>評価指標</th><th>対照</th>'
+            f'<th>効果</th><th>RoB2</th><th>適格性</th></tr>{"".join(res)}</table></div>{inc}{same}</div></details>')
     return "\n".join(out)
 
 
@@ -327,10 +335,29 @@ def _draft_block_2023(dd, label=None):
   </div>"""
 
 
+INSTRUMENT_GROUPS = [
+    ("医療者評価", "CTCAE（G2: IADL障害／G3: ADL障害）、ECOG、DEB-NTC"),
+    ("患者報告（PRO）", "EORTC QLQ-CIPN20、FACT-Ntx（FACT/GOG-Ntx）、PNQ、PRO-CTCAE、CAS-CIPN"),
+    ("疼痛尺度", "VAS、NRS、Brief Pain Inventory（短縮版）"),
+    ("複合指標", "Total Neuropathy Score（TNS／mTNS／TNSc）"),
+    ("定量評価", "モノフィラメント、二点識別覚、音叉振動覚、TUG／6分間歩行、Pegboard／STEF、神経伝導検査／CPT"),
+]
+
+
 def _outcomes_html(b):
     ocs = b["cq"].get("outcomes") or []
+    used = sorted({(r.get("instrument") or "").strip() for s in b["studies"] for r in s["results"]
+                   if r.get("instrument")})
+    inst = ("<p style='margin:12px 0 4px'><b>評価指標（アウトカムの測定尺度）</b>"
+            "<span class='note'>　2023年版 第2章H「CIPNの評価」より</span></p>"
+            "<div class='scroll'><table><tr><th style='width:9em'>分類</th><th>尺度</th></tr>"
+            + "".join(f"<tr><td>{esc(g)}</td><td>{esc(n)}</td></tr>" for g, n in INSTRUMENT_GROUPS)
+            + "</table></div>"
+            + (f"<p class='note'>採用研究で使われた指標：{esc('、'.join(used))}</p>" if used else
+               "<p class='note'>各研究がどの指標で測ったかは、RoB2シートの「評価指標(使用尺度)」列"
+               "（papers/のPDFから自動記入）から採用文献欄に表示されます。</p>"))
     if not ocs:
-        return "<p class='note'>アウトカム未設定</p>"
+        return "<p class='note'>アウトカム未設定</p>" + inst
     rows = "".join(
         f"<tr><td><b>{esc(o.get('label'))}</b></td>"
         f"<td>{esc(o.get('importance') if o.get('importance') is not None else '—')}"
@@ -338,8 +365,8 @@ def _outcomes_html(b):
         f"<td class='note'>{esc(o.get('_note') or '')}</td></tr>" for o in ocs)
     return ("<div class='scroll'><table><tr><th>アウトカム</th><th style='width:9em'>重要度(1-9)</th>"
             "<th>備考</th></tr>" + rows + "</table></div>"
-            "<p class='note'>2023年版（第1章4）で設定されたアウトカムです。重要度の点数化は2023年版では"
-            "行われていないため暫定値です。改訂での確定は委員会で行います。</p>")
+            "<p class='note'>2023年版（第1章4）で設定されたアウトカム概念です。重要度の点数化は2023年版では"
+            "行われていないため暫定値です。改訂での確定は委員会で行います。</p>" + inst)
 
 
 def _consideration_fields():

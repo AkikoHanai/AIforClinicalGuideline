@@ -32,9 +32,9 @@ from openpyxl import load_workbook
 
 DEFAULT_MODEL = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5")
 DOMAIN_KEYS = ["D1", "D2", "D3", "D4", "D5", "overall"]
-ROB2_COL = {"outcome_id": 3, "design": 4, "comparator": 5, "eligible": 6,
+ROB2_COL = {"cite": 2, "outcome_id": 3, "design": 4, "comparator": 5, "eligible": 6,
             "D1": 7, "D2": 8, "D3": 9, "D4": 10, "D5": 11, "overall": 12,
-            "newly_added": 14, "note": 15}
+            "cited_2023": 13, "newly_added": 14, "note": 15, "instrument": 16}
 
 SYSTEM = (
     "あなたは系統的レビューのデータ抽出担当です。渡された論文本文(主にMethodとResult)だけを"
@@ -64,6 +64,8 @@ PROMPT = """CQ: {cq_title}
   "rob2_rationale": {{"D1": "根拠(本文の該当箇所を短く)", "D2": "...", "D3": "...", "D4": "...", "D5": "..."}},
   "effect": {{"measure": "RR|OR|HR|MD|SMD|null", "point": 数値またはnull, "ci_low": null, "ci_high": null,
              "outcome_text": "本文の記載"}},
+  "instrument": "アウトカムの測定に使った評価指標(例: CTCAE v4.0 grade≥2, EORTC QLQ-CIPN20, FACT-Ntx, NRS, TNS)。複数ならカンマ区切り",
+  "citation": {{"first_author": "第一著者の姓", "year": 西暦, "title": "論文タイトル", "journal": "誌名"}},
   "n_total": 数値またはnull
 }}
 RCTでない場合、rob2 は null にし、design と理由を rob2_rationale.note に書いてください。
@@ -100,10 +102,17 @@ def call_bedrock(system, prompt, model_id):
 def extract_one(pdf, cq_title, intervention, outcomes, model_id, dry_run):
     text = pdf_text(pdf)
     if dry_run:
+        head = subprocess.run(["pdftotext", "-l", "1", pdf, "-"], capture_output=True, text=True).stdout
+        lines = [ln.strip() for ln in head.splitlines() if ln.strip()]
+        # 1ページ目で最初の「長めの行」をタイトル候補に。無ければ最長行
+        title = (next((ln for ln in lines if len(ln) > 25), None)
+                 or (max(lines, key=len) if lines else ""))[:120]
         return {"pmid": None, "design": "要確認", "comparator": None, "outcome_id": None,
                 "eligible": None, "rob2": {k: "要確認" for k in DOMAIN_KEYS},
                 "rob2_rationale": {"note": f"dry-run: 本文{len(text)}文字を抽出。Bedrock未呼び出し"},
-                "effect": None, "n_total": None}
+                "effect": None, "instrument": None,
+                "citation": {"first_author": None, "year": None, "title": title, "journal": None},
+                "n_total": None}
     prompt = PROMPT.format(cq_title=cq_title, intervention=intervention,
                            outcomes=json.dumps(outcomes, ensure_ascii=False), text=text)
     return call_bedrock(SYSTEM, prompt, model_id)
@@ -141,6 +150,7 @@ def write_row(ws, r, res, overwrite):
     rob = res.get("rob2") or {}
     for k in DOMAIN_KEYS:
         put(ROB2_COL[k], rob.get(k))
+    put(ROB2_COL["instrument"], res.get("instrument"))
     rat = res.get("rob2_rationale") or {}
     eff = res.get("effect") or {}
     note_parts = []
@@ -168,23 +178,24 @@ def process_cq(cq_dir, model_id, dry_run):
         return None
     idx = row_index_by_pmid(draft)
     done, added = 0, 0
+    new_items = []
     for pdf in pdfs:
         stem = os.path.splitext(os.path.basename(pdf))[0]
         res = extract_one(pdf, pkg.get("title", ""), pkg.get("_source", {}).get("intervention", ""),
                           outcomes, model_id, dry_run)
         pmid = stem if stem.isdigit() else (str(res.get("pmid")) if res.get("pmid") else None)
         r = idx.get(pmid) if pmid else None
+        cit = res.get("citation") or {}
+        label = (f"{cit.get('first_author')} {cit.get('year')}".strip()
+                 if cit.get("first_author") else f"(新規) {stem}")
         if r is None:
-            # 2023年版に無い論文 → 新規追加行
-            r = draft.max_row + 1
-            draft.cell(row=r, column=1).value = pmid or stem
-            draft.cell(row=r, column=2).value = f"(新規) {stem}"
-            draft.cell(row=r, column=ROB2_COL["newly_added"]).value = "○"
+            # 2023年版に無い論文 → 新規追加行(下書き・評価者シート・スクリーニングログ)
+            r = _append_new_row(draft, pmid or stem, label)
             for ws in reviewers:
-                rr = ws.max_row + 1
-                ws.cell(row=rr, column=1).value = pmid or stem
-                ws.cell(row=rr, column=2).value = f"(新規) {stem}"
-                ws.cell(row=rr, column=ROB2_COL["newly_added"]).value = "○"
+                _append_new_row(ws, pmid or stem, label)
+            _append_screening(wb, pmid or stem, label, cit)
+            new_items.append({"pmid": pmid, "stem": stem, "label": label, "cit": cit})
+            idx[pmid or stem] = r
             added += 1
         write_row(draft, r, res, overwrite=True)
         for ws in reviewers:
@@ -195,7 +206,66 @@ def process_cq(cq_dir, model_id, dry_run):
         done += 1
         print(f"    {os.path.basename(pdf)} → {res.get('design')} / overall={((res.get('rob2') or {}).get('overall'))}")
     wb.save(xlsx)
+    if new_items:
+        _update_manifest(os.path.join(cq_dir, "MANIFEST.md"), new_items)
     return {"cq": os.path.basename(cq_dir), "pdfs": done, "new": added}
+
+
+def _first_free_row(ws):
+    """末尾の案内行(PMID空・備考に説明)を避けて、PMID列が埋まった最後の行の次"""
+    last = 1
+    for r in range(2, ws.max_row + 1):
+        if ws.cell(row=r, column=1).value:
+            last = r
+    return last + 1
+
+
+def _append_new_row(ws, pmid, label):
+    r = _first_free_row(ws)
+    # 案内行が挟まっている場合はその行を使う(上書き)
+    ws.cell(row=r, column=1).value = pmid
+    ws.cell(row=r, column=ROB2_COL["cite"]).value = label
+    ws.cell(row=r, column=ROB2_COL["newly_added"]).value = "○"
+    ws.cell(row=r, column=ROB2_COL["cited_2023"]).value = None
+    return r
+
+
+def _append_screening(wb, pmid, label, cit):
+    if "スクリーニングログ" not in wb.sheetnames:
+        return
+    ws = wb["スクリーニングログ"]
+    for r in range(2, ws.max_row + 1):
+        if str(ws.cell(row=r, column=1).value or "") == str(pmid):
+            return  # 既にある
+    r = 2
+    while r <= ws.max_row and (ws.cell(row=r, column=1).value or ws.cell(row=r, column=2).value):
+        if str(ws.cell(row=r, column=1).value or "").startswith("──"):
+            break
+        r += 1
+    ws.insert_rows(r)
+    ws.cell(row=r, column=1).value = pmid
+    ws.cell(row=r, column=2).value = f"{label}: {cit.get('title') or ''}"[:200]
+    ws.cell(row=r, column=3).value = "papers/ に追加(検索/ハンドサーチ)"
+    ws.cell(row=r, column=4).value = ""   # 一次スクリーニングは委員が判定
+
+
+def _update_manifest(path, new_items):
+    """MANIFEST.md の「新規追加文献」表を papers/ の実態で作り直す"""
+    if not os.path.exists(path):
+        return
+    txt = open(path, encoding="utf-8").read()
+    head, sep, _ = txt.partition("## 新規追加文献(改訂で追加するもの)")
+    rows = ["| # | PMID | 収集 | 文献 |", "|---|---|---|---|"]
+    for i, it in enumerate(new_items, start=1):
+        pmid = it["pmid"]
+        link = f"[{pmid}](https://pubmed.ncbi.nlm.nih.gov/{pmid}/)" if pmid else it["stem"]
+        cit = it["cit"] or {}
+        desc = " ".join(x for x in [it["label"], cit.get("title") or "", cit.get("journal") or ""] if x)
+        rows.append(f"| {i} | {link} | ☑ | {desc} |")
+    new = (head + "## 新規追加文献(改訂で追加するもの)\n\n"
+           "papers/ に置かれたPDFのうち2023年版に無いもの(fill_rob2_from_papers.py が自動更新)\n\n"
+           + "\n".join(rows) + "\n")
+    open(path, "w", encoding="utf-8").write(new)
 
 
 def main():
@@ -204,6 +274,8 @@ def main():
     ap.add_argument("--only", help="特定のCQディレクトリ名だけ処理")
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--sync-only", action="store_true",
+                    help="Bedrockを呼ばず、papers/ の新規PDFをシート・マニフェストに登録するだけ")
     args = ap.parse_args()
 
     dirs = sorted(d for d in glob.glob(os.path.join(args.workspace_dir, "*")) if os.path.isdir(d))
@@ -215,7 +287,7 @@ def main():
         if not n_pdf:
             continue
         print(f"{os.path.basename(d)}: PDF {n_pdf}件")
-        r = process_cq(d, args.model, args.dry_run)
+        r = process_cq(d, args.model, args.dry_run or args.sync_only)
         if r:
             total += r["pdfs"]
     if total == 0:

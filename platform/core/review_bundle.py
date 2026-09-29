@@ -72,7 +72,8 @@ def build_graph(pkg: dict) -> EvidenceGraph:
     incomplete_results = []
     for r in pkg.get("results", []):
         g.add_node(r["id"], NodeType.STUDY_RESULT, comparator=r.get("comparator"),
-                   effect=r.get("effect"))
+                   effect=r.get("effect"), instrument=r.get("instrument"),
+                   rob2=r.get("rob2"))
         g.add_edge(r["study"], EdgeType.YIELDS, r["id"])
         # アウトカム未割当の行(委員のRoB2入力途中でよくある状態)は
         # MEASURESエッジを張れない(未登録ノードへのエッジはSchemaErrorで落ちる)。
@@ -219,6 +220,8 @@ def _study_card(g: EvidenceGraph, sid: str, pkg: dict) -> dict:
             "outcome_label": g.nodes.get(oc, {}).get("label", oc) if oc else None,
             "comparator": ra.get("comparator"),
             "effect": ra.get("effect"),
+            "instrument": ra.get("instrument"),
+            "rob2": ra.get("rob2"),
             "eligible": bool(g.succ(r, EdgeType.ELIGIBLE_FOR)),
             "contributes_to": sorted(g.succ(r, EdgeType.CONTRIBUTES_TO)),
         })

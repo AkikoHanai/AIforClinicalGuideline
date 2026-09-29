@@ -120,6 +120,32 @@ OUTCOMES_BY_CQ_TYPE = {
          "_note": "2023年版で設定。重要度は未点数化のため暫定9(重大)。委員会で確定"},
     ],
 }
+# 評価指標(アウトカムの測定尺度)。2023年版 第2章H「CIPNの評価」に基づく。
+# Mindsではアウトカムは「何をどの尺度で測ったか」で扱うため、各研究がどの指標を
+# 使ったかをRoB2シートの「評価指標」列に記録し、総体評価はアウトカム概念ごとに行う
+INSTRUMENTS = [
+    # (分類, 名称, 略称/版, 何を測るか, 備考)
+    ("医療者評価", "Common Terminology Criteria for Adverse Events", "CTCAE (v3.0/v4.0/v5.0)",
+     "有害事象グレード(G1 症状なし/G2 IADL障害/G3 ADL障害)", "最も広く使用。評価者裁量が入りやすくPROと乖離あり"),
+    ("医療者評価", "ECOG neuropathy scores", "ECOG", "客観所見と機能障害の程度", ""),
+    ("医療者評価", "Debiopharm 神経症状—感覚性毒性基準", "DEB-NTC", "オキサリプラチン起因性、7日以上の持続の有無", ""),
+    ("患者報告(PRO)", "EORTC QLQ-CIPN20", "QLQ-CIPN20 (20/16/15項目版)", "過去7日間の感覚・運動・自律神経症状", "信頼性・妥当性検証済み。NCI推奨"),
+    ("患者報告(PRO)", "FACT/GOG-Neurotoxicity", "FACT-Ntx (38/12/4項目版)", "身体・社会・感情・機能と神経毒性", "NCI推奨。類似にFACT-Taxane"),
+    ("患者報告(PRO)", "Patient Neurotoxicity Questionnaire", "PNQ", "感覚・運動障害(5件法)と生活障害", "デルファイで最高評価"),
+    ("患者報告(PRO)", "PRO-CTCAE", "PRO-CTCAE", "CTCAEの患者報告版", ""),
+    ("患者報告(PRO)", "CAS-CIPN(がんサバイバーのCIPN包括的評価尺度)", "CAS-CIPN (15項目)", "生活支障の脅威/手の巧緻動作/自信/手掌足底の感覚異常", "本邦開発。FACT-Ntxと強い相関"),
+    ("疼痛尺度", "Visual Analogue Scale", "VAS", "痛みの重症度(10cm線上)", "CIPN特異的ではない"),
+    ("疼痛尺度", "Numerical Rating Scale", "NRS", "24時間以内の痛み(0-10)", "CIPN特異的ではない"),
+    ("疼痛尺度", "Brief Pain Inventory", "BPI (短縮版)", "痛みの頻度・強度・場所・質", "短縮版の使用が推奨"),
+    ("複合指標", "Total Neuropathy Score", "TNS / mTNS / TNSc", "自覚症状+腱反射・握力等の定量評価", "CTCAEと相関"),
+    ("定量評価(感覚)", "Semmes-Weinstein monofilament / 10g test", "SWM", "静的触覚閾値", ""),
+    ("定量評価(感覚)", "二点識別覚", "2PD", "受容器・神経線維単位の分布密度", ""),
+    ("定量評価(感覚)", "音叉(128Hz)振動覚", "tuning fork", "振動覚(10秒感知できなければ疑う)", ""),
+    ("定量評価(運動)", "Timed Up and Go / 6分間歩行", "TUG / 6MWT", "移動能力・転倒リスク", ""),
+    ("定量評価(運動)", "Grooved Pegboard / STEF", "GPT / STEF", "手指の巧緻性", ""),
+    ("電気生理", "神経伝導検査 / 電流知覚閾値", "NCS / CPT(2000Hz)", "感覚振幅、電流知覚閾値", "カットオフ未確立"),
+]
+
 # 推奨作成時に考慮する項目(2023年版 第1章9「作成手順」に明記)
 RECOMMENDATION_CONSIDERATIONS = [
     "アウトカム全体にわたる総括的なエビデンスの確実性",
@@ -160,6 +186,21 @@ DOWNGRADE_DOMAINS = ["risk_of_bias(バイアスリスク)", "inconsistency(非�
 ROB2_DOMAINS = ["D1 ランダム化の過程", "D2 意図した介入からの逸脱",
                 "D3 アウトカムデータの欠測", "D4 アウトカム測定",
                 "D5 選択的な結果報告", "総合(Overall)"]
+
+
+def short_cite(citation: str) -> str:
+    """"1）Loprinzi CL, Lacchetti C, ... J Clin Oncol. 2020； 38： 3325—48.［PMID： x］"
+    → "Loprinzi 2020"。和文は "石川雄大，高木昭佳，…" → "石川 2023" のように第一著者+年"""
+    c = re.sub(r"^\s*\d+[）)]\s*", "", citation or "")
+    m = re.match(r"\s*([A-Z][A-Za-z\-']+)", c)
+    if m:
+        author = m.group(1)
+    else:
+        m2 = re.match(r"\s*([^\s，,]+)", c)
+        author = (m2.group(1)[:4] if m2 else "?")
+    y = re.search(r"((?:19|20)\d{2})\s*[；;：:]", c) or re.search(r"(?:19|20)\d{2}", c)
+    year = y.group(1) if (y and y.lastindex) else (y.group(0) if y else "")
+    return f"{author} {year}".strip()
 
 
 def header_row(ws, row, headers, widths=None):
@@ -220,7 +261,7 @@ def sheet_screening(wb, item):
     r = 2
     for ref in item["references"]:
         ws.cell(row=r, column=1, value=ref["pmid"] or "")
-        ws.cell(row=r, column=2, value=ref["citation"][:120])
+        ws.cell(row=r, column=2, value=f"{short_cite(ref['citation'])}: " + ref["citation"][:110])
         ws.cell(row=r, column=2).alignment = WRAP
         ws.cell(row=r, column=3, value="2023年版で採用済み")
         ws.cell(row=r, column=4, value="採用")
@@ -282,6 +323,20 @@ def sheet_pico(wb, item):
             r[1].fill = NOTE_FILL
 
 
+def sheet_instruments(wb, item):
+    ws = wb.create_sheet("評価指標")
+    header_row(ws, 1, ["分類", "名称", "略称/版", "何を測るか", "備考",
+                       "本CQの採用研究で使用(委員/自動記入)"], widths=[14, 40, 24, 40, 36, 24])
+    for row in INSTRUMENTS:
+        ws.append(list(row) + [""])
+    ws.append(["※", "2023年版 第2章H「CIPNの評価」に基づく一覧。各研究がどの指標でアウトカムを測ったかは"
+               "RoB2シートの「評価指標(使用尺度)」列に記録する", "", "", "", ""])
+    ws.cell(row=ws.max_row, column=2).fill = NOTE_FILL
+    for r in ws.iter_rows(min_row=2):
+        for c in r:
+            c.alignment = WRAP
+
+
 def sheet_evidence_body(wb, item):
     ws = wb.create_sheet("エビデンス総体評価")
     headers = ["アウトカムID", "アウトカム名", "重要度(1-9)", "研究数",
@@ -296,11 +351,11 @@ def sheet_evidence_body(wb, item):
     ws.cell(row=ws.max_row, column=2).alignment = WRAP
 
 
-ROB2_HEADERS = (["PMID", "研究(著者,年)", "対応するアウトカムID", "デザイン",
+ROB2_HEADERS = (["PMID", "研究(第一著者 年)", "対応するアウトカムID", "デザイン",
                  "comparator(none/usual_care/placebo/active_weaker/active_different)",
                  "適格性(eligible)"] + ROB2_DOMAINS
-                + ["2023年版で引用", "新規追加", "備考(委員記入)"])
-ROB2_WIDTHS = [12, 30, 16, 10, 34, 10, 14, 14, 14, 14, 12, 10, 14, 12, 30]
+                + ["2023年版で引用", "新規追加", "備考(委員記入)", "評価指標(使用尺度)"])
+ROB2_WIDTHS = [12, 18, 16, 10, 34, 10, 14, 14, 14, 14, 12, 10, 14, 12, 30, 22]
 # D1〜総合(Overall)の列(A=1起点)。照合シートで評価者1/2を突き合わせる対象
 ROB2_DOMAIN_COLS = list(range(7, 13))  # G〜L
 
@@ -311,11 +366,11 @@ def _rob2_sheet(wb, title, item):
     r = 2
     for ref in item["references"]:
         ws.cell(row=r, column=1, value=ref["pmid"] or "")
-        ws.cell(row=r, column=2, value=ref["citation"][:120])
-        ws.cell(row=r, column=2).alignment = WRAP
+        ws.cell(row=r, column=2, value=short_cite(ref["citation"]))
         ws.cell(row=r, column=13, value="○")   # 2023年版で引用
         r += 1
-    ws.append([""] * 13 + ["", "(新規追加論文はここに1行ずつ追記。○を「新規追加」列に)"])
+    ws.append([""] * 14 + ["(新規論文は papers/ にPDFを置いて fill_rob2_from_papers.py を実行すると"
+                            "自動で行が追加されます)", ""])
     return ws
 
 
@@ -440,6 +495,7 @@ def build_workbook(item):
     wb = Workbook()
     sheet_search(wb, item)          # active/1枚目
     sheet_pico(wb, item)
+    sheet_instruments(wb, item)
     sheet_screening(wb, item)
     _, _, r1, r2, n_refs = sheet_rob2_pair(wb, item)
     sheet_rob2_reconcile(wb, item, r1, r2, n_refs)
@@ -541,6 +597,8 @@ def main():
     ap = argparse.ArgumentParser(description="CQパッケージ群 → 委員会レビュー作業一式")
     ap.add_argument("cq_dir", help="extract_cipn_guideline.py の出力先(CQ*.jsonがあるディレクトリ)")
     ap.add_argument("-o", "--outdir", required=True)
+    ap.add_argument("--force", action="store_true",
+                    help="既にある minds_review.xlsx も作り直す(委員の記入が消えるので注意)")
     args = ap.parse_args()
 
     files = sorted(glob.glob(os.path.join(args.cq_dir, "CQ*.json")))
@@ -557,9 +615,12 @@ def main():
         cq_dir = os.path.join(args.outdir, item["cq_id"])
         os.makedirs(os.path.join(cq_dir, "papers"), exist_ok=True)
 
-        wb = build_workbook(item)
-        wb.save(os.path.join(cq_dir, "minds_review.xlsx"))
-        write_manifest(item, os.path.join(cq_dir, "MANIFEST.md"))
+        xlsx = os.path.join(cq_dir, "minds_review.xlsx")
+        if os.path.exists(xlsx) and not args.force:
+            print(f"{item['cq_id']:<28} 既存の minds_review.xlsx を保持(作り直すなら --force)")
+        else:
+            build_workbook(item).save(xlsx)
+            write_manifest(item, os.path.join(cq_dir, "MANIFEST.md"))
         with open(os.path.join(cq_dir, "papers", ".gitkeep"), "w") as f:
             pass
         # 元のCQパッケージ自体もコピーしておく(後でmerge_rob2_evidence.pyが使う)

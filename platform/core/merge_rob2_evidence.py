@@ -58,11 +58,13 @@ def read_rob2_rows(ws):
         domains = r[6:12]  # D1..D5, Overall
         cited_2023 = bool(r[12]) if len(r) > 12 else False   # 「2023年版で引用」列
         newly_added = bool(r[13]) if len(r) > 13 else False  # 「新規追加」列
+        instrument = r[15] if len(r) > 15 else None         # 「評価指標(使用尺度)」列
         rows.append({
             "pmid": str(pmid), "citation": citation, "outcome_id": outcome_id,
             "design": design, "comparator": comparator, "eligible": eligible,
             "domains": list(domains),
             "cited_in_2023": cited_2023, "newly_added": newly_added,
+            "instrument": instrument,
         })
     return rows
 
@@ -102,6 +104,7 @@ def reconcile(rows1, rows2, recon_final):
             "_unresolved_domains": unresolved,
             "cited_in_2023": r1["cited_in_2023"] or r2["cited_in_2023"],
             "newly_added": r1["newly_added"] or r2["newly_added"],
+            "instrument": r1.get("instrument") or r2.get("instrument"),
         })
     return merged
 
@@ -242,7 +245,7 @@ def merge_one(cq_dir):
         entry = {
             "id": rid, "study": sid, "outcome": oid,
             "comparator": row["comparator"], "eligible": bool(row["eligible"]),
-            "rob2": rob2,
+            "rob2": rob2, "instrument": row.get("instrument"),
             "contributes_to": eb_by_outcome_id.get(oid) if row["eligible"] else None,
         }
         if row["_unresolved_domains"]:

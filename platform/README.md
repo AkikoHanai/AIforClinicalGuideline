@@ -25,16 +25,48 @@ SRパイプライン(AIforClinicalGuideline)      ゼミのBedrock Agent
 **AIは推奨を決めない。** 決めるのは委員で、AIは承認済みデータを文章にする。
 検証はLLMではなく規則で行い、不合格のCQは委員に出す前に差し戻す。
 
-## 使い方
+## 使い方（CIPN診療ガイドライン改訂・Mac）
 
 ```bash
-cd "次版改訂準備/platform/core"
-python review_bundle.py ../data/cq/CQ-DEMO-冷却.json
-python render_console.py ../review/CQ-DEMO-冷却.bundle.json
+cd ~/AIforClinicalGuideline
+git pull
+brew install poppler              # pdftotext(初回のみ)
+
+# 初回: 2023年版PDFから作業一式を作る
+bash platform/run_revision.sh ~/path/to/CIPN診療ガイドライン2023年版.pdf
+
+# 委員が review_workspace/CQ*/papers/ に論文PDF(PMID.pdf)を入れたら
+bash platform/run_revision.sh "" review_workspace          # Bedrock(AWS認証が必要)
+SYNC_ONLY=1 bash platform/run_revision.sh "" review_workspace   # 認証なし: 新規PDFの登録だけ
 ```
 
-生成された `review/<CQ>.review.html` を委員に配る（サーバ不要・1ファイル完結）。
-委員は画面下の「回答をJSONで書き出す」で `<CQ>_<氏名>.review.json` を返す。
+出力は `review_workspace/` に集まる:
+
+| パス | 中身 |
+|---|---|
+| `CQ*/minds_review.xlsx` | 検索式 / CQ・PICO / 評価指標 / スクリーニングログ / RoB2_Claude下書き / RoB2_担当者×2 / RoB2_照合 / エビデンス総体評価 / 文献リスト / 推奨文草案(FRQは FRQ記載草案) / SoF |
+| `CQ*/MANIFEST.md` | 2023年版採用文献と、papers/ から自動登録した新規文献 |
+| `CQ*/papers/` | 論文PDFを置く(PMID.pdf) |
+| `_draft_sheets/*.review.html` | 委員用: Minds推奨文草案の作成シート(内部の検証結果は出さない) |
+| `_secretariat/*.secretariat.html` | 事務局用: 機械検証(R1–R8)・根拠鎖つき |
+
+既にある `minds_review.xlsx` は2回目以降も上書きしない(委員の記入を守る)。作り直すときは
+`python3 platform/core/prepare_review_workspace.py review_workspace/_cq_packages -o review_workspace --force`。
+
+macOSで「検証できませんでした」と出て開けないときは、ダウンロードしたフォルダに対して
+`xattr -dr com.apple.quarantine <フォルダ>` を1回実行する。
+
+### 個別のスクリプト
+
+| スクリプト | 役割 |
+|---|---|
+| `core/extract_cipn_guideline.py` | 2023年版PDF → CQパッケージ(推奨・強さ・確実性・解説・文献PMID) |
+| `core/prepare_review_workspace.py` | CQパッケージ → Minds様式workbook等。冷却/圧迫の統合、FRQ、アウトカム、担当委員を反映 |
+| `core/fill_rob2_from_papers.py` | papers/*.pdf → Bedrockでデザイン/対照/評価指標/RoB2を抽出し下書きシートへ。新規論文をログ・マニフェストに登録 |
+| `core/merge_rob2_evidence.py` | 評価者2名のシートを照合しCQパッケージへ書き戻す |
+| `core/build_sof.py` | エビデンス総体評価 → SoF |
+| `core/review_bundle.py` | Minds規則R1–R8と引用整合性の機械検証 |
+| `core/render_console.py` | 草案作成シート(委員用) / 検証画面(事務局用 `--audience secretariat`) |
 
 ## CQパッケージの書き方（data/cq/*.json）
 
