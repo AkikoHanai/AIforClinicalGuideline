@@ -158,10 +158,21 @@ def _issues_html(b, baseline=False):
                    f'<div class="d">{esc(v["detail"])}</div></div>')
     # 改訂レビューでは draft は刊行版(2023年版)なので「AI生成」とは呼ばない
     block_label = "2023年版の記載と今回の根拠の不一致" if baseline else "AI生成の申告と根拠の不一致"
-    for c in b["cross_check"]:
+    checks = [c for c in b["cross_check"] if c.get("level") != "info"]
+    # 引用PMIDの未接続は文献数ぶん同じ文面で並ぶ(未入力段階では全件)。
+    # 推奨文を押し下げないよう、3件以上なら1つにまとめて畳む
+    cites = [c for c in checks if c.get("check") == "citation"]
+    others = [c for c in checks if c.get("check") != "citation"]
+    if len(cites) >= 3:
+        pm = "、".join(esc(c.get("pmid", "")) for c in cites)
+        out.append(f'<div class="issue"><div class="rule">{block_label}（citation）'
+                   f'　{len(cites)}件</div>'
+                   f'<div class="d">推奨が引用する {len(cites)} 件のPMIDが、今回の根拠グラフ'
+                   f'（RoB2評価→エビデンス総体）にまだ接続されていません。'
+                   f'<details><summary style="cursor:pointer">PMID一覧</summary>{pm}</details></div></div>')
+        cites = []
+    for c in others + cites:
         lv = c.get("level")
-        if lv == "info":
-            continue
         cls = "issue" if lv == "block" else "issue w"
         label = block_label if lv == "block" else "要確認"
         out.append(f'<div class="{cls}"><div class="rule">{label}（{esc(c["check"])}）</div>'
@@ -185,9 +196,16 @@ def _bodies_html(b):
             + "".join(rows) + "</table></div>")
 
 
+def _ref_no(s):
+    """タイトル先頭の "7）" (2023年版の文献番号)で並べる。無ければ末尾"""
+    import re
+    m = re.match(r"\s*(\d+)[）)]", str(s.get("title") or ""))
+    return (0, int(m.group(1))) if m else (1, str(s.get("pmid") or ""))
+
+
 def _studies_html(b):
     out = []
-    for s in b["studies"]:
+    for s in sorted(b["studies"], key=_ref_no):
         tags = ""
         if s.get("newly_added"):
             tags += '<span class="tag new">新規（2023年版以降）</span>'
