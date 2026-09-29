@@ -68,4 +68,5 @@ step "7. 草案作成シート(委員用) / 検証画面(事務局用)"
 $PY "$CORE/render_console.py" "$WS"/_bundles/*.bundle.json -o "$WS/_draft_sheets"
 $PY "$CORE/render_console.py" "$WS"/_bundles/*.bundle.json -o "$WS/_secretariat" --audience secretariat
 
+$PY "$CORE/list_missing_papers.py" "$WS" -o "$WS/_未入手論文一覧.md"
 printf '\n完了: %s/\n  委員用: %s/_draft_sheets/*.review.html\n  事務局用: %s/_secretariat/*.secretariat.html\n' "$WS" "$WS" "$WS"
