@@ -1,0 +1,5 @@
+p*.txt
+fig_*.png
+units.json
+out/
+node_modules/
