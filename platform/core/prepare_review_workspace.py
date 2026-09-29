@@ -190,16 +190,27 @@ ROB2_DOMAINS = ["D1 ランダム化の過程", "D2 意図した介入からの�
 
 def short_cite(citation: str) -> str:
     """"1）Loprinzi CL, Lacchetti C, ... J Clin Oncol. 2020； 38： 3325—48.［PMID： x］"
-    → "Loprinzi 2020"。和文は "石川雄大，高木昭佳，…" → "石川 2023" のように第一著者+年"""
+    → "Loprinzi et al. 2020"。単著なら "Kuriyama 2018"。
+    和文 "石川雄大，高木昭佳，他．…2021；" → "石川雄大 et al. 2021" """
     c = re.sub(r"^\s*\d+[）)]\s*", "", citation or "")
     m = re.match(r"\s*([A-Z][A-Za-z\-']+)", c)
     if m:
         author = m.group(1)
     else:
-        m2 = re.match(r"\s*([^\s，,]+)", c)
-        author = (m2.group(1)[:4] if m2 else "?")
-    y = re.search(r"((?:19|20)\d{2})\s*[；;：:]", c) or re.search(r"(?:19|20)\d{2}", c)
-    year = y.group(1) if (y and y.lastindex) else (y.group(0) if y else "")
+        m2 = re.match(r"\s*([^\s，,．.]+)", c)
+        author = m2.group(1) if m2 else "?"
+    # 著者ブロック(最初のピリオド/「．」まで)に区切りが2つ以上 or "et al"/"他" があれば複数著者
+    head = re.split(r"[.．]\s", c, 1)[0]
+    n_sep = len(re.findall(r"[，,]", head))
+    y = re.search(r"((?:19|20)\d{2})\s*[；;：:]", c) or re.search(r"((?:19|20)\d{2})", c)
+    year = y.group(1) if y else ""
+    if ("et al" in head) or ("他" in head) or n_sep >= 2:
+        return f"{author} et al. {year}".strip()
+    if n_sep == 1:  # 2著者: "Kuriyama and Endo 2018"
+        second = re.split(r"[，,]\s*", head, 1)[1]
+        m3 = re.match(r"\s*([A-Z][A-Za-z\-']+|[^\s，,．.]+)", second)
+        if m3:
+            return f"{author} and {m3.group(1)} {year}".strip()
     return f"{author} {year}".strip()
 
 

@@ -46,7 +46,7 @@ SYNC_ONLY=1 bash platform/run_revision.sh "" review_workspace   # 認証なし: 
 |---|---|
 | `CQ*/minds_review.xlsx` | 検索式 / CQ・PICO / 評価指標 / スクリーニングログ / RoB2_Claude下書き / RoB2_担当者×2 / RoB2_照合 / エビデンス総体評価 / 文献リスト / 推奨文草案(FRQは FRQ記載草案) / SoF |
 | `CQ*/MANIFEST.md` | 2023年版採用文献と、papers/ から自動登録した新規文献 |
-| `CQ*/papers/` | 論文PDFを置く(PMID.pdf) |
+| `CQ*/papers/` | 論文PDF(PMID.pdf)。**必須ではない**: オープンアクセス全文(Europe PMC)は自動取得し `PMID.txt` にキャッシュする。取れなかった有料誌の分だけPDFを置く |
 | `_draft_sheets/*.review.html` | 委員用: Minds推奨文草案の作成シート(内部の検証結果は出さない) |
 | `_secretariat/*.secretariat.html` | 事務局用: 機械検証(R1–R8)・根拠鎖つき |
 
@@ -62,7 +62,7 @@ macOSで「検証できませんでした」と出て開けないときは、ダ
 |---|---|
 | `core/extract_cipn_guideline.py` | 2023年版PDF → CQパッケージ(推奨・強さ・確実性・解説・文献PMID) |
 | `core/prepare_review_workspace.py` | CQパッケージ → Minds様式workbook等。冷却/圧迫の統合、FRQ、アウトカム、担当委員を反映 |
-| `core/fill_rob2_from_papers.py` | papers/*.pdf → Bedrockでデザイン/対照/評価指標/RoB2を抽出し下書きシートへ。新規論文をログ・マニフェストに登録 |
+| `core/fill_rob2_from_papers.py` | 各論文の本文(PDF → OA全文 → 抄録の順に入手) → Bedrockでデザイン/対照/評価指標/RoB2を抽出し下書きシートへ。新規PDFをログ・マニフェストに登録し、文献リストに入手状況(全文/PDF/抄録)を書く |
 | `core/merge_rob2_evidence.py` | 評価者2名のシートを照合しCQパッケージへ書き戻す |
 | `core/build_sof.py` | エビデンス総体評価 → SoF |
 | `core/review_bundle.py` | Minds規則R1–R8と引用整合性の機械検証 |
