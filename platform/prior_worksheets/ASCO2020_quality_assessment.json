@@ -1,0 +1,25 @@
+{
+  "cq_dir": "*",
+  "source": "ASCO 2020 GL update (Loprinzi et al. JCO 2020) Data Supplement 1, Table 2: Quality assessment of RCTs. 項目: 適切なランダム化/割付隠蔽/十分な症例数/群の同等性/盲検/妥当な評価尺度/追跡/ITT/COI → 総合 (Low/Intermediate/High)",
+  "studies": [
+    {"label": "Hershman et al. 2018", "external_quality": "ASCO2020品質評価: 総合 Intermediate (ITT ?, COI ?)"},
+    {"label": "Campone et al. 2013", "external_quality": "ASCO2020品質評価: 総合 High risk (隠蔽 ?, 群同等性 ?, ITT ?, COI ×)"},
+    {"label": "Beijers et al. 2020", "external_quality": "ASCO2020品質評価: 総合 Intermediate (隠蔽 ?, 盲検 ×, 追跡 ?)"},
+    {"label": "Ruddy et al. 2019", "external_quality": "ASCO2020品質評価: 総合 Intermediate (症例数 ×, 盲検 ×)"},
+    {"label": "McCarthy et al. 2014", "external_quality": "ASCO2020品質評価: 総合 Intermediate (隠蔽 ?, 盲検 ×, 追跡 ?, COI ?)"},
+    {"label": "Bandla et al. 2016", "external_quality": "ASCO2020品質評価: 総合 High risk (隠蔽 ?, 症例数 ?, 盲検 ×, ITT ?)"},
+    {"label": "Kanbayashi et al. 2020", "external_quality": "ASCO2020品質評価: 総合 High risk (隠蔽 ?, 盲検 ×, ITT ×, COI ×)"},
+    {"label": "Griffiths et al. 2018", "external_quality": "ASCO2020品質評価: 総合 High risk (隠蔽 ?, 症例数 ×, 盲検 ×, ITT ?, COI ?)"},
+    {"label": "Zimmer et al. 2018", "external_quality": "ASCO2020品質評価: 総合 Low risk (盲検 ?, ITT ?)"},
+    {"label": "Kleckner et al. 2018", "external_quality": "ASCO2020品質評価: 総合 Low risk (盲検 ×)"},
+    {"label": "de Andrade et al. 2017", "external_quality": "ASCO2020品質評価: 総合 Low risk (症例数 ?)"},
+    {"label": "Shinde et al. 2016", "external_quality": "ASCO2020品質評価: 総合 Intermediate (症例数 ?, ITT ?, COI ?)"},
+    {"label": "Schloss et al. 2017", "external_quality": "ASCO2020品質評価: 総合 Intermediate (群同等性 ?, COI ×)"},
+    {"label": "Greenlee et al. 2016", "external_quality": "ASCO2020品質評価: 総合 Low risk (症例数 ?)"},
+    {"label": "Farshchian et al. 2018", "external_quality": "ASCO2020品質評価: 総合 Low risk (ITT ?)"},
+    {"label": "Hirayama et al. 2015", "external_quality": "ASCO2020品質評価: 総合 High risk (隠蔽 ?, 症例数 ?, 盲検 ?, ITT ?)"},
+    {"label": "Salehifar et al. 2020", "external_quality": "ASCO2020品質評価: 総合 Low risk"},
+    {"label": "Aghili et al. 2019", "external_quality": "ASCO2020品質評価: 総合 Low risk (ITT ?)"},
+    {"label": "Gewandter et al. 2014", "external_quality": "ASCO2020品質評価: Table 2 参照(外用アミトリプチリン+ケタミン)"}
+  ]
+}

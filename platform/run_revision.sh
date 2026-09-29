@@ -45,6 +45,11 @@ fi
 step "2. 作業一式(既存の minds_review.xlsx は保持)"
 $PY "$CORE/prepare_review_workspace.py" "$WS/_cq_packages" -o "$WS"
 
+if ls "$HERE"/prior_worksheets/*.json >/dev/null 2>&1; then
+  step "2b. 2023年版の委員ワークシート・海外GLの品質評価を取り込み(platform/prior_worksheets/*.json)"
+  $PY "$CORE/import_prior_worksheet.py" "$WS" "$HERE"/prior_worksheets/*.json | grep -v " 0研究" || true
+fi
+
 step "3. papers/ のPDF → RoB2下書き・新規論文の登録"
 if [ "${SYNC_ONLY:-0}" = "1" ]; then
   $PY "$CORE/fill_rob2_from_papers.py" "$WS" --sync-only

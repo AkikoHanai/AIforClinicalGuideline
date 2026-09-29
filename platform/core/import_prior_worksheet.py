@@ -29,10 +29,17 @@ def rr_ci(a, n1, c, n2):
     return rr, math.exp(math.log(rr) - 1.96 * se), math.exp(math.log(rr) + 1.96 * se)
 
 
-def _find_row(ws, pmid):
+def _find_row(ws, pmid=None, label=None):
+    """PMID で探し、無ければ「第一著者 et al. 年」ラベル(前方一致・大文字小文字無視)で探す"""
     for r in range(2, ws.max_row + 1):
-        if str(ws.cell(row=r, column=1).value or "").strip() == str(pmid):
+        if pmid and str(ws.cell(row=r, column=1).value or "").strip() == str(pmid):
             return r
+    if label:
+        key = label.lower().replace("et al.", "").replace("et al", "").split()
+        for r in range(2, ws.max_row + 1):
+            v = str(ws.cell(row=r, column=ROB2_COL["cite"]).value or "").lower()
+            if v and all(k in v for k in key):
+                return r
     return None
 
 
@@ -66,9 +73,11 @@ def import_one(ws_dir, spec):
     n = 0
     if draft is not None:
         for st in spec.get("studies", []):
-            r = _find_row(draft, st["pmid"])
+            r = _find_row(draft, st.get("pmid"), st.get("label"))
             if not r:
-                print(f"  [warn] {st['pmid']} {st.get('label')} は下書きシートにありません"); continue
+                if not spec.get("quiet"):
+                    print(f"  [warn] {st.get('pmid')} {st.get('label')} は下書きシートにありません")
+                continue
             for key, col in (("design", "design"), ("comparator", "comparator")):
                 if st.get(key) and not draft.cell(row=r, column=ROB2_COL[col]).value:
                     draft.cell(row=r, column=ROB2_COL[col]).value = st[key]
@@ -77,6 +86,8 @@ def import_one(ws_dir, spec):
                 _append_note(draft, r, "2023年版RoB(RoB1): " + "、".join(f"{k}{v}(→{ROB1_TO_ROB2.get(k, '')})" for k, v in rob.items()))
             if st.get("result_2023"):
                 _append_note(draft, r, "2023年版の結果要約: " + st["result_2023"])
+            if st.get("external_quality"):
+                _append_note(draft, r, st["external_quality"])
             e = st.get("effect_from_2023")
             if e and st.get("n_int") and st.get("n_ctrl"):
                 ci = rr_ci(e["events_int"], st["n_int"], e["events_ctrl"], st["n_ctrl"])
@@ -95,7 +106,12 @@ def main():
     a = ap.parse_args()
     for pat in a.specs:
         for f in glob.glob(pat):
-            import_one(a.workspace_dir, json.load(open(f, encoding="utf-8")))
+            spec = json.load(open(f, encoding="utf-8"))
+            if spec.get("cq_dir") == "*":   # 全CQに対して、ラベルが一致する研究だけ取り込む
+                for d in sorted(glob.glob(os.path.join(a.workspace_dir, "CQ*"))):
+                    import_one(a.workspace_dir, dict(spec, cq_dir=os.path.basename(d), quiet=True))
+            else:
+                import_one(a.workspace_dir, spec)
 
 
 if __name__ == "__main__":
