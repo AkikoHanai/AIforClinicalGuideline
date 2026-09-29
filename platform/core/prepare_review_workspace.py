@@ -188,6 +188,76 @@ ROB2_DOMAINS = ["D1 ランダム化の過程", "D2 意図した介入からの�
                 "D5 選択的な結果報告", "総合(Overall)"]
 
 
+
+# 既存の海外ガイドライン(2020年)の立ち位置。改訂で「国際的に何が言われているか」を並べて見るための参考表。
+# 記載は原文の要約であり、事務局が原文と照合して「確認」列を☑にするまでは参考扱い。
+ASCO2020 = ("ASCO 2020", "Loprinzi CL, et al. J Clin Oncol 2020;38:3325-48. PMID 32663120")
+ESMO2020 = ("ESMO-EONS-EANO 2020", "Jordan B, et al. Ann Oncol 2020;31:1306-19. PMID 32739407")
+EXISTING_GL = {
+    # (介入キーワード, CQ) : [(GL, 推奨要約, 強さ/エビデンス)]
+    ("牛車腎気丸", "CQ1"): [(ASCO2020, "予防目的で提供すべきでない(有効性を示すエビデンス不十分)", "推奨: 中等度 / エビデンス: 低〜中"),
+                            (ESMO2020, "予防に有効性が示された薬剤はなく推奨しない(個別言及なし)", "—")],
+    ("プレガバリン", "CQ1"): [(ASCO2020, "予防目的で提供すべきでない(エビデンス不十分)", "推奨: 中等度 / エビデンス: 低"),
+                              (ESMO2020, "予防に推奨しない", "—")],
+    ("カルニチン", "CQ1"): [(ASCO2020, "予防目的で提供すべきでない(害の可能性: CIPN悪化)", "推奨: 強い / エビデンス: 高"),
+                            (ESMO2020, "予防に推奨しない(害の報告)", "—")],
+    ("冷却", "CQ1"): [(ASCO2020, "推奨を出すには情報が不十分(no recommendation)。有望な介入として今後の研究を推奨", "—"),
+                      (ESMO2020, "予防目的で検討してもよいとの記載(要原文確認)", "要原文確認")],
+    ("圧迫", "CQ1"): [(ASCO2020, "推奨を出すには情報が不十分(no recommendation)。有望な介入として今後の研究を推奨", "—"),
+                      (ESMO2020, "予防目的で検討してもよいとの記載(要原文確認)", "要原文確認")],
+    ("運動", "CQ1"): [(ASCO2020, "推奨を出すには情報が不十分(no recommendation)", "—"),
+                      (ESMO2020, "運動療法(感覚運動トレーニング等)は症状軽減に考慮してよい(要原文確認)", "要原文確認")],
+    ("鍼灸", "CQ1"): [(ASCO2020, "推奨を出すには情報が不十分(no recommendation)", "—"),
+                      (ESMO2020, "予防での言及なし/不十分(要原文確認)", "要原文確認")],
+    ("デュロキセチン", "CQ2"): [(ASCO2020, "CIPNの治療として提供してもよい(may offer)", "推奨: 中等度 / エビデンス: 中"),
+                                (ESMO2020, "確立したCIPN疼痛治療として第一に挙げる薬剤", "II, B(要原文確認)")],
+    ("アミトリプチリン", "CQ2"): [(ASCO2020, "三環系抗うつ薬について推奨なし(エビデンス不十分)。選択肢が限られる状況で試すことは妥当と付記(要原文確認)", "—"),
+                                  (ESMO2020, "エビデンスは限られるが試みてもよい(要原文確認)", "要原文確認")],
+    ("プレガバリン", "CQ2"): [(ASCO2020, "ガバペンチン/プレガバリンについて推奨なし(エビデンス不十分)", "—"),
+                              (ESMO2020, "エビデンスは限られるが試みてもよい(要原文確認)", "要原文確認")],
+    ("ミロガバリン", "CQ2"): [(ASCO2020, "言及なし", "—"), (ESMO2020, "言及なし", "—")],
+    ("B12", "CQ2"): [(ASCO2020, "治療での言及なし(ビタミンBは予防で「提供すべきでない」)", "—"), (ESMO2020, "言及なし(要原文確認)", "—")],
+    ("NSAIDs", "CQ2"): [(ASCO2020, "言及なし", "—"), (ESMO2020, "言及なし(要原文確認)", "—")],
+    ("オピオイド", "CQ2"): [(ASCO2020, "言及なし", "—"), (ESMO2020, "重度の神経障害性疼痛で一般原則に沿って考慮(要原文確認)", "要原文確認")],
+    ("併用療法", "CQ2"): [(ASCO2020, "言及なし", "—"), (ESMO2020, "言及なし(要原文確認)", "—")],
+    ("運動", "CQ2"): [(ASCO2020, "治療として推奨を出すには情報が不十分(no recommendation)", "—"),
+                      (ESMO2020, "運動療法は症状軽減に考慮してよい(要原文確認)", "要原文確認")],
+    ("鍼灸", "CQ2"): [(ASCO2020, "治療として推奨を出すには情報が不十分(no recommendation)", "—"),
+                      (ESMO2020, "考慮してもよいとの記載(要原文確認)", "要原文確認")],
+}
+
+
+def existing_guidelines_for(item):
+    """介入名(統合CQは「冷却・圧迫」など)とCQ種別から既存GLの行を集める"""
+    cq = item["_source"]["cq"]
+    names = item["_source"].get("merged_from") or [item["cq_id"]]
+    rows = []
+    for (kw, c), entries in EXISTING_GL.items():
+        if c != cq:
+            continue
+        if any(kw in n for n in names) or kw in item["_source"]["intervention"]:
+            for (gl, src), rec, grade in entries:
+                rows.append({"intervention": kw, "guideline": gl, "recommendation": rec,
+                             "grade": grade, "source": src, "checked": "☐"})
+    return rows
+
+
+def sheet_existing_gl(wb, item):
+    ws = wb.create_sheet("既存GL比較")
+    header_row(ws, 1, ["介入", "ガイドライン", "推奨(要約)", "強さ/エビデンス", "出典", "事務局確認(☐/☑)"],
+               widths=[14, 22, 60, 26, 48, 14])
+    rows = existing_guidelines_for(item)
+    for r in rows:
+        ws.append([r["intervention"], r["guideline"], r["recommendation"], r["grade"], r["source"], r["checked"]])
+    ws.append(["※", "2020年の海外GLの記載を要約した参考表。原文と照合し「確認」を☑にしてください。"
+               "修正はこのシートに直接行うと草案作成シートに反映されます", "", "", "", ""])
+    ws.cell(row=ws.max_row, column=2).fill = NOTE_FILL
+    for r in ws.iter_rows(min_row=2):
+        for c in r:
+            c.alignment = WRAP
+    item["existing_guidelines"] = rows
+
+
 def short_cite(citation: str) -> str:
     """"1）Loprinzi CL, Lacchetti C, ... J Clin Oncol. 2020； 38： 3325—48.［PMID： x］"
     → "Loprinzi et al. 2020"。単著なら "Kuriyama 2018"。
@@ -507,6 +577,7 @@ def build_workbook(item):
     sheet_search(wb, item)          # active/1枚目
     sheet_pico(wb, item)
     sheet_instruments(wb, item)
+    sheet_existing_gl(wb, item)
     sheet_screening(wb, item)
     _, _, r1, r2, n_refs = sheet_rob2_pair(wb, item)
     sheet_rob2_reconcile(wb, item, r1, r2, n_refs)

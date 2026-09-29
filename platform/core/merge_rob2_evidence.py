@@ -32,8 +32,10 @@ import re
 
 from openpyxl import load_workbook
 
-FIXED_SHEETS = {"検索式", "CQ・PICO", "スクリーニングログ", "RoB2_照合",
+FIXED_SHEETS = {"検索式", "CQ・PICO", "評価指標", "既存GL比較", "スクリーニングログ",
+                 "RoB2_Claude下書き", "RoB2_照合",
                  "エビデンス総体評価", "文献リスト", "投票", "SoF"}
+EFFECT_RE = re.compile(r"効果:\s*([A-Za-z]+)\s*(-?[\d.]+)\s*\((-?[\d.]+)\s*[–-]\s*(-?[\d.]+)\)")
 ROB2_DOMAIN_LABELS = ["D1 ランダム化の過程", "D2 意図した介入からの逸脱",
                        "D3 アウトカムデータの欠測", "D4 アウトカム測定",
                        "D5 選択的な結果報告", "総合(Overall)"]
@@ -107,6 +109,38 @@ def reconcile(rows1, rows2, recon_final):
             "instrument": r1.get("instrument") or r2.get("instrument"),
         })
     return merged
+
+
+def read_draft_effects(wb):
+    """RoB2_Claude下書き の備考「効果: RR 0.60 (0.40–0.90)」を PMID→effect に読む"""
+    out = {}
+    if "RoB2_Claude下書き" not in wb.sheetnames:
+        return out
+    for r in wb["RoB2_Claude下書き"].iter_rows(min_row=2, values_only=True):
+        if not r or not r[0] or len(r) < 15 or not r[14]:
+            continue
+        m = EFFECT_RE.search(str(r[14]))
+        if m:
+            try:
+                out[str(r[0]).strip()] = {"measure": m.group(1), "point": float(m.group(2)),
+                                          "ci_low": float(m.group(3)), "ci_high": float(m.group(4))}
+            except ValueError:
+                pass
+    return out
+
+
+def read_existing_guidelines(wb):
+    """既存GL比較シート → [{intervention, guideline, recommendation, grade, source, checked}]"""
+    if "既存GL比較" not in wb.sheetnames:
+        return []
+    rows = []
+    for r in wb["既存GL比較"].iter_rows(min_row=2, values_only=True):
+        if not r or not r[0] or str(r[0]).startswith("※"):
+            continue
+        rows.append({"intervention": r[0], "guideline": r[1], "recommendation": r[2],
+                     "grade": r[3] if len(r) > 3 else None, "source": r[4] if len(r) > 4 else None,
+                     "checked": r[5] if len(r) > 5 else None})
+    return rows
 
 
 def read_recon_final_column(wb):
@@ -205,6 +239,10 @@ def merge_one(cq_dir):
     pico = read_pico(wb)
     known_2023 = {str(ref.get("pmid")) for ref in pkg.get("references", []) if ref.get("pmid")}
     pkg["candidates"] = read_candidates(wb, known_2023)
+    effects = read_draft_effects(wb)
+    egl = read_existing_guidelines(wb)
+    if egl:
+        pkg["existing_guidelines"] = egl
 
     # --- PICO/comparator_kindの確定値があれば反映(空欄なら既存値を維持) ---
     for key, pico_key in [("P(対象)", "P"), ("I(介入)", "I"), ("C(対照)", "C")]:
@@ -246,6 +284,7 @@ def merge_one(cq_dir):
             "id": rid, "study": sid, "outcome": oid,
             "comparator": row["comparator"], "eligible": bool(row["eligible"]),
             "rob2": rob2, "instrument": row.get("instrument"),
+            "effect": effects.get(row["pmid"]),
             "contributes_to": eb_by_outcome_id.get(oid) if row["eligible"] else None,
         }
         if row["_unresolved_domains"]:

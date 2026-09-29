@@ -294,6 +294,7 @@ def build_bundle(pkg: dict) -> dict:
         "question_type": pkg.get("question_type", "CQ"),
         "drafts_2023": pkg.get("drafts_2023") or [],
         "merged_from": (pkg.get("_source") or {}).get("merged_from"),
+        "existing_guidelines": pkg.get("existing_guidelines") or [],
         "derived_certainty": certainty,
         "provenance": prov,
         "gate": {

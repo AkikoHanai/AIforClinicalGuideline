@@ -414,6 +414,8 @@ def process_cq(cq_dir, model_id, dry_run, no_fetch):
                 status[pmid] = kind
             continue
         status[pmid] = kind
+        if dry_run and draft.cell(row=r, column=ROB2_COL["design"]).value:
+            continue  # sync-only/dry-run では、前回(Bedrock)の下書きを仮値で上書きしない
         res = extract_one(text, kind, cq_title, interv, outcomes, model_id, dry_run)
         write_row(draft, r, res, kind, overwrite=True)
         if not dry_run:  # 評価者シートには本物の抽出結果だけを流す

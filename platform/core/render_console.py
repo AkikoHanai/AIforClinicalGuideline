@@ -11,6 +11,7 @@
     委員に「もっともらしい文章」を先に読ませない
 """
 import html
+from forest_plot import forest_svg, pool_fixed
 import json
 import os
 import sys
@@ -97,6 +98,7 @@ button{background:#fff;color:#000;border:1.5px solid #000;border-radius:5px;padd
  font-weight:700;cursor:pointer}
 button.ghost{border-color:#888;color:#333;font-weight:400}
 button.small{padding:4px 10px;font-size:12.5px;font-weight:400}
+.forest{margin:10px 0;overflow-x:auto}.forest svg{max-width:100%}
 .note{font-size:12.5px;color:#444}
 .demo{border:1.5px dashed #000;border-radius:6px;padding:10px 14px;font-size:13.5px;margin:14px 0}
 .change{display:none;margin-top:10px;padding:12px 14px;border:1px dashed #000;border-radius:6px}
@@ -196,7 +198,38 @@ def _bodies_html(b):
             f"<td>{esc(eb['summary'])}</td><td style='font-size:12.5px'>{studies}</td></tr>")
     return ("<div class='scroll'><table><tr><th>アウトカム</th><th>確実性</th>"
             "<th>格下げ理由</th><th>要約</th><th>寄与した論文</th></tr>"
-            + "".join(rows) + "</table></div>")
+            + "".join(rows) + "</table></div>" + _forest_html(b))
+
+
+def _forest_html(b):
+    """アウトカムごとに、効果量(点推定値と95%CI)が入っている研究をフォレストプロットにする"""
+    by_outcome = {}
+    for s in sorted(b["studies"], key=_ref_no):
+        for r in s["results"]:
+            e = r.get("effect") or {}
+            if e.get("point") is None or not r.get("outcome_label"):
+                continue
+            by_outcome.setdefault(r["outcome_label"], []).append(
+                {"label": s["title"] or s["id"], "measure": (e.get("measure") or "").upper(),
+                 "point": e["point"], "lo": e.get("ci_low"), "hi": e.get("ci_high")})
+    if not by_outcome:
+        return ("<p class='note'>フォレストプロット：各研究の効果量（点推定値・95%CI）がRoB2下書きに入ると"
+                "ここにアウトカムごとに描画されます。</p>")
+    out = ["<h3>フォレストプロット（アウトカムごと）</h3>"]
+    for label, entries in by_outcome.items():
+        measures = {}
+        for e in entries:
+            measures.setdefault(e["measure"] or "—", []).append(e)
+        for m, es in measures.items():
+            pooled = pool_fixed(es, m) if len(es) >= 2 and m != "—" else None
+            svg = forest_svg(es, m, pooled, title=f"{label}（{m}）") if m != "—" else ""
+            others = ""
+            if not svg:
+                others = "<p class='note'>効果指標の種類が不明な研究: " + "、".join(esc(e["label"]) for e in es) + "</p>"
+            out.append(f"<div class='forest'>{svg}{others}</div>")
+    out.append("<p class='note'>統合値は逆分散法（固定効果）による参考値です。メタ解析として採用するかは委員会で判断してください。"
+               "元の数値は各論文の「効果」欄（RoB2下書きの備考）にあります。</p>")
+    return "\n".join(out)
 
 
 def _ref_no(s):
@@ -413,6 +446,21 @@ def render(bundle: dict, audience: str = "committee") -> str:
   今回のエビデンスから機械的に導いた確実性：{esc(derived.get('overall') or '—（エビデンス総体が未入力）')}</p>
 </section>"""
 
+    # ---- 既存の海外GL(2020) ----
+    egl = bundle.get("existing_guidelines") or []
+    egl_block = ""
+    if egl:
+        rws = "".join(f"<tr><td>{esc(r.get('intervention'))}</td><td>{esc(r.get('guideline'))}</td>"
+                      f"<td>{esc(r.get('recommendation'))}</td><td>{esc(r.get('grade') or '—')}</td>"
+                      f"<td style='font-size:12px'>{esc(r.get('source') or '')}</td>"
+                      f"<td>{esc(r.get('checked') or '☐')}</td></tr>" for r in egl)
+        egl_block = f"""
+<section>
+  <h2>海外ガイドライン（2020年）の推奨　参考</h2>
+  <div class="scroll"><table><tr><th>介入</th><th>ガイドライン</th><th>推奨（要約）</th><th>強さ／エビデンス</th><th>出典</th><th>原文照合</th></tr>{rws}</table></div>
+  <p class="note">2023年版はこれらを踏まえて作成されています。要約は minds_review.xlsx「既存GL比較」で修正できます。「原文照合」が☐の行は原文で確認してください。</p>
+</section>"""
+
     # ---- 解説(編集可) ----
     narrative = ""
     if bundle.get("narrative"):
@@ -517,7 +565,7 @@ def render(bundle: dict, audience: str = "committee") -> str:
 <section><h2>アウトカム</h2>{_outcomes_html(bundle)}</section>
 
 {rec_block}
-
+{egl_block}
 <section><h2>エビデンス総体（アウトカムごと）</h2>{_bodies_html(bundle)}
 <p class="note">RoB2評価と統合の結果を minds_review.xlsx の「エビデンス総体評価」に記入すると反映されます。</p></section>
 

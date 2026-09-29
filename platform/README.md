@@ -120,3 +120,12 @@ cd core && python -m pytest ../tests/test_evidence_graph.py -q
 2. Phase1（推奨案生成）の出力を `draft` に直接書き込む配線（Bedrock/Claude API）
 3. 委員の回答JSONを集約して差し戻し理由を分類 → Minds 7.2「作成経過に関する報告事項」へ
 4. `edge_extract.py` を実文献リストに当てて `studies`/`trial_ids` の自動投入
+
+## フォレストプロットと海外ガイドライン(2020)との比較
+
+- `fill_rob2_from_papers.py` が各論文から効果量(例: `効果: MD -0.73 (-1.20–-0.26)`)を RoB2下書きの備考に書くと、
+  `merge_rob2_evidence.py` がそれを拾い、草案作成シートの「エビデンス総体」にアウトカムごとの
+  フォレストプロット(白黒SVG、逆分散法の参考統合値つき)を描きます(`core/forest_plot.py`)。
+- minds_review.xlsx の「既存GL比較」シートに ASCO 2020 (Loprinzi et al.) / ESMO-EONS-EANO 2020 (Jordan et al.)
+  の当該介入に関する記載要約を入れてあります。原文照合の上「事務局確認」を☑にしてください。
+  シートの修正はそのまま草案作成シートの「海外ガイドライン(2020年)の推奨」に反映されます。
