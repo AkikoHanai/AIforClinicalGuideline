@@ -65,15 +65,36 @@ def build_graph(pkg: dict) -> EvidenceGraph:
     for ma, member in pkg.get("includes", []):
         g.add_edge(ma, EdgeType.INCLUDES, member)
 
+    outcome_ids = {oc["id"] for oc in pkg.get("outcomes", [])}
+    eb_ids = {eb["id"] for eb in pkg.get("evidence_bodies", [])}
+    incomplete_results = []
     for r in pkg.get("results", []):
         g.add_node(r["id"], NodeType.STUDY_RESULT, comparator=r.get("comparator"),
                    effect=r.get("effect"))
         g.add_edge(r["study"], EdgeType.YIELDS, r["id"])
-        g.add_edge(r["id"], EdgeType.MEASURES, r["outcome"])
+        # アウトカム未割当の行(委員のRoB2入力途中でよくある状態)は
+        # MEASURESエッジを張れない(未登録ノードへのエッジはSchemaErrorで落ちる)。
+        # クラッシュさせず「入力未完了」として記録し、検証をスキップする
+        if r.get("outcome") and r["outcome"] in outcome_ids:
+            g.add_edge(r["id"], EdgeType.MEASURES, r["outcome"])
+        else:
+            incomplete_results.append({
+                "result": r["id"],
+                "reason": "対応するアウトカムIDが未設定、または存在しないIDです"
+                          "(RoB2評価シートの「対応するアウトカムID」列を確認してください)",
+            })
+            continue
         if r.get("eligible", True):
             g.add_edge(r["id"], EdgeType.ELIGIBLE_FOR, cq)
-        if r.get("contributes_to"):
+        if r.get("contributes_to") and r["contributes_to"] in eb_ids:
             g.add_edge(r["id"], EdgeType.CONTRIBUTES_TO, r["contributes_to"])
+        elif r.get("contributes_to"):
+            incomplete_results.append({
+                "result": r["id"],
+                "reason": f"contributes_to='{r['contributes_to']}' が"
+                          "エビデンス総体評価シートに存在しません",
+            })
+    g.incomplete_results = incomplete_results  # build_bundle側でbundleに載せる
 
     draft = pkg.get("draft") or {}
     rec = f"REC:{cq}"
@@ -257,6 +278,7 @@ def build_bundle(pkg: dict) -> dict:
         "studies": [_study_card(g, s, pkg) for s in g.of_type(NodeType.STUDY)],
         "validation": validation,
         "cross_check": cross,
+        "incomplete_results": getattr(g, "incomplete_results", []),
         "derived_certainty": certainty,
         "provenance": prov,
         "gate": {
