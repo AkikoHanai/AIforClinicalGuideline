@@ -313,165 +313,200 @@ def _provenance_html(b):
     return "".join(out) or '<p class="note">根拠鎖がありません。</p>'
 
 
-def render(bundle: dict) -> str:
+def _draft_block_2023(dd, label=None):
+    pv = dd.get("panel_vote") or {}
+    head = f"<p class='note' style='margin:0 0 6px'><b>{esc(label)}</b></p>" if label else ""
+    return f"""{head}
+  <div class="rec">{esc(dd.get('recommendation_text') or '')}</div>
+  <div class="kv">
+    <div><b>推奨の強さ</b> {esc(STRENGTH_JA.get(dd.get('strength'), dd.get('strength') or '—'))}</div>
+    <div><b>エビデンスの確実性</b> {esc(CERT_JA.get(dd.get('certainty'), dd.get('certainty') or '—'))}</div>
+    <div><b>合意率</b> {esc(f"{pv.get('agreement_rate'):.0%}" if pv.get('agreement_rate') is not None else '—')}
+      {esc(f"（{pv.get('n_panel')}名）" if pv.get('n_panel') else '')}</div>
+    <div><b>引用文献</b> {len(dd.get('cited_pmids') or [])}件</div>
+  </div>"""
+
+
+def _outcomes_html(b):
+    ocs = b["cq"].get("outcomes") or []
+    if not ocs:
+        return "<p class='note'>アウトカム未設定</p>"
+    rows = "".join(
+        f"<tr><td><b>{esc(o.get('label'))}</b></td>"
+        f"<td>{esc(o.get('importance') if o.get('importance') is not None else '—')}"
+        f"{'（暫定）' if o.get('_note') else ''}</td>"
+        f"<td class='note'>{esc(o.get('_note') or '')}</td></tr>" for o in ocs)
+    return ("<div class='scroll'><table><tr><th>アウトカム</th><th style='width:9em'>重要度(1-9)</th>"
+            "<th>備考</th></tr>" + rows + "</table></div>"
+            "<p class='note'>2023年版（第1章4）で設定されたアウトカムです。重要度の点数化は2023年版では"
+            "行われていないため暫定値です。改訂での確定は委員会で行います。</p>")
+
+
+def _consideration_fields():
+    items = [
+        ("cons_certainty", "アウトカム全体にわたる総括的なエビデンスの確実性"),
+        ("cons_balance", "望ましい効果と望ましくない効果のバランス"),
+        ("cons_values", "患者・市民の価値観と希望"),
+        ("cons_cost", "資源の利用（コスト）※特に高額が予想される場合のみ"),
+    ]
+    return "".join(
+        f'<p style="margin:10px 0 4px"><b>{esc(lbl)}</b></p>'
+        f'<textarea id="{i}" data-draft="{i}" style="min-height:64px"></textarea>' for i, lbl in items)
+
+
+def render(bundle: dict, audience: str = "committee") -> str:
     cq, d = bundle["cq"], bundle["draft"]
     gate = bundle["gate"]
-    ready = gate["ready_for_review"]
     pico = cq.get("pico", {})
-    vote = d.get("panel_vote") or {}
     derived = bundle["derived_certainty"]
+    secretariat = audience == "secretariat"
+    is_frq = bundle.get("question_type") == "FRQ"
+    drafts_2023 = bundle.get("drafts_2023") or []
+    n_new = sum(1 for s in bundle["studies"] if s.get("newly_added"))
+    n_old = sum(1 for s in bundle["studies"] if s.get("cited_in_2023"))
 
     demo = ""
     if "DEMO" in cq["id"].upper():
         demo = ('<div class="demo"><b>デモ用の画面です。</b>'
-                'PMID・効果量・推奨文はすべて架空で、実在の研究ではありません。'
-                'この画面の動きを確認するためのものです。</div>')
+                'PMID・効果量・推奨文はすべて架空で、実在の研究ではありません。</div>')
 
-    # 改訂レビュー: draft が刊行版(2023年版)の推奨なら「踏襲の出発点」として扱う。
-    # AI生成の推奨案(Phase1)なら従来どおり「未承認」として扱う
-    baseline = str(d.get("generated_by", "")).startswith("published_guideline")
-    n_new = sum(1 for s in bundle["studies"] if s.get("newly_added"))
-    n_old = sum(1 for s in bundle["studies"] if s.get("cited_in_2023"))
-
-    if baseline:
-        rec_title = "2023年版の推奨（改訂の出発点・原文）"
-        cert_label = "2023年版の確実性"
-        rec_note = ("これは刊行済み2023年版の推奨文です。改訂では原則としてこれを踏襲し、"
-                    "新規文献（下の採用文献で「新規」タグ）が方向・強さを変える根拠になる場合だけ変更します。")
+    # ---- 2023年版の推奨(統合CQは介入ごとに) ----
+    if drafts_2023:
+        blocks = "".join(_draft_block_2023(dd, dd.get("_intervention")) for dd in drafts_2023)
+        note_merge = ("<p class='note'>この改訂では2つの介入を1つのCQとして扱います。"
+                      "2023年版ではそれぞれ別の推奨でした。</p>")
     else:
-        rec_title = "推奨案（AI生成・未承認）"
-        cert_label = "AI申告の確実性"
-        rec_note = ""
-
+        blocks = _draft_block_2023(d)
+        note_merge = ""
     rec_block = f"""
 <section>
-  <h2>{rec_title}</h2>
-  <div class="rec">{esc(d.get('recommendation_text') or '（推奨案が未生成です）')}</div>
-  <div class="kv">
-    <div><b>推奨の強さ</b> {esc(STRENGTH_JA.get(d.get('strength'), d.get('strength') or '—'))}</div>
-    <div><b>方向</b> {esc(DIRECTION_JA.get(d.get('direction'), d.get('direction') or '—'))}</div>
-    <div><b>{cert_label}</b> {esc(CERT_JA.get(d.get('certainty'), d.get('certainty') or '—'))}</div>
-    <div><b>今回のエビデンスから導いた確実性</b> {esc(derived.get('overall') or '—（総体評価が未入力）')}</div>
-    <div><b>2023年版の合意率</b> {esc(f"{vote.get('agreement_rate'):.0%}" if vote.get('agreement_rate') is not None else '—')}
-      {esc(f"（{vote.get('n_panel')}名）" if vote.get('n_panel') else '')}</div>
-    <div><b>文献</b> 2023年版採用 {n_old}件 ／ <b>新規 {n_new}件</b></div>
-  </div>
-  {f'<p class="note">{esc(rec_note)}</p>' if rec_note else ''}
-  <p class="note">確実性は「重大アウトカムの総体のうち最も低いもの」として機械的に導出しています：{esc(derived.get('reason') or '')}</p>
+  <h2>2023年版の推奨</h2>
+  {note_merge}{blocks}
+  <p class="note">文献：2023年版採用 {n_old}件 ／ 今回新規 {n_new}件。
+  今回のエビデンスから機械的に導いた確実性：{esc(derived.get('overall') or '—（エビデンス総体が未入力）')}</p>
 </section>"""
 
-    # AI生成案は機械検証不合格なら畳む(もっともらしい文章を先に読ませない)。
-    # 刊行版の推奨は承認済みの出発点なので畳まない
-    if not ready and not baseline:
-        rec_block = ('<section><h2>推奨案（AI生成・未承認）</h2>'
-                     '<p class="note">機械検証で不整合が残っているため、推奨文は畳んでいます。'
-                     '先に上の「機械検証の結果」を確認してください。</p>'
-                     '<details><summary style="cursor:pointer">それでも推奨案を読む</summary>'
-                     + rec_block + '</details></section>')
-
-    etd = d.get("etd_judgments") or {}
-    etd_rows = "".join(f"<tr><td>{esc(k)}</td><td>{esc(v)}</td></tr>" for k, v in etd.items())
-
-    checklist = "".join(
-        f'<div class="chk"><input type="checkbox" id="c{i}" data-chk="{i}">'
-        f'<label class="q" for="c{i}">{esc(q)}<small>{esc(ref)}</small></label></div>'
-        for i, (q, ref) in enumerate(CHECKLIST))
-
+    # ---- 解説(編集可) ----
     narrative = ""
     if bundle.get("narrative"):
-        nar_title = "2023年版の解説（原文）" if baseline else "解説文（Phase2生成）"
         narrative = (
-            f'<section><h2>{nar_title}　— 加筆修正はこの欄に直接</h2>'
-            f'<p class="note">2023年版の解説を全文載せています。踏襲するならそのまま、変更するなら'
-            f'この欄で直してください（書き出すJSONに編集後の全文と「変更あり/なし」が入ります）。'
-            f'<button class="small" type="button" onclick="resetNarrative()">原文に戻す</button></p>'
-            f'<textarea id="narrative" class="narr">{esc(bundle["narrative"])}</textarea>'
+            f'<section><h2>解説（草案）　初期値は2023年版の原文</h2>'
+            f'<p class="note">2023年版の解説を全文載せています。このまま改訂の草案として直してください。'
+            f'<button class="small" type="button" onclick="resetNarrative()">2023年版の原文に戻す</button></p>'
+            f'<textarea id="narrative" class="narr" data-draft="narrative">{esc(bundle["narrative"])}</textarea>'
             f'<p class="note" id="narrStatus"></p></section>')
 
-    # 判定の選択肢。改訂レビューでは「踏襲／変更／削除・FRQ化」、AI案では従来の承認系
-    if baseline:
-        verdict_html = """
-  <div class="verdicts">
-    <label><input type="radio" name="verdict" value="keep">2023年版を踏襲する</label>
-    <label><input type="radio" name="verdict" value="change">推奨を変更する（下に変更案・コメント必須）</label>
-    <label><input type="radio" name="verdict" value="withdraw">推奨を削除・FRQ化する（コメント必須）</label>
-  </div>
-  <div class="change" id="changeBox">
-    <label>変更後の推奨の強さ
-      <select id="newStrength"><option value="">—</option>
-        <option value="1">1 強い推奨・実施</option><option value="2">2 弱い推奨・実施</option>
-        <option value="3">3 推奨なし</option><option value="4">4 弱い推奨・非実施</option>
-        <option value="5">5 強い推奨・非実施</option></select></label>
-    <label>変更後の確実性
-      <select id="newCertainty"><option value="">—</option>
-        <option>A</option><option>B</option><option>C</option><option>D</option></select></label>
-    <div style="margin-top:8px"><label style="display:block">変更後の推奨文（案）</label>
-      <textarea id="newText" placeholder="変更後の推奨文を書いてください"></textarea></div>
-  </div>"""
-        verdict_status = ('{"keep":"踏襲","change":"変更","withdraw":"削除・FRQ化"}')
+    # ---- 草案フォーム(CQ / FRQ) ----
+    if is_frq:
+        form = f"""
+<section>
+  <h2>FRQ（今後の研究課題）記載草案</h2>
+  <p class="note">このCQは委員会の割り振りでFRQ（Future Research Question）とされています。
+  Minds 2020ではエビデンス不足で推奨を出せない問いをFRQとし、推奨文・推奨の強さは付けず、
+  現時点のエビデンスの状況と今後必要な研究を記述します（手引きの該当項で最終確認してください）。</p>
+  <p style="margin:10px 0 4px"><b>背景・臨床上の重要性</b></p>
+  <textarea id="frq_background" data-draft="frq_background"></textarea>
+  <p style="margin:10px 0 4px"><b>現時点のエビデンスの状況（SRの結果）</b></p>
+  <textarea id="frq_evidence" data-draft="frq_evidence"></textarea>
+  <p style="margin:10px 0 4px"><b>推奨を出せない理由</b></p>
+  <textarea id="frq_reason" data-draft="frq_reason"></textarea>
+  <p style="margin:10px 0 4px"><b>今後必要な研究（デザイン・対象・アウトカム）</b></p>
+  <textarea id="frq_future" data-draft="frq_future"></textarea>
+</section>"""
     else:
-        verdict_html = """
-  <div class="verdicts">
-    <label><input type="radio" name="verdict" value="approve">承認する</label>
-    <label><input type="radio" name="verdict" value="conditional">条件付き承認（コメント必須）</label>
-    <label><input type="radio" name="verdict" value="revise">差し戻す（コメント必須）</label>
-  </div>"""
-        verdict_status = "{}"
+        base_text = d.get("recommendation_text") or ""
+        if drafts_2023:
+            base_text = "\n".join(f"【{dd.get('_intervention')}】{dd.get('recommendation_text','')}"
+                                  for dd in drafts_2023)
+        opt = lambda v, cur, lbl: f'<option value="{v}"{" selected" if str(cur)==v else ""}>{lbl}</option>'
+        form = f"""
+<section>
+  <h2>Minds推奨文草案</h2>
+  <p class="note">初期値は2023年版です。SRの結果（エビデンス総体・採用文献）を踏まえて、改訂版の草案として直してください。
+  投票は委員会会議で行います（資格者の75%以上が参加し80%以上の賛成で決定）。</p>
+  <p style="margin:10px 0 4px"><b>推奨文（草案）</b></p>
+  <textarea id="rec_text" data-draft="rec_text">{esc(base_text)}</textarea>
+  <div class="kv" style="margin-top:10px">
+    <div><b>推奨の強さ</b>
+      <select id="rec_strength" data-draft="rec_strength" style="width:auto">
+        <option value="">—</option>
+        {opt("1", d.get("strength"), "1 投与・実施することを強く推奨する")}
+        {opt("2", d.get("strength"), "2 投与・実施することを提案する")}
+        {opt("3", d.get("strength"), "3 投与・実施について「推奨なし」とする")}
+        {opt("4", d.get("strength"), "4 投与・実施しないことを提案する")}
+        {opt("5", d.get("strength"), "5 投与・実施しないことを強く推奨する")}
+      </select></div>
+    <div><b>エビデンスの確実性</b>
+      <select id="rec_certainty" data-draft="rec_certainty" style="width:auto">
+        <option value="">—</option>
+        {opt("A", d.get("certainty"), "A（強）")}{opt("B", d.get("certainty"), "B（中）")}
+        {opt("C", d.get("certainty"), "C（弱）")}{opt("D", d.get("certainty"), "D（非常に弱い）")}
+      </select></div>
+  </div>
+  {_consideration_fields()}
+  <p style="margin:10px 0 4px"><b>2023年版からの変更点と理由（新規文献のPMID等）</b></p>
+  <textarea id="rec_changes" data-draft="rec_changes"></textarea>
+</section>"""
+
+    # ---- 事務局向けの内部情報(委員には出さない) ----
+    internal = ""
+    if secretariat:
+        internal = f"""
+<section>
+  <h2>［事務局用］機械検証の結果（規則で判定）</h2>
+  {_issues_html(bundle, True)}
+</section>
+<section><h2>［事務局用］推奨の由来</h2>{_provenance_html(bundle)}</section>
+{_incomplete_html(bundle)}"""
+
+    header_badge = ('<span class="badge">FRQ（今後の研究課題）</span>' if is_frq
+                    else '<span class="badge">CQ（推奨を作成）</span>')
+    if secretariat:
+        ok = gate["ready_for_review"]
+        vtxt = "検証 通過" if ok else "検証 未通過（%d件）" % gate["n_blocking"]
+        header_badge += ' <span class="badge %s">%s</span>' % ("" if ok else "ng", vtxt)
 
     return f"""<!doctype html><html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{esc(cq['id'])} レビュー｜CIPN診療ガイドライン改訂</title><style>{CSS}</style></head><body>
+<title>{esc(cq['id'])} 草案作成｜CIPN診療ガイドライン改訂</title><style>{CSS}</style></head><body>
 <header>
-  <div class="cqid">CIPN GUIDELINE REVISION · REVIEW CONSOLE</div>
+  <div class="cqid">CIPN診療ガイドライン改訂 ・ {'FRQ記載' if is_frq else '推奨文草案'}作成シート</div>
   <h1>{esc(cq['id'])}　{esc(cq['title'])}</h1>
-  <span class="badge {'ok' if ready else 'ng'}">{'機械検証 通過' if ready else f'機械検証 不合格（{gate["n_blocking"]}件）'}</span>
+  {header_badge}
   <span class="badge mute">生成 {esc(bundle['generated_at'][:10])}</span>
 </header>
 <div class="wrap">
 {demo}
 <section>
-  <h2>機械検証の結果（LLMではなく規則で判定）</h2>
-  {_issues_html(bundle, baseline)}
-  <p class="note">Minds規則 R1–R8（適格性・二重計上・撤回・非直接性・重大アウトカム・格下げ理由）と、
-  {'2023年版の記載（確実性・引用PMID）と今回整備した根拠' if baseline else 'AI生成の申告値'}の照合を、決定論的に実行した結果です。
-  {'RoB2評価・エビデンス総体が未入力の段階では、引用文献が根拠グラフに未接続のため不一致として並びます。入力が進むと消えていきます。' if baseline else ''}</p>
-</section>
-
-<section>
   <h2>臨床疑問（PICO）</h2>
   <div class="scroll"><table>
-    <tr><th style="width:4em">P</th><td>{esc(pico.get('P'))}</td></tr>
+    <tr><th style="width:4em">P</th><td>{esc(pico.get('P') or '（委員会で確定）')}</td></tr>
     <tr><th>I</th><td>{esc(pico.get('I'))}</td></tr>
-    <tr><th>C</th><td>{esc(pico.get('C'))}</td></tr>
-    <tr><th>O</th><td>{esc('、'.join(pico.get('O', [])))}</td></tr>
+    <tr><th>C</th><td>{esc(pico.get('C') or '（委員会で確定）')}</td></tr>
+    <tr><th>O</th><td>{esc('、'.join(pico.get('O', [])) or '—')}</td></tr>
   </table></div>
 </section>
 
+<section><h2>アウトカム</h2>{_outcomes_html(bundle)}</section>
+
 {rec_block}
 
-<section><h2>エビデンス総体（アウトカムごと）</h2>{_bodies_html(bundle)}</section>
+<section><h2>エビデンス総体（アウトカムごと）</h2>{_bodies_html(bundle)}
+<p class="note">RoB2評価と統合の結果を minds_review.xlsx の「エビデンス総体評価」に記入すると反映されます。</p></section>
 
 <section><h2>採用文献（2023年版採用＋新規追加。クリックで結果を展開）</h2>{_studies_html(bundle)}</section>
 
 {_candidates_html(bundle)}
 
-<section><h2>推奨の由来（AGREE II 項目12の証跡）</h2>{_provenance_html(bundle)}
-<p class="note">推奨 → エビデンス総体 → 格下げ要因 → 論文PMID の連鎖です。この鎖に載っていない根拠は、推奨の裏づけになりません。</p></section>
-
-{_incomplete_html(bundle)}
-
-{"<section><h2>EtD（判断の枠組み）</h2><div class='scroll'><table>" + etd_rows + "</table></div></section>" if etd_rows else ""}
-
 {narrative}
 
+{form}
+
+{internal}
+
 <section>
-  <h2>あなたの確認</h2>
-  {checklist}
-  {verdict_html}
-  <textarea id="comment" placeholder="コメント（変更・削除・差し戻し・条件付き承認の場合は必須。どの記述を、何を根拠に（新規文献のPMID等）、どう直すかを書いてください）"></textarea>
-  <p style="margin-top:10px">
-    お名前：<input id="reviewer" style="padding:7px;border:1px solid #ccd3da;border-radius:6px;font-size:14px" placeholder="委員名">
-  </p>
+  <p>お名前：<input id="reviewer" type="text" style="width:16em" placeholder="委員名">
+  　備考（事務局への連絡）：<input id="comment" type="text" style="width:40em"></p>
 </section>
 </div>
 
@@ -479,19 +514,17 @@ def render(bundle: dict) -> str:
   <span id="status">入力は自動保存されます（この端末のブラウザ内のみ）</span>
   <span style="flex:1"></span>
   <button class="ghost" onclick="clearAll()">入力を消去</button>
-  <button onclick="exportJSON()">回答をJSONで書き出す</button>
+  <button onclick="exportJSON()">草案をJSONで書き出す</button>
 </div>
 
 <script>
 const CQ = {json.dumps(bundle['cq']['id'], ensure_ascii=False)};
-const KEY = "cipn-review-" + CQ;
-const VERDICT_JA = {verdict_status};
+const IS_FRQ = {json.dumps(is_frq)};
+const KEY = "cipn-draft-" + CQ;
 const NARRATIVE_ORIG = {json.dumps(bundle.get("narrative") or "", ensure_ascii=False)};
-const val = id => {{ const e = document.getElementById(id); return e ? e.value : null; }};
 function collect() {{
-  const chk = {{}};
-  document.querySelectorAll('[data-chk]').forEach(e => chk[e.dataset.chk] = e.checked);
-  const v = document.querySelector('input[name=verdict]:checked');
+  const drafts = {{}};
+  document.querySelectorAll('[data-draft]').forEach(e => drafts[e.dataset.draft] = e.value);
   const cands = [];
   document.querySelectorAll('tr.cand').forEach(tr => {{
     const i = tr.dataset.cand;
@@ -500,13 +533,10 @@ function collect() {{
                 decision: d ? d.value : null,
                 reason: (tr.querySelector('[data-candreason]') || {{}}).value || ""}});
   }});
-  const narr = document.getElementById('narrative');
-  return {{cq: CQ, reviewer: document.getElementById('reviewer').value,
-          verdict: v ? v.value : null, verdict_ja: v ? (VERDICT_JA[v.value] || v.value) : null,
-          checklist: chk,
-          proposed: {{strength: val('newStrength'), certainty: val('newCertainty'), text: val('newText')}},
-          narrative_edited: narr ? narr.value : null,
-          narrative_changed: narr ? narr.value !== NARRATIVE_ORIG : false,
+  return {{cq: CQ, question_type: IS_FRQ ? "FRQ" : "CQ",
+          reviewer: document.getElementById('reviewer').value,
+          draft: drafts,
+          narrative_changed: (drafts.narrative !== undefined) && drafts.narrative !== NARRATIVE_ORIG,
           candidates: cands,
           comment: document.getElementById('comment').value,
           saved_at: new Date().toISOString()}};
@@ -519,35 +549,20 @@ function resetNarrative() {{
 function syncNarrStatus() {{
   const n = document.getElementById('narrative'), st = document.getElementById('narrStatus');
   if (!n || !st) return;
-  st.textContent = n.value === NARRATIVE_ORIG ? "原文のまま（変更なし）" : "※ 原文から変更あり";
-}}
-function syncChangeBox() {{
-  const box = document.getElementById('changeBox'); if (!box) return;
-  const v = document.querySelector('input[name=verdict]:checked');
-  box.classList.toggle('on', !!v && v.value === 'change');
+  st.textContent = n.value === NARRATIVE_ORIG ? "2023年版の原文のまま（変更なし）" : "※ 2023年版から変更あり";
 }}
 function save() {{
   localStorage.setItem(KEY, JSON.stringify(collect()));
   document.getElementById('status').textContent = "保存しました " + new Date().toLocaleTimeString('ja-JP');
 }}
 function restore() {{
-  const raw = localStorage.getItem(KEY); if (!raw) return;
+  const raw = localStorage.getItem(KEY); if (!raw) {{ syncNarrStatus(); return; }}
   const d = JSON.parse(raw);
   document.getElementById('reviewer').value = d.reviewer || "";
   document.getElementById('comment').value = d.comment || "";
-  Object.entries(d.checklist || {{}}).forEach(([k, v]) => {{
-    const e = document.querySelector('[data-chk="' + k + '"]'); if (e) e.checked = v;
+  Object.entries(d.draft || {{}}).forEach(([k, v]) => {{
+    const e = document.querySelector('[data-draft="' + k + '"]'); if (e && v != null) e.value = v;
   }});
-  if (d.verdict) {{
-    const e = document.querySelector('input[name=verdict][value="' + d.verdict + '"]');
-    if (e) e.checked = true;
-  }}
-  const p = d.proposed || {{}};
-  [['newStrength', p.strength], ['newCertainty', p.certainty], ['newText', p.text]].forEach(([id, v]) => {{
-    const e = document.getElementById(id); if (e && v != null) e.value = v;
-  }});
-  const n = document.getElementById('narrative');
-  if (n && typeof d.narrative_edited === "string") n.value = d.narrative_edited;
   (d.candidates || []).forEach(c => {{
     if (c.decision) {{
       const e = document.querySelector('input[name="cand' + c.index + '"][value="' + c.decision + '"]');
@@ -556,31 +571,26 @@ function restore() {{
     const r = document.querySelector('[data-candreason="' + c.index + '"]');
     if (r && c.reason) r.value = c.reason;
   }});
-  syncChangeBox(); syncNarrStatus();
+  syncNarrStatus();
 }}
 function exportJSON() {{
   const d = collect();
   if (!d.reviewer) {{ alert("お名前を入力してください"); return; }}
-  if (!d.verdict) {{ alert("判定を選んでください"); return; }}
-  const needComment = !["approve", "keep"].includes(d.verdict);
-  if (needComment && !d.comment.trim()) {{ alert("コメントを入力してください"); return; }}
-  if (d.verdict === "change" && !(d.proposed.strength || d.proposed.text.trim())) {{
-    alert("変更後の推奨の強さ、または推奨文（案）を入力してください"); return; }}
+  if (!IS_FRQ && !(d.draft.rec_text || "").trim()) {{ alert("推奨文（草案）を入力してください"); return; }}
   const bad = d.candidates.filter(c => c.decision === "exclude" && !c.reason.trim());
   if (bad.length) {{ alert("除外にした候補文献には理由を入力してください（" + bad.length + "件）"); return; }}
   const blob = new Blob([JSON.stringify(d, null, 2)], {{type: "application/json"}});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = CQ + "_" + (d.reviewer || "reviewer") + ".review.json";
+  a.download = CQ + "_" + (d.reviewer || "reviewer") + ".draft.json";
   a.click();
 }}
 function clearAll() {{
   if (!confirm("この画面の入力を消去します。よろしいですか。")) return;
   localStorage.removeItem(KEY); location.reload();
 }}
-document.addEventListener("input", save);
-document.addEventListener("input", syncNarrStatus);
-document.addEventListener("change", () => {{ syncChangeBox(); save(); }});
+document.addEventListener("input", () => {{ syncNarrStatus(); save(); }});
+document.addEventListener("change", save);
 restore();
 </script>
 </body></html>"""
@@ -591,14 +601,17 @@ def main():
     ap = argparse.ArgumentParser(description="レビューバンドル → 委員用HTML")
     ap.add_argument("bundles", nargs="+")
     ap.add_argument("-o", "--outdir", default=os.path.join(HERE, "..", "review"))
+    ap.add_argument("--audience", choices=["committee", "secretariat"], default="committee",
+                    help="committee: 委員用(内部の検証結果を出さない) / secretariat: 事務局用(全部出す)")
     args = ap.parse_args()
     os.makedirs(args.outdir, exist_ok=True)
     for path in args.bundles:
         with open(path, encoding="utf-8") as f:
             b = json.load(f)
-        out = os.path.join(args.outdir, f"{b['cq']['id']}.review.html")
+        suffix = ".review.html" if args.audience == "committee" else ".secretariat.html"
+        out = os.path.join(args.outdir, f"{b['cq']['id']}{suffix}")
         with open(out, "w", encoding="utf-8") as f:
-            f.write(render(b))
+            f.write(render(b, args.audience))
         print(f"{b['cq']['id']}: {out}")
 
 

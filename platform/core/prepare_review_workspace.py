@@ -79,8 +79,7 @@ SEARCH_TERM_MAP = {
     "CQ2-デュロキセチン": (["duloxetine"], None),
     "CQ2-アミトリプチリン": (["amitriptyline/ketamine"], None),
     "CQ2-プレガバリン": (["Pregabalin", "gabapentin"], None),
-    "CQ2-ミロガバリン": (["gabapentin"], "gabapentinoidとしてgabapentin語でヒットする可能性があるが、"
-                       "ミロガバリン(mirogabalin)自体の語は含まれていません。担当者で要確認"),
+    "CQ2-ミロガバリン": (['"Mirogabalin"[Supplementary Concept]'], None),
     "CQ2-ビタミン-B12": (['"Vitamin B 12"[Mesh]'], None),
     "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs": (['"Anti-Inflammatory Agents, Non-Steroidal"[Mesh]'], None),
     "CQ2-オピオイド": (['"Analgesics, Opioid"[Mesh]'], None),
@@ -89,14 +88,53 @@ SEARCH_TERM_MAP = {
     "CQ2-鍼灸": (['"Acupuncture Therapy"[Mesh]'], None),
 }
 
+# 冷却と圧迫は改訂でCQ・検索式・担当を統合する(委員会決定)。
+# 2つのCQパッケージを1つにまとめ、2023年版の推奨は両方とも残す
+CQ_MERGES = {
+    "CQ1-冷却・圧迫": ["CQ1-冷却", "CQ1-圧迫"],
+}
+MERGED_SEARCH_TERMS = {
+    "CQ1-冷却・圧迫": (["cryotherapy", '"Compression Bandages"[Mesh]'], None),
+}
+
+# FRQ(Future Research Question)。Minds 2020では、SRの結果エビデンスが不足し
+# 推奨を出せないCQを FRQ として扱い、推奨文・強さの代わりに
+# 「現時点のエビデンスの状況」と「今後必要な研究」を記述する(要: 手引き2020の
+# FRQの項で最終確認)。委員会の割り振り表で FRQ とされた4件
+FRQ_CQS = {"CQ2-ビタミン-B12", "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs",
+           "CQ2-オピオイド", "CQ2-薬物の併用療法"}
+
+# 2023年版 第1章4「アウトカムの重要性について」:
+#   予防: CIPN発症頻度、症状(しびれ・疼痛)の軽減 / 治療: 症状(しびれ・疼痛)の軽減
+#   重要性の点数化・デルファイは行わなかった(2023年版の限界として明記)
+# → 改訂でも同じアウトカムを出発点にし、重要度は「重大」扱い(9)で置き、委員会で確定する
+OUTCOMES_BY_CQ_TYPE = {
+    "CQ1": [
+        {"id": "O:CIPN発症頻度", "label": "CIPN発症頻度", "importance": 9,
+         "_note": "2023年版で設定。重要度は未点数化のため暫定9(重大)。委員会で確定"},
+        {"id": "O:症状の軽減", "label": "症状（しびれ・疼痛）の軽減", "importance": 9,
+         "_note": "2023年版で設定。重要度は未点数化のため暫定9(重大)。委員会で確定"},
+    ],
+    "CQ2": [
+        {"id": "O:症状の軽減", "label": "症状（しびれ・疼痛）の軽減", "importance": 9,
+         "_note": "2023年版で設定。重要度は未点数化のため暫定9(重大)。委員会で確定"},
+    ],
+}
+# 推奨作成時に考慮する項目(2023年版 第1章9「作成手順」に明記)
+RECOMMENDATION_CONSIDERATIONS = [
+    "アウトカム全体にわたる総括的なエビデンスの確実性",
+    "望ましい効果と望ましくない効果のバランス",
+    "患者・市民の価値観と希望",
+    "資源の利用（コスト）※特に高額が予想される場合のみ",
+]
+
 # CQごとの担当委員2名(2026/09収集の割り振り表より)。RoB2の独立二重評価シートの
 # 見出しに使う。ここに無いcq_idは "評価者1"/"評価者2" の汎用名で出力する
 REVIEWERS_BY_CQ = {
     "CQ1-牛車腎気丸": ["元雄", "菊池"],
     "CQ1-プレガバリン": ["中島", "伊藤"],
     "CQ1-カルニチン-アセチル‒L‒カルニチン": ["内藤"],
-    "CQ1-冷却": ["川口", "上野"],
-    "CQ1-圧迫": ["川口", "上野"],
+    "CQ1-冷却・圧迫": ["川口", "上野"],
     "CQ1-運動": ["山本", "中川夏樹"],
     "CQ1-鍼灸": ["在原", "田辺"],
     "CQ2-デュロキセチン": ["神林", "武井"],
@@ -140,7 +178,8 @@ def header_row(ws, row, headers, widths=None):
 def sheet_search(wb, item):
     ws = wb.active
     ws.title = "検索式"
-    terms, warn = SEARCH_TERM_MAP.get(item["cq_id"], ([], "対応表未登録。要確認"))
+    terms, warn = MERGED_SEARCH_TERMS.get(
+        item["cq_id"], SEARCH_TERM_MAP.get(item["cq_id"], ([], "対応表未登録。要確認")))
     ws.append(["項目", "内容"])
     for i in range(1, 3):
         ws.cell(row=1, column=i).fill = HEADER_FILL
@@ -212,16 +251,22 @@ def sheet_pico(wb, item):
         ("C(対照)", item["pico"]["C"] or "(委員会で確定 comparator_kind参照)"),
         ("comparator_kind", item["comparator_kind"]),
         ("O(アウトカム)", "; ".join(item["pico"]["O"]) or "(下の「エビデンス総体評価」シートで設定)"),
+        ("問いの種類", "FRQ（今後の研究課題）" if item.get("question_type") == "FRQ" else "CQ（推奨を作成）"),
         ("", ""),
-        ("── 2023年版(現行)の推奨 ──", ""),
-        ("推奨文(原文)", d["recommendation_text"]),
-        ("推奨の強さ", STRENGTH_TEXT.get(d["strength"], d.get("strength_label"))),
-        ("エビデンスの確実性", CERT_TEXT.get(d["certainty"], d.get("certainty_label"))),
-        ("委員会合意率", (f"{round((d['panel_vote'].get('agreement_rate') or 0)*100)}% "
-                       f"({d['panel_vote'].get('agreement_n')}/{d['panel_vote'].get('agreement_total')}名)")
-                       if d.get("panel_vote", {}).get("agreement_rate") is not None else ""),
-        ("引用PMID数(2023年版)", len(d["cited_pmids"])),
     ]
+    for k, dd in enumerate(item.get("drafts_2023") or [d], start=1):
+        tag = f"（{dd.get('_intervention')}）" if dd.get("_intervention") else ""
+        pv = dd.get("panel_vote") or {}
+        rows += [
+            (f"── 2023年版の推奨{tag} ──", ""),
+            ("推奨文(原文)", dd["recommendation_text"]),
+            ("推奨の強さ", STRENGTH_TEXT.get(dd.get("strength"), dd.get("strength_label"))),
+            ("エビデンスの確実性", CERT_TEXT.get(dd.get("certainty"), dd.get("certainty_label"))),
+            ("委員会合意率", (f"{round((pv.get('agreement_rate') or 0)*100)}% "
+                           f"({pv.get('agreement_n')}/{pv.get('agreement_total')}名)")
+                           if pv.get("agreement_rate") is not None else ""),
+            ("引用PMID数(2023年版)", len(dd.get("cited_pmids") or [])),
+        ]
     ws.append(["項目", "内容"])
     for i in range(1, 3):
         ws.cell(row=1, column=i).fill = HEADER_FILL
@@ -241,9 +286,14 @@ def sheet_evidence_body(wb, item):
     ws = wb.create_sheet("エビデンス総体評価")
     headers = ["アウトカムID", "アウトカム名", "重要度(1-9)", "研究数",
                "確実性(A/B/C/D)"] + DOWNGRADE_DOMAINS + ["総合評価の要約", "備考(委員記入)"]
-    header_row(ws, 1, headers, widths=[10, 20, 10, 8, 14, 16, 14, 14, 12, 16, 40, 30])
-    ws.append(["", "(SR担当が Minds 4.4 に沿って記入。'✓'または理由を格下げ列に記入)"])
-    ws.cell(row=2, column=1).fill = NOTE_FILL
+    header_row(ws, 1, headers, widths=[16, 24, 10, 8, 14, 16, 14, 14, 12, 16, 40, 30])
+    for oc in item.get("outcomes") or []:
+        ws.append([oc["id"], oc["label"], oc.get("importance"), "", "", "", "", "", "", "", "",
+                   oc.get("_note", "")])
+    ws.append(["", "(2023年版のアウトカムを先に置いています。研究数・確実性・格下げ理由は"
+                   "RoB2評価の結果から Minds 4.4 に沿って記入。'✓'または理由を格下げ列に)"])
+    ws.cell(row=ws.max_row, column=2).fill = NOTE_FILL
+    ws.cell(row=ws.max_row, column=2).alignment = WRAP
 
 
 ROB2_HEADERS = (["PMID", "研究(著者,年)", "対応するアウトカムID", "デザイン",
@@ -274,6 +324,9 @@ def sheet_rob2_pair(wb, item):
     reviewers = REVIEWERS_BY_CQ.get(item["cq_id"], ["評価者1", "評価者2"])
     r1_name = reviewers[0] if len(reviewers) > 0 else "評価者1"
     r2_name = reviewers[1] if len(reviewers) > 1 else "評価者2(未割当)"
+    # 論文PDF(papers/)から fill_rob2_from_papers.py が埋める下書き。
+    # 委員2名はこれを出発点に各自のシートで修正・確定する
+    _rob2_sheet(wb, "RoB2_Claude下書き", item)
     ws1 = _rob2_sheet(wb, f"RoB2_{r1_name}", item)
     ws2 = _rob2_sheet(wb, f"RoB2_{r2_name}", item)
     n_refs = len(item["references"])
@@ -328,6 +381,42 @@ def sheet_references(wb, item):
         row[2].alignment = WRAP
 
 
+def sheet_draft(wb, item):
+    """Minds推奨文草案(CQ) または FRQ記載草案(FRQ)。委員が書く欄。
+    2023年版の推奨文を初期値として置き、考慮項目(第1章9)ごとの記入欄を付ける"""
+    d = item["draft"]
+    if item.get("question_type") == "FRQ":
+        ws = wb.create_sheet("FRQ記載草案")
+        header_row(ws, 1, ["項目", "記入欄"], widths=[30, 100])
+        rows = [
+            ("2023年版の記載(参考)", d.get("recommendation_text", "")),
+            ("背景・臨床上の重要性", ""),
+            ("現時点のエビデンスの状況(SRの結果)", ""),
+            ("推奨を出せない理由", ""),
+            ("今後必要な研究(デザイン・対象・アウトカム)", ""),
+            ("備考", ""),
+        ]
+        for r in rows:
+            ws.append(list(r))
+        ws.append(["※", "Minds 2020のFRQの項に沿って記載。推奨文・推奨の強さは付けない(要: 手引き最終確認)"])
+        ws.cell(row=ws.max_row, column=2).fill = NOTE_FILL
+    else:
+        ws = wb.create_sheet("推奨文草案")
+        header_row(ws, 1, ["項目", "記入欄"], widths=[34, 100])
+        ws.append(["推奨文（草案）", d.get("recommendation_text", "")])
+        ws.append(["推奨の強さ（1〜5）", d.get("strength", "")])
+        ws.append(["エビデンスの確実性（A〜D）", d.get("certainty", "")])
+        for c in RECOMMENDATION_CONSIDERATIONS:
+            ws.append([c, ""])
+        ws.append(["解説（草案）", item.get("narrative", "")])
+        ws.append(["2023年版からの変更点と理由", ""])
+        ws.append(["※", "初期値は2023年版。推奨の強さは1:強く実施 2:実施を提案 3:推奨なし "
+                        "4:非実施を提案 5:強く非実施。投票は委員会会議で行う(80%以上で決定)"])
+        ws.cell(row=ws.max_row, column=2).fill = NOTE_FILL
+    for r in ws.iter_rows(min_row=2):
+        r[1].alignment = WRAP
+
+
 def sheet_vote(wb, item):
     ws = wb.create_sheet("投票")
     d = item["draft"]
@@ -356,7 +445,7 @@ def build_workbook(item):
     sheet_rob2_reconcile(wb, item, r1, r2, n_refs)
     sheet_evidence_body(wb, item)
     sheet_references(wb, item)
-    sheet_vote(wb, item)
+    sheet_draft(wb, item)
     return wb
 
 
@@ -394,6 +483,60 @@ def write_manifest(item, path):
         f.write("\n".join(lines))
 
 
+def apply_merges_and_types(items):
+    """CQ_MERGES に従って複数CQを1つにまとめ、FRQ種別と2023年版アウトカムを付与する"""
+    out = {}
+    consumed = set()
+    for new_id, parts in CQ_MERGES.items():
+        srcs = [items[p] for p in parts if p in items]
+        if not srcs:
+            continue
+        base = json.loads(json.dumps(srcs[0]))
+        base["cq_id"] = new_id
+        names = "・".join(x["_source"]["intervention"] for x in srcs)
+        base["_source"]["intervention"] = names
+        base["_source"]["merged_from"] = parts
+        base["title"] = f"{base['_source']['cq']} {base['_source']['category']}: {names}"
+        base["pico"]["I"] = names
+        # 2023年版の推奨は介入ごとに残す
+        base["drafts_2023"] = []
+        for x in srcs:
+            dd = json.loads(json.dumps(x["draft"]))
+            dd["_intervention"] = x["_source"]["intervention"]
+            base["drafts_2023"].append(dd)
+        base["draft"]["recommendation_text"] = " ／ ".join(
+            f"【{x['_source']['intervention']}】{x['draft']['recommendation_text']}" for x in srcs)
+        base["draft"]["cited_pmids"] = sorted({p for x in srcs for p in x["draft"].get("cited_pmids", [])})
+        # 文献は PMID で重複除去(冷却と圧迫はASCO GL等を共有している)
+        seen, refs = set(), []
+        for x in srcs:
+            for r in x.get("references", []):
+                key = r.get("pmid") or r.get("citation")
+                if key in seen:
+                    continue
+                seen.add(key)
+                rr = dict(r); rr["_from"] = x["_source"]["intervention"]
+                refs.append(rr)
+        for i, r in enumerate(refs, start=1):
+            r["no"] = i
+            # 表題先頭の旧番号("3）")を統合後の番号に振り直す(画面の並び順にも使う)
+            r["citation"] = re.sub(r"^\s*\d+[）)]\s*", f"{i}）", r.get("citation") or "")
+        base["references"] = refs
+        base["narrative"] = "\n\n".join(
+            f"【{x['_source']['intervention']}】\n{x.get('narrative','')}" for x in srcs)
+        out[new_id] = base
+        consumed.update(parts)
+    for cid, it in items.items():
+        if cid not in consumed:
+            out[cid] = it
+    for cid, it in out.items():
+        it["question_type"] = "FRQ" if cid in FRQ_CQS else "CQ"
+        if not it.get("outcomes"):
+            it["outcomes"] = json.loads(json.dumps(OUTCOMES_BY_CQ_TYPE[it["_source"]["cq"]]))
+            it["pico"]["O"] = [o["label"] for o in it["outcomes"]]
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description="CQパッケージ群 → 委員会レビュー作業一式")
     ap.add_argument("cq_dir", help="extract_cipn_guideline.py の出力先(CQ*.jsonがあるディレクトリ)")
@@ -404,8 +547,13 @@ def main():
     files = [f for f in files if not os.path.basename(f).startswith("_")]
     os.makedirs(args.outdir, exist_ok=True)
 
+    items = {}
     for fp in files:
-        item = json.load(open(fp, encoding="utf-8"))
+        it = json.load(open(fp, encoding="utf-8"))
+        items[it["cq_id"]] = it
+    items = apply_merges_and_types(items)
+
+    for item in items.values():
         cq_dir = os.path.join(args.outdir, item["cq_id"])
         os.makedirs(os.path.join(cq_dir, "papers"), exist_ok=True)
 
@@ -418,9 +566,9 @@ def main():
         with open(os.path.join(cq_dir, "cq_package.json"), "w", encoding="utf-8") as f:
             json.dump(item, f, ensure_ascii=False, indent=2)
 
-        print(f"{item['cq_id']:<28} → {cq_dir}/")
+        print(f"{item['cq_id']:<28} {'FRQ ' if item.get('question_type')=='FRQ' else '    '}→ {cq_dir}/")
 
-    print(f"\n{len(files)}件のCQ作業一式を {args.outdir}/ に作成しました")
+    print(f"\n{len(items)}件のCQ作業一式を {args.outdir}/ に作成しました")
 
 
 if __name__ == "__main__":

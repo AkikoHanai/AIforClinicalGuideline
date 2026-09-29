@@ -87,7 +87,9 @@ def strip_ctrl(s: str) -> str:
     拾えず見出し検出が壊れたり、表示テキストに紛れ込んだりするため、
     生の行を扱う最初の時点で取り除く
     """
-    return "".join(ch for ch in s if ch == "\t" or ch >= " ")
+    # BEL等はこのPDFでは「単語の区切り(空白)」の位置に出るため、削除ではなく
+    # 空白に置き換える(削除すると "HirayamaY,IshitaniK" のように語が癒着する)
+    return "".join(ch if (ch == "\t" or ch >= " ") else " " for ch in s)
 
 
 def norm(s: str) -> str:

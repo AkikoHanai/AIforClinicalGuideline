@@ -288,6 +288,9 @@ def build_bundle(pkg: dict) -> dict:
         # 検索/ハンドサーチで挙がった採用候補(スクリーニングログ由来)。採否は委員が画面で判断
         "candidates": pkg.get("candidates", []),
         "references_2023": pkg.get("references", []),
+        "question_type": pkg.get("question_type", "CQ"),
+        "drafts_2023": pkg.get("drafts_2023") or [],
+        "merged_from": (pkg.get("_source") or {}).get("merged_from"),
         "derived_certainty": certainty,
         "provenance": prov,
         "gate": {
