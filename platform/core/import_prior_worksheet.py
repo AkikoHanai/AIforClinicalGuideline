@@ -63,6 +63,22 @@ def import_one(ws_dir, spec):
             ws.append([]); ws.append(["2023年版の検索記録", f"{s.get('database')} / 期間 {s.get('period')} / {s.get('hits')}件"])
             ws.append(["2023年版の検索式", s.get("query")])
             ws.append(["→ 今回の検索期間", f"{s.get('period', '').split('–')[-1]} 以降〜現在(前回検索の終了時点から)"])
+    ss = spec.get("searches_2023")
+    if ss and "検索式" in wb.sheetnames:
+        ws = wb["検索式"]
+        if not any("2023年版の検索記録" in str(ws.cell(row=r, column=1).value or "") for r in range(1, ws.max_row + 1)):
+            ws.append([])
+            for i, x in enumerate(ss, 1):
+                tag = f"2023年版の検索記録{i}" if len(ss) > 1 else "2023年版の検索記録"
+                ws.append([tag, f"{x.get('database') or 'PubMed'} / 期間: {x.get('period_text', '')}"])
+                if x.get("query"):
+                    ws.append([f"  検索式", x["query"]])
+                if x.get("flow_lines"):
+                    ws.append(["  件数・除外の流れ", " / ".join(x["flow_lines"])])
+            if spec.get("last_search_end_2023"):
+                ws.append(["→ 今回(改訂)の検索の起点", f"{spec['last_search_end_2023']} 以降〜現在 ※前回の検索終了日。検索期間の起点は委員会で確認"])
+            if spec.get("note"):
+                ws.append(["注意", spec["note"]])
     if s and "スクリーニングログ" in wb.sheetnames:
         ws = wb["スクリーニングログ"]
         memo = ("2023年版: " + "、".join(f"{k} {v}件" for k, v in (s.get("excluded") or {}).items()) + " を除外; 採用 "

@@ -1,0 +1,30 @@
+{
+ "cq_dir": "CQ2-プレガバリン",
+ "source": "2023年版作成時のSR担当者の検索過程(SR統括ファイル)",
+ "searches_2023": [
+  {
+   "file": "検索過程 プレガバリン・ミロガバリン.docx",
+   "database": "PubMed",
+   "period_text": "検索期間: 2019.9-2021.8 .12",
+   "last_search_end": "2021-08-12",
+   "query": "((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin AND 2019/9:2021 [DP]",
+   "flow_lines": [
+    "29 件",
+    "以下除外",
+    "• 他の疾患や基礎研究など内容が合致しないもの 2 8 件",
+    "RCT1 件",
+    "ASCO ガイドライン 2020 RCT1 件 (上記 RCT と同一)",
+    "ハンドサーチ RCT 3 件",
+    "RCT 4 件",
+    "1 件",
+    "計 61 件",
+    "以下除外",
+    "他の疾患や基礎研究など内容が合致しないもの 57 件",
+    "前向き 単群臨床試験 1 件",
+    "後向き観察研究 3 件",
+    "ハンドサーチより後向き観察研究 2 件追加"
+   ]
+  }
+ ],
+ "last_search_end_2023": "2021-08-12"
+}

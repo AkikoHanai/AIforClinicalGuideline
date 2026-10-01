@@ -1,0 +1,32 @@
+{
+ "cq_dir": "CQ1-冷却・圧迫",
+ "source": "2023年版作成時のSR担当者の検索過程(SR統括ファイル)",
+ "searches_2023": [
+  {
+   "file": "検索過程_冷却_20211231.docx",
+   "database": "PubMed",
+   "period_text": "検索 August 3, 2021",
+   "last_search_end": "2021-08-03",
+   "query": "BEIJERS, A. J. M., et al. Multicenter randomized controlled trial to evaluate the efficacy and tolerability of frozen gloves for the prevention of chemotherapy-induced peripheral neuropathy. Annals of Oncology , 2020, 31.1: 131-136.",
+   "flow_lines": []
+  },
+  {
+   "file": "検索過程_冷却_山田華井.docx",
+   "database": "PubMed",
+   "period_text": "検索期間: 2020 .2 - 2021.6",
+   "last_search_end": "2021-06",
+   "query": "Cryotherapy for the prevention of chemotherapy-induced peripheral neuropathy: A systematic review",
+   "flow_lines": [
+    "→11件",
+    "検索式: ASCO 検索式 ( C ryotherapy のみ)",
+    "65 件",
+    "以下除外",
+    "•他の疾患や基礎研究など内容が合致しないもの 59 件",
+    "(1件はすでに上記11件内に包含)",
+    "観察研究 3 件",
+    "RCT 2 件"
+   ]
+  }
+ ],
+ "last_search_end_2023": "2021-08-03"
+}

@@ -1,0 +1,24 @@
+{
+ "cq_dir": "CQ1-牛車腎気丸",
+ "source": "2023年版作成時のSR担当者の検索過程(SR統括ファイル)",
+ "searches_2023": [
+  {
+   "file": "検索過程.docx",
+   "database": "PubMed",
+   "period_text": "[ 検索期間 ] ~ 2016 年 5 月 31 日",
+   "last_search_end": "2016-05-31",
+   "query": "goshajinkigan (neuropathy OR neurotoxi *) (prevent* OR management* OR effect*)",
+   "flow_lines": [
+    "40 件",
+    "以下除外",
+    "•他の疾患や基礎研究など内容が合致しないもの 19 件",
+    "•総説など2件",
+    "•英語以外6件(症例報告)",
+    "記述研究(症例報告やケースシリーズなど) 9 件",
+    "RCT 4 件"
+   ]
+  }
+ ],
+ "last_search_end_2023": "2021-06",
+ "note": "この検索過程docxは2017年手引き時点(~2016.5, 40件)の記録。2023年版の検索(PubMed 2020~2021.6, 53件)は prior_worksheets/CQ1-牛車腎気丸.json"
+}

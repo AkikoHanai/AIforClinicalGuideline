@@ -1,0 +1,37 @@
+{
+ "cq_dir": "CQ2-デュロキセチン",
+ "source": "2023年版作成時のSR担当者の検索過程(SR統括ファイル)",
+ "searches_2023": [
+  {
+   "file": "検索過程 武井_デュロキセチン.docx",
+   "database": "PubMed",
+   "period_text": "[ 検索期間 ] ~ 20 21 年 7 月 3 1 日 (新規文献 : 2019/9/1 〜 2021/7/31)",
+   "last_search_end": "2021-07-31",
+   "query": "(((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (duloxetine))",
+   "flow_lines": [
+    "31 件 ( + ASCO,ESMO, 手引きの掲載論文 : 3件 )",
+    "以下除外",
+    "•他の疾患や基礎研究など内容が合致しないもの 1 4 件",
+    "•総説 11 件",
+    "• 横断研究・後方視的研究 4件",
+    "• コホート研究 1件",
+    "RCT 1 件 (+ ASCO,ESMO, 手引きの掲載論文RCT:3件)",
+    "(残ったRCT1件もASCO2020に掲載されている)"
+   ]
+  },
+  {
+   "file": "検索過程 神林＿デュロキセチン.docx",
+   "database": "PubMed",
+   "period_text": "[ 検索期間 ] ~ 20 21 年 1 2 月 1 2 日 (新規文献 : 2019/9/1 〜 2021/ 12/1 2 )",
+   "last_search_end": "2021-12-12",
+   "query": "(((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (duloxetine))",
+   "flow_lines": [
+    "3 8 件",
+    "Filters applied: Meta-Analysis, Randomized Controlled Trial, English, from 2019/9 - 3000/12/12. 5件",
+    "Excludes patients other than CIPN RCT 1件",
+    "RCT 1 件 (+ ASCO,ESMO, 手引きの掲載論文RCT:3件) の4論文抽出"
+   ]
+  }
+ ],
+ "last_search_end_2023": "2021-12-12"
+}

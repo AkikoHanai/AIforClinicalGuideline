@@ -1,0 +1,30 @@
+{
+ "cq_dir": "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs",
+ "source": "2023年版作成時のSR担当者の検索過程(SR統括ファイル)",
+ "searches_2023": [
+  {
+   "file": "NSAIDs　松坂　検索式記録.docx",
+   "database": "PubMed",
+   "period_text": "[ 検索期間 ] 2016 年 6 月 1 日 ~ 2021 年 6 月 3 0 日",
+   "last_search_end": "2021-06-30",
+   "query": "s Cancer peripheral (neuropathy OR neurotoxi * ) (“non steroidal anti inflammatory drugs” OR NSAIDs OR Aspirin OR Acemetacin OR Ampiroxicam OR Ibuprofen OR Indometacin OR Ethenzamide OR Etodolac OR Oxaprozin OR Zaltoprofen OR Diclofenac OR Sulindac OR Celecoxib OR Tiaprofenic acid OR Nabumetone OR Naproxen OR Piroxicam OR Pranoprofen OR Flufenamic acid OR Mefenamic acid OR Meloxicam OR Loxoprofen OR Lornoxicam OR Ketoprofen OR Sodium salicylate) (effect OR management OR treat * OR therapy) NOT diabet *",
+   "flow_lines": [
+    "139065 177800 16 件",
+    "以下除外",
+    "・動物実験、違う薬剤など、本 CQ に合致しない 14 件",
+    "2 件",
+    "ASCO ガイドラインに NSAID s の 記載なし。",
+    "ESMO ガイドラインにて nonsteroidal anti-inflammatory drugs (NSAIDs) の メリットを裏付ける データ無しとの記載。",
+    "アセメタシン Acemetacin",
+    "インドメタシン I ndometacin",
+    "検索結果 13 件",
+    "除外(動物実験)",
+    "除外 (臨床試験では無い)",
+    "除外(動物実験)",
+    "除外(アルツハイマーに関する内容、本 CQ に合致しない)",
+    "除外( 神経ブロックに 関する内容、本 CQ に合致しない)"
+   ]
+  }
+ ],
+ "last_search_end_2023": "2021-06-30"
+}

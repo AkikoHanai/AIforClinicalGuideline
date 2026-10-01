@@ -1,0 +1,24 @@
+{
+ "cq_dir": "CQ2-運動",
+ "source": "2023年版作成時のSR担当者の検索過程(SR統括ファイル)",
+ "searches_2023": [
+  {
+   "file": "【運動】検索過程.docx",
+   "database": "PubMed",
+   "period_text": "[ 検索期間 ] 2019年 9月 1日 ~ 20 21 年 9 月 4 日",
+   "last_search_end": "2021-09-04",
+   "query": "neuropathy or \"neuropathies\" or \"chemotherapy-induced\" or \"chemotherapy-induced neuropathy\" or \"chemotherapy-induced peripheral neuropathy\" or \"CIPN\" or \"peripheral nervous system/drug effects\" or \"peripheral nerve diseases/chemically induced\" or \"antineoplastic agents/adverse effects\" or \"neoplasms/drug therapy\" or \"neoplasms/complications\"",
+   "flow_lines": [
+    "867件該当 → 一次スクリーニングで 29 件 に",
+    "以下除外",
+    "• wrong study design (SR ・RCT 以外) 1 3 件",
+    "• wrong outcome (CIPN以外) 7 件",
+    "• その他 (MAなしSR)4 件",
+    "うち2件は運動療法に限定しない介入、1件はCIPNに限定しない末梢神経障害",
+    "SR&amp;MA 1 件 (治療)",
+    "RCT 4 件 (予防2件・治療2件)"
+   ]
+  }
+ ],
+ "last_search_end_2023": "2021-09-04"
+}

@@ -1,0 +1,21 @@
+{
+ "cq_dir": "CQ1-カルニチン-アセチル‒L‒カルニチン",
+ "source": "2023年版作成時のSR担当者の検索過程(SR統括ファイル)",
+ "searches_2023": [
+  {
+   "file": "カルニチン　平山検索過程.docx",
+   "database": "PubMed",
+   "period_text": "[ 検索期間 ] 2019 年 9 月 1 日 〜 2021 年 6 月 30 日",
+   "last_search_end": "2021-06-30",
+   "query": "1 S urvivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Acetyl-L-carnitine",
+   "flow_lines": [
+    "カルニチンに関しては ASCO ,ESMO のガイドラインをそのまま利用することとなった。それらの公表以降の 2019.9-2021.6 に関して ASCO で用いられた検索式 1 の他 ( 0 件 ) に検索式 2 ( 2 件) でも検索した。",
+    "2 件",
+    "以下除外",
+    "•他の疾患や基礎研究など内容が合致しないもの 2 件",
+    "0件"
+   ]
+  }
+ ],
+ "last_search_end_2023": "2021-06-30"
+}
