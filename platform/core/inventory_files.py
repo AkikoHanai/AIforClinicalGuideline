@@ -14,6 +14,7 @@ import hashlib
 import os
 import re
 import sys
+import tempfile
 import zipfile
 
 CQ_WORDS = [("牛車腎気丸", "CQ1-牛車腎気丸"), ("goshajinkigan", "CQ1-牛車腎気丸"), ("カルニチン", "CQ1-カルニチン"), ("carnitine", "CQ1-カルニチン"),
@@ -67,8 +68,30 @@ def classify(path, text):
     return kind, cq
 
 
+def expand_zips(roots):
+    """.zip が渡されたら一時フォルダに展開して、そのフォルダを走査対象にする"""
+    out = []
+    for r in roots:
+        if os.path.isfile(r) and r.lower().endswith(".zip"):
+            tmp = tempfile.mkdtemp(prefix="inv_")
+            print(f"zipを展開中: {r} → {tmp}", flush=True)
+            with zipfile.ZipFile(r) as z:
+                for n in z.namelist():
+                    if "__MACOSX" in n or n.endswith("/") or n.endswith(".DS_Store"):
+                        continue
+                    try:
+                        z.extract(n, tmp)
+                    except Exception as e:  # noqa: BLE001
+                        print(f"  [skip] {n}: {e}", file=sys.stderr)
+            out.append(tmp)
+        else:
+            out.append(r)
+    return out
+
+
 def scan(roots):
     rows = []
+    count = 0
     for root in roots:
         for dp, dns, fns in os.walk(root):
             dns[:] = [d for d in dns if d not in SKIP_DIRS and not d.startswith(".")]
@@ -81,6 +104,9 @@ def scan(roots):
                     st = os.stat(p)
                 except OSError:
                     continue
+                count += 1
+                if count % 50 == 0:
+                    print(f"  走査中... {count}件", flush=True)
                 kind, cq = classify(p, peek_text(p, ext))
                 rows.append({"kind": kind, "cq": cq, "ext": ext, "size": st.st_size,
                              "mtime": datetime.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d"),
@@ -100,10 +126,12 @@ def main():
     ap.add_argument("roots", nargs="+")
     ap.add_argument("-o", "--out", default="inventory")
     a = ap.parse_args()
-    roots = [r for r in a.roots if os.path.isdir(r)]
+    roots = expand_zips([r for r in a.roots if os.path.exists(r)])
     for r in a.roots:
-        if r not in roots:
-            print(f"[warn] フォルダが見つかりません: {r}", file=sys.stderr)
+        if not os.path.exists(r):
+            print(f"[warn] 見つかりません: {r}", file=sys.stderr)
+    if not roots:
+        sys.exit("走査できるフォルダ/zipがありません。パスを確認してください(Finderからターミナルにドラッグすると正確に入ります)")
     rows = scan(roots)
     with open(a.out + ".csv", "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
