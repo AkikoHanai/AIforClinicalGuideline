@@ -6,7 +6,7 @@
 #
 # 初回: 2023年版PDFからCQパッケージと作業一式(review_workspace/)を作る
 # 2回目以降: 既にある minds_review.xlsx は上書きしない(委員の記入を守る)。
-#            papers/ に置かれたPDFを読んで RoB2 下書き→マージ→SoF→検証→草案作成シート を更新する
+#            papers/ の論文(PDFまたはOA全文)を読んで 4-5下書き→マージ→SoF→検証→草案作成シート を更新する
 #
 # 環境変数:
 #   AWS_PROFILE / AWS_ACCESS_KEY_ID など … Bedrock を呼ぶのに必要
@@ -50,7 +50,7 @@ if ls "$HERE"/prior_worksheets/*.json >/dev/null 2>&1; then
   $PY "$CORE/import_prior_worksheet.py" "$WS" "$HERE"/prior_worksheets/*.json | grep -v " 0研究" || true
 fi
 
-step "3. papers/ のPDF → RoB2下書き・新規論文の登録"
+step "3. 論文本文 → 4-5下書き(Minds様式)・研究特性・新規論文の登録"
 if [ "${SYNC_ONLY:-0}" = "1" ]; then
   $PY "$CORE/fill_rob2_from_papers.py" "$WS" --sync-only
 else

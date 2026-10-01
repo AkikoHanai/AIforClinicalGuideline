@@ -54,6 +54,9 @@ def build_graph(pkg: dict) -> EvidenceGraph:
     for st in pkg.get("studies", []):
         g.add_node(st["id"], NodeType.STUDY, pmid=st.get("pmid"),
                    design=st.get("design"), retracted=st.get("retracted", False),
+                   chemo_class=st.get("chemo_class"), chemo_drugs=st.get("chemo_drugs"), n_total=st.get("n_total"),
+                   n_int=st.get("n_int"), country=st.get("country"), cancer=st.get("cancer"),
+                   comparator_detail=st.get("comparator_detail"), rob2_ref=st.get("rob2_ref"),
                    title=st.get("title", ""), journal=st.get("journal", ""),
                    year=st.get("year"),
                    cited_in_2023=st.get("cited_in_2023", False),
@@ -73,7 +76,8 @@ def build_graph(pkg: dict) -> EvidenceGraph:
     for r in pkg.get("results", []):
         g.add_node(r["id"], NodeType.STUDY_RESULT, comparator=r.get("comparator"),
                    effect=r.get("effect"), instrument=r.get("instrument"),
-                   rob2=r.get("rob2"))
+                   rob=r.get("rob"), comment=r.get("comment"), chemo_class=r.get("chemo_class"),
+                   provisional=r.get("provisional", False))
         g.add_edge(r["study"], EdgeType.YIELDS, r["id"])
         # アウトカム未割当の行(委員のRoB2入力途中でよくある状態)は
         # MEASURESエッジを張れない(未登録ノードへのエッジはSchemaErrorで落ちる)。
@@ -221,7 +225,7 @@ def _study_card(g: EvidenceGraph, sid: str, pkg: dict) -> dict:
             "comparator": ra.get("comparator"),
             "effect": ra.get("effect"),
             "instrument": ra.get("instrument"),
-            "rob2": ra.get("rob2"),
+            "rob": ra.get("rob"), "comment": ra.get("comment"), "chemo_class": ra.get("chemo_class"), "provisional": bool(ra.get("provisional")),
             "eligible": bool(g.succ(r, EdgeType.ELIGIBLE_FOR)),
             "contributes_to": sorted(g.succ(r, EdgeType.CONTRIBUTES_TO)),
         })
@@ -229,6 +233,9 @@ def _study_card(g: EvidenceGraph, sid: str, pkg: dict) -> dict:
         "id": sid, "pmid": a.get("pmid"), "title": a.get("title"),
         "journal": a.get("journal"), "year": a.get("year"),
         "design": a.get("design"), "retracted": bool(a.get("retracted")),
+        "chemo_class": a.get("chemo_class"), "chemo_drugs": a.get("chemo_drugs"), "n_total": a.get("n_total"),
+        "n_int": a.get("n_int"), "country": a.get("country"), "cancer": a.get("cancer"),
+        "comparator_detail": a.get("comparator_detail"), "rob2_ref": a.get("rob2_ref"),
         "cited_in_2023": bool(a.get("cited_in_2023")),
         "newly_added": bool(a.get("newly_added")),
         "trials": sorted(g.succ(sid, EdgeType.REPORTS)),
@@ -295,6 +302,8 @@ def build_bundle(pkg: dict) -> dict:
         "drafts_2023": pkg.get("drafts_2023") or [],
         "merged_from": (pkg.get("_source") or {}).get("merged_from"),
         "existing_guidelines": pkg.get("existing_guidelines") or [],
+        "evidence_strata": pkg.get("evidence_strata") or [],
+        "evidence_ratings": {eb["id"]: eb.get("ratings") for eb in pkg.get("evidence_bodies", [])},
         "derived_certainty": certainty,
         "provenance": prov,
         "gate": {

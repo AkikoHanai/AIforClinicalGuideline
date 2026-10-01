@@ -173,7 +173,7 @@ def _issues_html(b, baseline=False):
         out.append(f'<div class="issue"><div class="rule">{block_label}（citation）'
                    f'　{len(cites)}件</div>'
                    f'<div class="d">推奨が引用する {len(cites)} 件のPMIDが、今回の根拠グラフ'
-                   f'（RoB2評価→エビデンス総体）にまだ接続されていません。'
+                   f'（4-5評価→SR-8エビデンス総体）にまだ接続されていません。'
                    f'<details><summary style="cursor:pointer">PMID一覧</summary>{pm}</details></div></div>')
         cites = []
     for c in others + cites:
@@ -198,11 +198,56 @@ def _bodies_html(b):
             f"<td>{esc(eb['summary'])}</td><td style='font-size:12.5px'>{studies}</td></tr>")
     return ("<div class='scroll'><table><tr><th>アウトカム</th><th>確実性</th>"
             "<th>格下げ理由</th><th>要約</th><th>寄与した論文</th></tr>"
-            + "".join(rows) + "</table></div>" + _forest_html(b))
+            + "".join(rows) + "</table></div>" + _strata_html(b) + _chemo_html(b) + _forest_html(b))
+
+
+SCORE_JA = {0: "低", -1: "中・疑い", -2: "高"}
+
+
+def _rob_text(rob):
+    """4-5様式の評価(0/-1/-2)を画面用に。まとめを先頭に、項目は短く"""
+    if not rob:
+        return "—", "—"
+    sm, ind = rob.get("bias_summary"), rob.get("ind_summary")
+    short = [("ランダム化", "randomization"), ("隠蔽", "concealment"), ("盲検(実行)", "blinding_participants"),
+             ("盲検(検出)", "blinding_assessors"), ("ITT", "itt"), ("不完全報告", "incomplete_outcome")]
+    detail = " ".join(f"{n}{rob[k]}" for n, k in short if rob.get(k) is not None)
+    bias = (f"{SCORE_JA.get(sm, '—')}({sm})" if sm is not None else "—") + (f"　{detail}" if detail else "")
+    indir = f"{SCORE_JA.get(ind, '—')}({ind})" if ind is not None else "—"
+    return bias, indir
+
+
+def _strata_html(b):
+    st = b.get("evidence_strata") or []
+    if not st:
+        return ""
+    rows = "".join(f"<tr><td>{esc(x.get('outcome_id'))}</td><td>{esc(x.get('stratum'))}</td><td><b>{esc(x.get('certainty') or '—')}</b></td>"
+                   f"<td>{esc(x.get('comment') or '')}</td></tr>" for x in st)
+    return ("<h3>化学療法の種類別（層別）のエビデンス総体</h3><div class='scroll'><table><tr><th>アウトカム</th><th>層</th><th>確実性</th>"
+            f"<th>コメント</th></tr>{rows}</table></div>")
+
+
+def _chemo_html(b):
+    """化学療法の種類(白金製剤/タキサン系 など)ごとの研究数と研究名。CIPNは薬剤クラスで効果が異なりうる"""
+    by = {}
+    for s in sorted(b["studies"], key=_ref_no):
+        by.setdefault(s.get("chemo_class") or "未分類", []).append(s)
+    if len(by) == 1 and "未分類" in by:
+        return ("<p class='note'>化学療法の種類：各研究の化学療法の分類は「研究特性」シートに入ります"
+                "（本文から自動で下書き→委員が確定）。薬剤クラスで効果が異なる場合は層別して評価します。</p>")
+    rows = ""
+    for cls, ss in sorted(by.items(), key=lambda kv: -len(kv[1])):
+        names = "、".join(esc(x["title"] or x["id"]) for x in ss)
+        drugs = "、".join(sorted({esc(x.get("chemo_drugs")) for x in ss if x.get("chemo_drugs")}))
+        rows += f"<tr><td><b>{esc(cls)}</b></td><td>{len(ss)}</td><td style='font-size:12.5px'>{names}</td><td style='font-size:12.5px'>{drugs}</td></tr>"
+    return ("<h3>化学療法の種類別の研究数</h3><div class='scroll'><table><tr><th>分類</th><th>研究数</th><th>研究</th><th>薬剤（本文の記載）</th></tr>"
+            f"{rows}</table></div><p class='note'>2023年版も、牛車腎気丸は「白金製剤由来に限る」と対象を限定しています。"
+            "層別して効果が異なるか、非直接性（対象）をどう評価するかを検討してください。</p>")
 
 
 def _forest_html(b):
-    """アウトカムごとに、効果量(点推定値と95%CI)が入っている研究をフォレストプロットにする"""
+    """アウトカムごとに、効果量(点推定値と95%CI)が入っている研究をフォレストプロットにする。
+    化学療法の種類が複数ある場合は、全体に加えて種類ごとのプロットも描く"""
     by_outcome = {}
     for s in sorted(b["studies"], key=_ref_no):
         for r in s["results"]:
@@ -211,9 +256,10 @@ def _forest_html(b):
                 continue
             by_outcome.setdefault(r["outcome_label"], []).append(
                 {"label": s["title"] or s["id"], "measure": (e.get("measure") or "").upper(),
-                 "point": e["point"], "lo": e.get("ci_low"), "hi": e.get("ci_high")})
+                 "point": e["point"], "lo": e.get("ci_low"), "hi": e.get("ci_high"),
+                 "chemo": r.get("chemo_class") or s.get("chemo_class") or "未分類"})
     if not by_outcome:
-        return ("<p class='note'>フォレストプロット：各研究の効果量（点推定値・95%CI）がRoB2下書きに入ると"
+        return ("<p class='note'>フォレストプロット：各研究の効果量（効果指標・リスク人数）が4-5評価シートに入ると"
                 "ここにアウトカムごとに描画されます。</p>")
     out = ["<h3>フォレストプロット（アウトカムごと）</h3>"]
     for label, entries in by_outcome.items():
@@ -221,14 +267,19 @@ def _forest_html(b):
         for e in entries:
             measures.setdefault(e["measure"] or "—", []).append(e)
         for m, es in measures.items():
-            pooled = pool_fixed(es, m) if len(es) >= 2 and m != "—" else None
-            svg = forest_svg(es, m, pooled, title=f"{label}（{m}）") if m != "—" else ""
-            others = ""
-            if not svg:
-                others = "<p class='note'>効果指標の種類が不明な研究: " + "、".join(esc(e["label"]) for e in es) + "</p>"
-            out.append(f"<div class='forest'>{svg}{others}</div>")
-    out.append("<p class='note'>統合値は逆分散法（固定効果）による参考値です。メタ解析として採用するかは委員会で判断してください。"
-               "元の数値は各論文の「効果」欄（RoB2下書きの備考）にあります。</p>")
+            if m == "—":
+                out.append("<p class='note'>効果指標の種類が不明な研究: " + "、".join(esc(e["label"]) for e in es) + "</p>")
+                continue
+            pooled = pool_fixed(es, m) if len(es) >= 2 else None
+            out.append(f"<div class='forest'>{forest_svg(es, m, pooled, title=f'{label}（{m}）')}</div>")
+            classes = sorted({e['chemo'] for e in es})
+            if len(classes) > 1:
+                for cls in classes:
+                    sub = [e for e in es if e["chemo"] == cls]
+                    sp = pool_fixed(sub, m) if len(sub) >= 2 else None
+                    out.append(f"<div class='forest'>{forest_svg(sub, m, sp, title=f'{label}（{m}）層別: {cls}')}</div>")
+    out.append("<p class='note'>統合値は逆分散法（固定効果）による参考値です。Mindsでは統合方法（変量効果・異質性の評価）をSR委員が判断します。"
+               "元の数値は4-5評価シートのリスク人数・効果指標にあります。</p>")
     return "\n".join(out)
 
 
@@ -264,12 +315,12 @@ def _studies_html(b):
         res = []
         for r in s["results"]:
             comp = COMPARATOR_JA.get(r["comparator"], r["comparator"] or "—")
-            rob = r.get("rob2") or {}
-            rob_txt = ("／".join(f"{k}:{v}" for k, v in rob.items() if v) if any(rob.values()) else "—") if rob else "—"
+            bias_txt, ind_txt = _rob_text(r.get("rob"))
+            if r.get("provisional"):
+                bias_txt += "　[下書き・未確定]"
             res.append(f"<tr><td>{esc(r['outcome_label'] or '（未割当）')}</td>"
                        f"<td>{esc(r.get('instrument') or '—')}</td><td>{esc(comp)}</td>"
-                       f"<td>{esc(_effect(r['effect']))}</td><td>{esc(rob_txt)}</td>"
-                       f"<td>{'適格' if r['eligible'] else '未判定'}</td></tr>")
+                       f"<td>{esc(_effect(r['effect']))}</td><td>{esc(bias_txt)}</td><td>{esc(ind_txt)}</td></tr>")
         inc = ""
         if s["includes"]:
             inc = ("<p class='note'>このメタ解析が含む研究：" +
@@ -283,13 +334,15 @@ def _studies_html(b):
             f'<details class="study"><summary>{esc(s["title"] or s["id"])}{tags}</summary>'
             f'<div class="sbody">{link}｜{esc(s.get("journal") or "")} '
             f'{esc(s.get("year") or "")}｜デザイン: {esc(s.get("design") or "—")}'
+            f'｜化学療法: {esc(s.get("chemo_class") or "未分類")}{("（" + esc(s.get("chemo_drugs")) + "）") if s.get("chemo_drugs") else ""}'
+            f'｜症例数: {esc(s.get("n_total") or "—")}{("（介入" + esc(s.get("n_int")) + "）") if s.get("n_int") else ""}'
             f'<div class="scroll"><table><tr><th>アウトカム</th><th>評価指標</th><th>対照</th>'
-            f'<th>効果</th><th>RoB2</th><th>適格性</th></tr>{"".join(res)}</table></div>{inc}{same}</div></details>')
+            f'<th>効果</th><th>バイアスリスク（4-5）</th><th>非直接性</th></tr>{"".join(res)}</table></div>{inc}{same}</div></details>')
     return "\n".join(out)
 
 
 def _incomplete_html(b):
-    """RoB2は入力したがアウトカム未割当など、入力途中の結果を「未完了」として見せる"""
+    """入力途中の結果を「未完了」として見せる"""
     items = b.get("incomplete_results") or []
     if not items:
         return ""
@@ -304,8 +357,8 @@ def _incomplete_html(b):
         for reason, ids in by_reason.items())
     more = ""
     return (f'<section><h2>入力が未完了の項目（{len(items)}件）</h2>{rows}{more}'
-            '<p class="note">minds_review.xlsx の RoB2 評価シートで「対応するアウトカムID」'
-            '「適格性」を埋め、merge_rob2_evidence.py を再実行すると解消します。</p></section>')
+            '<p class="note">minds_review.xlsx の 4-5 評価シートで、アウトカムごとのブロックに評価を入力し、'
+            'merge_rob2_evidence.py を再実行すると解消します。</p></section>')
 
 
 def _candidates_html(b):
@@ -335,7 +388,7 @@ def _candidates_html(b):
             f'<td><input type="text" data-candreason="{i}" placeholder="理由（除外時は必須）"></td></tr>')
     return ('<section><h2>採用文献候補（検索結果から）　' + f'{len(cands)}件</h2>'
             '<p class="note">2023年版の採用文献は下の「採用文献」欄にあります。ここは今回の検索で新たに挙がった'
-            '文献です。採用したものは RoB2 評価シートに「新規追加」として1行ずつ追記してください。</p>'
+            '文献です。採用したものは 4-5 評価シートの空き行に1行ずつ追記してください(papers/ にPDFを置くと自動で追加されます)。</p>'
             '<div class="scroll"><table><tr><th style="width:8em">PMID</th><th>文献</th>'
             '<th style="width:16em">採否</th><th style="width:18em">理由</th></tr>'
             + "".join(rows) + '</table></div></section>')
@@ -387,7 +440,7 @@ def _outcomes_html(b):
             + "".join(f"<tr><td>{esc(g)}</td><td>{esc(n)}</td></tr>" for g, n in INSTRUMENT_GROUPS)
             + "</table></div>"
             + (f"<p class='note'>採用研究で使われた指標：{esc('、'.join(used))}</p>" if used else
-               "<p class='note'>各研究がどの指標で測ったかは、RoB2シートの「評価指標(使用尺度)」列"
+               "<p class='note'>各研究がどの指標で測ったかは、4-5評価シートの「評価指標(使用尺度)」列"
                "（papers/のPDFから自動記入）から採用文献欄に表示されます。</p>"))
     if not ocs:
         return "<p class='note'>アウトカム未設定</p>" + inst
@@ -567,7 +620,7 @@ def render(bundle: dict, audience: str = "committee") -> str:
 {rec_block}
 {egl_block}
 <section><h2>エビデンス総体（アウトカムごと）</h2>{_bodies_html(bundle)}
-<p class="note">RoB2評価と統合の結果を minds_review.xlsx の「エビデンス総体評価」に記入すると反映されます。</p></section>
+<p class="note">4-5評価シートの入力と、SR-8エビデンス総体シートの評価(確実性A〜D)を minds_review.xlsx に記入すると反映されます。</p></section>
 
 <section><h2>採用文献（2023年版採用＋新規追加。クリックで結果を展開）</h2>{_studies_html(bundle)}</section>
 

@@ -1,24 +1,22 @@
 """
 minds_review.xlsx(委員記入済み) → CQパッケージ(JSON) へのマージ
 ====================================================================
-委員会が下記を埋め終えたworkbookから、evidence_schema.pyの粒度
+委員会が埋め終えたworkbookから、evidence_schema.pyの粒度
 (Study / StudyResult / EvidenceBody / Outcome)に沿ったデータを組み立てて
 cq_package.json に書き戻す。この出力を review_bundle.py にかけると、
 Minds規則(R1-R8)・引用PMID整合性の機械検証が実質的な意味を持つ。
 
-読むシート:
-  CQ・PICO           … P/I/C, comparator_kind の確定値(空なら元の値を維持)
-  RoB2_<評価者1名>    … PMID・研究・対応アウトカムID・デザイン・comparator・
-                        適格性・RoB2の5ドメイン+総合(直接入力、数式ではない)
-  RoB2_<評価者2名>    … 同上(2人目)
-  RoB2_照合           … 確定列(G列)。評価者間の不一致を委員が解消した最終値。
-                        空欄なら「両者一致した値」を採用し、両者不一致かつ
-                        確定も空なら studies[]に "_needs_reconciliation" フラグを立てる
-  エビデンス総体評価    … アウトカムごとの確実性・格下げ理由・研究数
-
-シート名は openpyxl で動的に取得する(RoB2_評価者シート2枚を「RoB2_」接頭辞で
-検出。prepare_review_workspace.py が作るCQ・PICO/エビデンス総体評価等の
-固定名シートは除外)。
+読むシート(Minds 公式様式に準拠):
+  CQ・PICO            … P/I/C, comparator_kind の確定値(空なら元の値を維持)
+  4-5_<評価者1名>      … 様式4-5 評価シート 介入研究。アウトカムごとのブロックに、研究ごとの
+  4-5_<評価者2名>        バイアスリスク10項目・非直接性5項目(0/-1/-2)、リスク人数、効果指標
+  4-5_照合            … 確定列(G列)。評価者間の不一致を委員が解消した最終値。
+                        空欄なら「両者一致した値」を採用し、両者不一致かつ確定も空なら
+                        results[] に "_needs_reconciliation" を立てる
+  4-5_Claude下書き     … 評価者2名が未入力の効果量・評価指標の補完にだけ使う(判定には使わない)
+  研究特性            … 化学療法の分類・症例数・対照の内容(非直接性 対象 の判断、層別、フォレストの層別)
+  SR-8_エビデンス総体  … アウトカムごとの確実性(A〜D)・5ドメイン(0/-1/-2)・重要性。層別行は参考情報
+  RoB2(参考)          … Cochrane RoB 2.0 の参考評価(任意)
 
 使い方:
   python3 merge_rob2_evidence.py <review_workspaceディレクトリ>
@@ -27,106 +25,185 @@ Minds規則(R1-R8)・引用PMID整合性の機械検証が実質的な意味を�
 import argparse
 import glob
 import json
+import math
 import os
 import re
 
 from openpyxl import load_workbook
 
-FIXED_SHEETS = {"検索式", "CQ・PICO", "評価指標", "既存GL比較", "スクリーニングログ",
-                 "RoB2_Claude下書き", "RoB2_照合",
-                 "エビデンス総体評価", "文献リスト", "投票", "SoF"}
-EFFECT_RE = re.compile(r"効果:\s*([A-Za-z]+)\s*(-?[\d.]+)\s*\((-?[\d.]+)\s*[–-]\s*(-?[\d.]+)\)")
-ROB2_DOMAIN_LABELS = ["D1 ランダム化の過程", "D2 意図した介入からの逸脱",
-                       "D3 アウトカムデータの欠測", "D4 アウトカム測定",
-                       "D5 選択的な結果報告", "総合(Overall)"]
-DOWNGRADE_KEYS = ["risk_of_bias", "inconsistency", "indirectness",
-                   "imprecision", "publication_bias"]
+from minds_forms import (C_ITEM0, HEAD_ROWS, ITEM_KEYS, ITEMS, N_ITEMS, read_45, read_sr8, to_score)
+
+FIXED_45 = {"4-5_Claude下書き", "4-5_照合"}
+DOWNGRADE_KEYS = {"bias": "risk_of_bias", "inconsistency": "inconsistency", "indirectness": "indirectness",
+                  "imprecision": "imprecision", "other": "publication_bias"}
+UPGRADE_KEYS = {"upgrade": "large_effect"}
+EFFECT_TYPES = {"RR", "OR", "HR", "MD", "SMD", "RD", "IRR"}
 
 
-def find_rob2_sheets(wb):
-    names = [s for s in wb.sheetnames if s.startswith("RoB2_") and s not in FIXED_SHEETS]
+def find_45_sheets(wb):
+    names = [n for n in wb.sheetnames if n.startswith("4-5_") and n not in FIXED_45]
     if len(names) < 2:
         return None, None
     return names[0], names[1]
 
 
-def read_rob2_rows(ws):
-    """PMID列が埋まっている行だけ、位置順(生成時と同じ順序)で読む"""
-    rows = []
-    for r in ws.iter_rows(min_row=2, values_only=True):
+def n_rows_of(ws, blocks):
+    """ブロックの行数(研究行+予備行)。ブロックが2つ以上なら間隔から、1つなら最終行から求める"""
+    from minds_forms import BLOCK_GAP
+    if blocks and blocks[0].get("n_rows"):
+        return blocks[0]["n_rows"]
+    if len(blocks) >= 2:
+        return blocks[1]["start"] - blocks[0]["start"] - HEAD_ROWS - BLOCK_GAP
+    return max(1, ws.max_row - blocks[0]["start"] - HEAD_ROWS - BLOCK_GAP - 1) if blocks else 0
+
+
+def read_recon_final(wb):
+    """4-5_照合 の確定列(G)を位置順のリストで読む。シートが無ければ None"""
+    if "4-5_照合" not in wb.sheetnames:
+        return None
+    out = []
+    for r in wb["4-5_照合"].iter_rows(min_row=2, values_only=True):
+        out.append(r[6] if r is not None and len(r) > 6 else None)
+    return out
+
+
+def parse_ci(text):
+    """'-0.68 to 4.41' / '0.4–0.9' / '0.4, 0.9' / '0.4~0.9' → (下限, 上限)"""
+    t = str(text or "").replace("−", "-").replace("―", "-")
+    t = re.sub(r"\s+to\s+|\s*[~〜–;,]\s*", " | ", t)
+    nums = re.findall(r"-?\d+(?:\.\d+)?", t)
+    if len(nums) >= 2:
+        return float(nums[0]), float(nums[1])
+    return None, None
+
+
+def to_float(v):
+    try:
+        return float(str(v).replace("−", "-"))
+    except (TypeError, ValueError):
+        return None
+
+
+def build_effect(row_main, row_alt):
+    """効果量: 評価者の入力を優先、無ければ他方/Claude下書き。リスク人数からRRも計算する"""
+    for r in (row_main, row_alt):
+        if not r:
+            continue
+        typ = str(r["effect"].get("type") or "").strip().upper()
+        val = to_float(r["effect"].get("value"))
+        if typ in EFFECT_TYPES and val is not None:
+            lo, hi = parse_ci(r["effect"].get("ci"))
+            return {"measure": typ, "point": val, "ci_low": lo, "ci_high": hi}
+    for r in (row_main, row_alt):
+        if not r:
+            continue
+        c = r["counts"]
+        cd, cn, idn, inn = (to_float(c.get(k)) for k in ("ctrl_den", "ctrl_num", "int_den", "int_num"))
+        if None not in (cd, cn, idn, inn) and min(cd, idn) > 0 and cn > 0 and inn > 0:
+            rr = (inn / idn) / (cn / cd)
+            se = math.sqrt(1 / inn - 1 / idn + 1 / cn - 1 / cd)
+            return {"measure": "RR", "point": rr, "ci_low": math.exp(math.log(rr) - 1.96 * se),
+                    "ci_high": math.exp(math.log(rr) + 1.96 * se), "note": "リスク人数から算出"}
+    return None
+
+
+def instrument_of(*rows):
+    for r in rows:
+        if not r:
+            continue
+        if r.get("instrument"):
+            return str(r["instrument"]).strip()
+        t = str(r["effect"].get("type") or "").strip()
+        if t and t.upper() not in EFFECT_TYPES:     # 2023年版担当者は X 列に尺度名を書いていた
+            return t
+    return None
+
+
+def comparator_kind(text):
+    t = (text or "").lower()
+    if not t.strip():
+        return None
+    if "プラセボ" in t or "placebo" in t or "sham" in t or "偽" in t:
+        return "placebo"
+    if any(k in t for k in ("非投与", "通常", "標準", "usual", "no treatment", "観察", "なし", "対照群なし", "waitlist", "未介入")):
+        return "usual_care"
+    return "active_different"
+
+
+def read_study_chars(wb):
+    """研究特性シート → キー(PMID) → 特性"""
+    out = {}
+    if "研究特性" not in wb.sheetnames:
+        return out
+    for r in wb["研究特性"].iter_rows(min_row=2, values_only=True):
         if not r or not r[0]:
             continue
-        pmid, citation, outcome_id, design, comparator, eligible = r[:6]
-        domains = r[6:12]  # D1..D5, Overall
-        cited_2023 = bool(r[12]) if len(r) > 12 else False   # 「2023年版で引用」列
-        newly_added = bool(r[13]) if len(r) > 13 else False  # 「新規追加」列
-        instrument = r[15] if len(r) > 15 else None         # 「評価指標(使用尺度)」列
-        rows.append({
-            "pmid": str(pmid), "citation": citation, "outcome_id": outcome_id,
-            "design": design, "comparator": comparator, "eligible": eligible,
-            "domains": list(domains),
-            "cited_in_2023": cited_2023, "newly_added": newly_added,
-            "instrument": instrument,
-        })
-    return rows
-
-
-def reconcile(rows1, rows2, recon_final):
-    """評価者1/2の行を突き合わせ、確定値(recon_final: 位置順のフラットリスト、
-    無ければNone)を優先しつつマージ済みのRoB2行リストを返す"""
-    n = min(len(rows1), len(rows2))
-    if len(rows1) != len(rows2):
-        print(f"  [warn] 評価者1({len(rows1)}行)と評価者2({len(rows2)}行)の行数が"
-              f"一致しません。先頭{n}行のみ突合します(行の追加・削除がずれていないか確認してください)")
-    merged = []
-    for i in range(n):
-        r1, r2 = rows1[i], rows2[i]
-        final_domains, unresolved = [], []
-        for j in range(6):
-            v1, v2 = r1["domains"][j], r2["domains"][j]
-            final = None
-            if recon_final is not None:
-                idx = i * 6 + j
-                if idx < len(recon_final) and recon_final[idx]:
-                    final = recon_final[idx]
-            if final is None:
-                if v1 == v2 and v1:
-                    final = v1
-                elif v1 or v2:
-                    unresolved.append(ROB2_DOMAIN_LABELS[j])
-            final_domains.append(final)
-        merged.append({
-            "pmid": r1["pmid"],
-            "citation": r1["citation"] or r2["citation"],
-            "outcome_id": r1["outcome_id"] or r2["outcome_id"],
-            "design": r1["design"] or r2["design"],
-            "comparator": r1["comparator"] or r2["comparator"],
-            "eligible": r1["eligible"] or r2["eligible"],
-            "domains": final_domains,
-            "_unresolved_domains": unresolved,
-            "cited_in_2023": r1["cited_in_2023"] or r2["cited_in_2023"],
-            "newly_added": r1["newly_added"] or r2["newly_added"],
-            "instrument": r1.get("instrument") or r2.get("instrument"),
-        })
-    return merged
-
-
-def read_draft_effects(wb):
-    """RoB2_Claude下書き の備考「効果: RR 0.60 (0.40–0.90)」を PMID→effect に読む"""
-    out = {}
-    if "RoB2_Claude下書き" not in wb.sheetnames:
-        return out
-    for r in wb["RoB2_Claude下書き"].iter_rows(min_row=2, values_only=True):
-        if not r or not r[0] or len(r) < 15 or not r[14]:
-            continue
-        m = EFFECT_RE.search(str(r[14]))
-        if m:
-            try:
-                out[str(r[0]).strip()] = {"measure": m.group(1), "point": float(m.group(2)),
-                                          "ci_low": float(m.group(3)), "ci_high": float(m.group(4))}
-            except ValueError:
-                pass
+        out[str(r[0]).strip()] = {"label": r[1], "design": r[2], "country": r[3], "n_total": r[4], "n_int": r[5],
+                                  "chemo_class": r[6], "chemo_drugs": r[7], "cancer": r[8], "intervention_detail": r[9],
+                                  "comparator_detail": r[10], "followup": r[11], "fulltext": r[12], "note": r[13] if len(r) > 13 else None}
     return out
+
+
+def read_rob2_ref(wb):
+    out = {}
+    if "RoB2(参考)" not in wb.sheetnames:
+        return out
+    for r in wb["RoB2(参考)"].iter_rows(min_row=2, values_only=True):
+        if r and r[0] and any(r[2:8]):
+            out[str(r[0]).strip()] = dict(zip(["D1", "D2", "D3", "D4", "D5", "overall"], r[2:8]))
+    return out
+
+
+def reconcile_blocks(wb, r1_name, r2_name):
+    """評価者1・2のブロックを(アウトカム,キー)で突き合わせ、確定値を返す"""
+    ws1, ws2 = wb[r1_name], wb[r2_name]
+    b1, b2 = read_45(ws1), read_45(ws2)
+    draft = read_45(wb["4-5_Claude下書き"]) if "4-5_Claude下書き" in wb.sheetnames else []
+    final = read_recon_final(wb)
+    n_rows = n_rows_of(ws1, b1)
+    out = []
+    unresolved_total = 0
+    for bi, blk in enumerate(b1):
+        oid = blk["outcome_id"]
+        blk2 = next((x for x in b2 if x["outcome_id"] == oid), None)
+        blkd = next((x for x in draft if x["outcome_id"] == oid), None)
+        rows2 = {r["key"]: r for r in (blk2["rows"] if blk2 else [])}
+        rowsd = {r["key"]: r for r in (blkd["rows"] if blkd else [])}
+        for r1 in blk["rows"]:
+            key = r1["key"]
+            r2 = rows2.get(key)
+            rd = rowsd.get(key)
+            j = r1["row"] - blk["start"] - HEAD_ROWS
+            items, unresolved = {}, []
+            for k, name in enumerate(ITEM_KEYS):
+                v1 = r1["items"][name]
+                v2 = r2["items"][name] if r2 else None
+                f = None
+                if final is not None:
+                    idx = (bi * n_rows + j) * N_ITEMS + k
+                    if idx < len(final):
+                        f = to_score(final[idx])
+                if f is None:
+                    if v1 is not None and v1 == v2:
+                        f = v1
+                    elif v1 is not None or v2 is not None:
+                        unresolved.append(ITEMS[k][0])
+                items[name] = f
+            reviewer_entered = any(v is not None for v in items.values()) or any(
+                (x["items"][n] is not None) for x in (r1, r2) if x for n in ITEM_KEYS) \
+                or bool(r1["effect"]["value"] or r1["counts"]["int_den"]) or (r2 and bool(r2["effect"]["value"]))
+            provisional = False
+            if not reviewer_entered and rd and (any(v is not None for v in rd["items"].values()) or rd["effect"]["value"]):
+                # 評価者2名が未入力の間は、Claude下書き/2023年版引継ぎの値を「下書き(未確定)」として表示に使う
+                items = dict(rd["items"])
+                provisional = True
+            has_data = reviewer_entered or provisional
+            out.append({"outcome_id": oid, "key": key, "label": r1["label"], "design": r1["design"] or (r2 or {}).get("design"),
+                        "items": items, "unresolved": unresolved, "has_data": has_data, "provisional": provisional,
+                        "effect": build_effect(r1, r2) or build_effect(rd, None),
+                        "instrument": instrument_of(r1, r2, rd), "comment": r1.get("comment") or (r2 or {}).get("comment")})
+            unresolved_total += len(unresolved)
+    return out, unresolved_total
 
 
 def read_existing_guidelines(wb):
@@ -140,41 +217,6 @@ def read_existing_guidelines(wb):
         rows.append({"intervention": r[0], "guideline": r[1], "recommendation": r[2],
                      "grade": r[3] if len(r) > 3 else None, "source": r[4] if len(r) > 4 else None,
                      "checked": r[5] if len(r) > 5 else None})
-    return rows
-
-
-def read_recon_final_column(wb):
-    """RoB2_照合シートの確定列(G, 7列目)を位置順のフラットリストで読む。
-    シートが無ければ None"""
-    if "RoB2_照合" not in wb.sheetnames:
-        return None
-    ws = wb["RoB2_照合"]
-    out = []
-    for r in ws.iter_rows(min_row=2, values_only=True):
-        if r is None:
-            continue
-        out.append(r[6] if len(r) > 6 else None)
-    return out
-
-
-def read_evidence_body_rows(wb):
-    if "エビデンス総体評価" not in wb.sheetnames:
-        return []
-    ws = wb["エビデンス総体評価"]
-    rows = []
-    for r in ws.iter_rows(min_row=2, values_only=True):
-        if not r or not r[0]:
-            continue
-        outcome_id, outcome_name, importance, n_studies, certainty = r[:5]
-        downgrades = r[5:10]
-        summary = r[10] if len(r) > 10 else None
-        dg_keys = [DOWNGRADE_KEYS[i] for i, v in enumerate(downgrades) if v]
-        rows.append({
-            "outcome_id": outcome_id, "outcome_name": outcome_name,
-            "importance": importance, "n_studies": n_studies,
-            "certainty": (certainty or "").strip().upper() or None,
-            "downgraded_by": dg_keys, "summary": summary or "",
-        })
     return rows
 
 
@@ -225,26 +267,21 @@ def merge_one(cq_dir):
     wb = load_workbook(xlsx_path, data_only=True)
     pkg = json.load(open(pkg_path, encoding="utf-8"))
 
-    r1_name, r2_name = find_rob2_sheets(wb)
+    r1_name, r2_name = find_45_sheets(wb)
     if not r1_name:
-        print(f"  [skip] {cq_dir}: RoB2評価者シートが2枚見つかりません")
-        return {"cq_id": pkg["cq_id"], "status": "skipped_no_rob2_sheets"}
+        print(f"  [skip] {cq_dir}: 4-5 評価者シートが2枚見つかりません(prepare_review_workspace.py --force で作り直してください)")
+        return {"cq_id": pkg["cq_id"], "status": "skipped_no_45_sheets"}
 
-    rows1 = read_rob2_rows(wb[r1_name])
-    rows2 = read_rob2_rows(wb[r2_name])
-    recon_final = read_recon_final_column(wb)
-    merged_rows = reconcile(rows1, rows2, recon_final)
-
-    eb_rows = read_evidence_body_rows(wb)
+    rows, unresolved_total = reconcile_blocks(wb, r1_name, r2_name)
+    chars = read_study_chars(wb)
+    rob2_ref = read_rob2_ref(wb)
     pico = read_pico(wb)
     known_2023 = {str(ref.get("pmid")) for ref in pkg.get("references", []) if ref.get("pmid")}
     pkg["candidates"] = read_candidates(wb, known_2023)
-    effects = read_draft_effects(wb)
     egl = read_existing_guidelines(wb)
     if egl:
         pkg["existing_guidelines"] = egl
 
-    # --- PICO/comparator_kindの確定値があれば反映(空欄なら既存値を維持) ---
     for key, pico_key in [("P(対象)", "P"), ("I(介入)", "I"), ("C(対照)", "C")]:
         v = pico.get(key)
         if v and not str(v).startswith("(委員会で確定"):
@@ -253,43 +290,58 @@ def merge_one(cq_dir):
     if ck:
         pkg["comparator_kind"] = ck
 
-    # --- outcomes[] / evidence_bodies[] ---
+    # --- SR-8: outcomes[] / evidence_bodies[] / 層別 ---
+    bodies, strata = ([], [])
+    if "SR-8_エビデンス総体" in wb.sheetnames:
+        bodies, strata = read_sr8(wb["SR-8_エビデンス総体"])
     outcomes, evidence_bodies = [], []
-    for eb in eb_rows:
-        oid = eb["outcome_id"] or f"O:{eb['outcome_name']}"
-        outcomes.append({"id": oid, "label": eb["outcome_name"],
-                          "importance": eb["importance"]})
+    n_by_outcome = {}
+    for rw in rows:
+        if rw["has_data"]:
+            n_by_outcome.setdefault(rw["outcome_id"], set()).add(rw["key"])
+    for b in bodies:
+        oid = b["outcome_id"]
+        outcomes.append({"id": oid, "label": b["outcome_name"], "importance": b["importance"]})
+        dg = [DOWNGRADE_KEYS[k] for k in DOWNGRADE_KEYS if b.get(k) is not None and b[k] < 0]
+        up = [UPGRADE_KEYS[k] for k in UPGRADE_KEYS if b.get(k) is not None and b[k] > 0]
         evidence_bodies.append({
-            "id": f"EB:{eb['outcome_name']}", "outcome": oid,
-            "certainty": eb["certainty"], "downgraded_by": eb["downgraded_by"],
-            "summary": eb["summary"], "_n_declared": eb["n_studies"],
-        })
-    eb_by_outcome_id = {eb["outcome"]: eb["id"] for eb in evidence_bodies}
+            "id": f"EB:{b['outcome_name']}", "outcome": oid, "certainty": b["certainty"], "downgraded_by": dg, "upgraded_by": up,
+            "summary": b.get("comment") or "", "_n_declared": b.get("design_n"), "_n_studies_in_45": len(n_by_outcome.get(oid, ())),
+            "ratings": {k: b[k] for k in ("bias", "inconsistency", "imprecision", "indirectness", "other", "upgrade")}})
+    eb_by_outcome = {eb["outcome"]: eb["id"] for eb in evidence_bodies}
+    pkg["evidence_strata"] = [{"outcome_id": b["outcome_id"], "stratum": b["stratum"], "certainty": b["certainty"],
+                               "ratings": {k: b[k] for k in ("bias", "inconsistency", "imprecision", "indirectness", "other")},
+                               "comment": b.get("comment")} for b in strata if b["certainty"] or b.get("bias") is not None]
 
     # --- studies[] / results[] ---
-    studies, results, unresolved_total = [], [], 0
-    for row in merged_rows:
-        sid = f"S:{row['pmid']}"
-        studies.append({
-            "id": sid, "pmid": row["pmid"], "design": row["design"],
-            "title": row["citation"], "trial_ids": [],
-            # 改訂レビューで「2023年版から何が増えたか」を見せるための旗
-            "cited_in_2023": row["cited_in_2023"], "newly_added": row["newly_added"],
-        })
-        oid = row["outcome_id"]
-        rob2 = dict(zip(
-            ["D1", "D2", "D3", "D4", "D5", "overall"], row["domains"]))
-        rid = f"R:{row['pmid']}×{oid or '?'}"
+    studies, results, seen_study = [], [], set()
+    ref_in_2023 = {str(r.get("pmid")): r for r in pkg.get("references", []) if r.get("pmid")}
+    for rw in rows:
+        key = rw["key"]
+        sid = f"S:{key}"
+        ch = chars.get(key, {})
+        if sid not in seen_study:
+            seen_study.add(sid)
+            studies.append({
+                "id": sid, "pmid": key if key.isdigit() else None, "design": ch.get("design") or rw["design"],
+                "title": rw["label"], "trial_ids": [],
+                "cited_in_2023": key in ref_in_2023 or str(key).startswith("SR2023:"), "newly_added": not (key in ref_in_2023 or str(key).startswith(("SR2023:", "NOPMID:"))),
+                "chemo_class": ch.get("chemo_class"), "chemo_drugs": ch.get("chemo_drugs"), "n_total": ch.get("n_total"),
+                "n_int": ch.get("n_int"), "country": ch.get("country"), "cancer": ch.get("cancer"),
+                "comparator_detail": ch.get("comparator_detail"), "rob2_ref": rob2_ref.get(key)})
+        if not rw["has_data"]:
+            continue
+        oid = rw["outcome_id"]
+        sm = rw["items"].get("bias_summary")
         entry = {
-            "id": rid, "study": sid, "outcome": oid,
-            "comparator": row["comparator"], "eligible": bool(row["eligible"]),
-            "rob2": rob2, "instrument": row.get("instrument"),
-            "effect": effects.get(row["pmid"]),
-            "contributes_to": eb_by_outcome_id.get(oid) if row["eligible"] else None,
+            "id": f"R:{key}×{oid}", "study": sid, "outcome": oid,
+            "comparator": comparator_kind(ch.get("comparator_detail")), "eligible": True,
+            "rob": rw["items"], "instrument": rw["instrument"], "effect": rw["effect"],
+            "comment": rw["comment"], "chemo_class": ch.get("chemo_class"), "provisional": rw["provisional"],
+            "contributes_to": eb_by_outcome.get(oid),
         }
-        if row["_unresolved_domains"]:
-            entry["_needs_reconciliation"] = row["_unresolved_domains"]
-            unresolved_total += len(row["_unresolved_domains"])
+        if rw["unresolved"]:
+            entry["_needs_reconciliation"] = rw["unresolved"]
         results.append(entry)
 
     pkg["outcomes"] = outcomes
@@ -310,7 +362,7 @@ def merge_one(cq_dir):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="委員記入済みminds_review.xlsx → cq_package.json マージ")
+    ap = argparse.ArgumentParser(description="委員記入済みminds_review.xlsx(4-5/SR-8) → cq_package.json マージ")
     ap.add_argument("workspace_dir")
     args = ap.parse_args()
 
@@ -329,9 +381,9 @@ def main():
     print(f"\n{len(merged)}/{len(results)}件のCQをマージしました")
     unresolved = [r for r in merged if r["n_unresolved_domains"]]
     if unresolved:
-        print(f"\n評価者間の不一致が「RoB2_照合」の確定列で未解決のCQ({len(unresolved)}件):")
+        print(f"\n評価者間の不一致が「4-5_照合」の確定列で未解決のCQ({len(unresolved)}件):")
         for r in unresolved:
-            print(f"  {r['cq_id']}: {r['n_unresolved_domains']}ドメイン")
+            print(f"  {r['cq_id']}: {r['n_unresolved_domains']}項目")
 
 
 if __name__ == "__main__":

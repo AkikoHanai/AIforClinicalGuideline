@@ -6,7 +6,7 @@ extract_cipn_guideline.py が作る CQ パッケージ(JSON)から、CQ(介入)�
 
   <outdir>/<cq_id>/
     minds_review.xlsx   Minds様式のレビュー用ワークブック
-                         (CQ・PICO / エビデンス総体評価 / 個別研究RoB2評価 / 文献リスト / 投票)
+                         (CQ・PICO / 4-5 個別研究評価 / SR-8 エビデンス総体 / 研究特性 / 文献リスト / 投票)
     MANIFEST.md          引用文献の書誌情報一覧(PMID・著者・誌名・年)。
                           論文PDF本体は著作権上ここでは収集できないため、
                           「papers/」フォルダに手作業で集めてもらうためのチェックリスト
@@ -16,14 +16,16 @@ Minds様式の対応(『Minds診療ガイドライン作成の手引き』準拠
   シート「検索式」               = Minds 3.5 (文献検索式・DB・検索期間の記録)
   シート「CQ・PICO」            = Minds 3.3-3.5 (CQ設定・PICO・アウトカム重要度)
   シート「スクリーニングログ」    = Minds 3.5/4.2 (一次・二次スクリーニング、除外理由、PRISMAフロー用)
-  シート「RoB2_評価者1/2」      = Minds 4.3 (個別研究のバイアスリスク評価。2名が独立に記入)
-  シート「RoB2_照合」            = Minds 4.3 (2名の評価を自動照合し不一致を検出→委員が確定)
-  シート「エビデンス総体評価」    = Minds 4.4 (エビデンス総体の確実性評価)
+  シート「4-5_評価者1/2」       = Minds 4.3 / 様式4-5 評価シート 介入研究(個別研究のバイアスリスク・非直接性。2名が独立に記入)
+  シート「4-5_照合」             = 2名の評価を項目ごとに自動照合し不一致を検出→委員が確定
+  シート「研究特性」             = 化学療法の分類など(非直接性 対象 の判断材料)
+  シート「RoB2(参考)」          = Cochrane RoB 2.0 を参考として併記(公式様式ではない)
+  シート「SR-8_エビデンス総体」   = Minds 4.4 / 様式SR-8 (エビデンス総体の確実性評価。化学療法別の層別行つき)
   シート「文献リスト」           = Minds 3.5/4.2 (適格文献リスト)
   シート「投票」                = Minds 6.2-6.3 (推奨作成の投票)
 
-エビデンス総体評価・RoB2評価シートは空欄で出力する。ここを
-ROB2に基づき学生/SR委員が埋めたものを merge_rob2_evidence.py で
+4-5評価シート(評価者2名)・SR-8エビデンス総体シートは空欄で出力する(2023年版の評価は参考として下書きに入る)。ここを
+Minds 公式様式の手順(0/-1/-2評価)でSR委員が埋めたものを merge_rob2_evidence.py で
 CQパッケージ(JSON)に戻し、platform/core/review_bundle.py の
 Minds規則検証(R1-R8)にかける設計。
 """
@@ -37,6 +39,8 @@ from openpyxl import Workbook
 from openpyxl.formatting.rule import CellIsRule
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
+from minds_forms import (ITEMS, ITEM_KEYS, C_ITEM0, HEAD_ROWS, SPARE_ROWS, CHEMO_CLASSES, block_start, build_45_sheet, build_sr8_sheet)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -122,7 +126,7 @@ OUTCOMES_BY_CQ_TYPE = {
 }
 # 評価指標(アウトカムの測定尺度)。2023年版 第2章H「CIPNの評価」に基づく。
 # Mindsではアウトカムは「何をどの尺度で測ったか」で扱うため、各研究がどの指標を
-# 使ったかをRoB2シートの「評価指標」列に記録し、総体評価はアウトカム概念ごとに行う
+# 使ったかを4-5評価シートの「評価指標(使用尺度)」列に記録し、総体評価はアウトカム概念ごとに行う
 INSTRUMENTS = [
     # (分類, 名称, 略称/版, 何を測るか, 備考)
     ("医療者評価", "Common Terminology Criteria for Adverse Events", "CTCAE (v3.0/v4.0/v5.0)",
@@ -154,7 +158,7 @@ RECOMMENDATION_CONSIDERATIONS = [
     "資源の利用（コスト）※特に高額が予想される場合のみ",
 ]
 
-# CQごとの担当委員2名(2026/09収集の割り振り表より)。RoB2の独立二重評価シートの
+# CQごとの担当委員2名(2026/09収集の割り振り表より)。4-5評価の独立二重評価シートの
 # 見出しに使う。ここに無いcq_idは "評価者1"/"評価者2" の汎用名で出力する
 REVIEWERS_BY_CQ = {
     "CQ1-牛車腎気丸": ["元雄", "菊池"],
@@ -374,7 +378,12 @@ def sheet_pico(wb, item):
         ("I(介入)", item["pico"]["I"]),
         ("C(対照)", item["pico"]["C"] or "(委員会で確定 comparator_kind参照)"),
         ("comparator_kind", item["comparator_kind"]),
-        ("O(アウトカム)", "; ".join(item["pico"]["O"]) or "(下の「エビデンス総体評価」シートで設定)"),
+        ("O(アウトカム)", "; ".join(item["pico"]["O"]) or "(下の「SR-8_エビデンス総体」シートで設定)"),
+        ("層別の方針(化学療法の種類)",
+         "CIPNは化学療法の種類(白金製剤/タキサン系/ビンカアルカロイド系/プロテアソーム阻害薬 等)で病態・経過・介入の効果が異なる。"
+         "①「研究特性」シートに各研究の化学療法の分類を記録する。②4-5評価シートの『非直接性 対象』で、本CQの対象との一致を評価する。"
+         "③効果や異質性が薬剤クラスで異なる場合は、SR-8の層別行(白金製剤/タキサン系)で別々にエビデンス総体を作り、必要なら推奨文の対象を"
+         "限定する(2023年版: 牛車腎気丸は『白金製剤由来に限る』)。層別しない場合は、その理由を作成経過に記録する。"),
         ("問いの種類", "FRQ（今後の研究課題）" if item.get("question_type") == "FRQ" else "CQ（推奨を作成）"),
         ("", ""),
     ]
@@ -413,100 +422,110 @@ def sheet_instruments(wb, item):
     for row in INSTRUMENTS:
         ws.append(list(row) + [""])
     ws.append(["※", "2023年版 第2章H「CIPNの評価」に基づく一覧。各研究がどの指標でアウトカムを測ったかは"
-               "RoB2シートの「評価指標(使用尺度)」列に記録する", "", "", "", ""])
+               "4-5評価シートの「評価指標(使用尺度)」列(AC列)に記録する", "", "", "", ""])
     ws.cell(row=ws.max_row, column=2).fill = NOTE_FILL
     for r in ws.iter_rows(min_row=2):
         for c in r:
             c.alignment = WRAP
 
 
-def sheet_evidence_body(wb, item):
-    ws = wb.create_sheet("エビデンス総体評価")
-    headers = ["アウトカムID", "アウトカム名", "重要度(1-9)", "研究数",
-               "確実性(A/B/C/D)"] + DOWNGRADE_DOMAINS + ["総合評価の要約", "備考(委員記入)"]
-    header_row(ws, 1, headers, widths=[16, 24, 10, 8, 14, 16, 14, 14, 12, 16, 40, 30])
-    for oc in item.get("outcomes") or []:
-        ws.append([oc["id"], oc["label"], oc.get("importance"), "", "", "", "", "", "", "", "",
-                   oc.get("_note", "")])
-    ws.append(["", "(2023年版のアウトカムを先に置いています。研究数・確実性・格下げ理由は"
-                   "RoB2評価の結果から Minds 4.4 に沿って記入。'✓'または理由を格下げ列に)"])
-    ws.cell(row=ws.max_row, column=2).fill = NOTE_FILL
-    ws.cell(row=ws.max_row, column=2).alignment = WRAP
-
-
-ROB2_HEADERS = (["PMID", "研究(第一著者 年)", "対応するアウトカムID", "デザイン",
-                 "comparator(none/usual_care/placebo/active_weaker/active_different)",
-                 "適格性(eligible)"] + ROB2_DOMAINS
-                + ["2023年版で引用", "新規追加", "備考(委員記入)", "評価指標(使用尺度)"])
-ROB2_WIDTHS = [12, 18, 16, 10, 34, 10, 14, 14, 14, 14, 12, 10, 14, 12, 30, 22]
-# D1〜総合(Overall)の列(A=1起点)。照合シートで評価者1/2を突き合わせる対象
-ROB2_DOMAIN_COLS = list(range(7, 13))  # G〜L
-
-
-def _rob2_sheet(wb, title, item):
-    ws = wb.create_sheet(title)
-    header_row(ws, 1, ROB2_HEADERS, widths=ROB2_WIDTHS)
-    r = 2
+def _study_list(item):
+    """(キー, 研究コード「第一著者 et al. 年」, デザイン) の一覧。PMIDが無い和文誌等は NOPMID:<no>"""
+    out = []
     for ref in item["references"]:
-        ws.cell(row=r, column=1, value=ref["pmid"] or "")
-        ws.cell(row=r, column=2, value=short_cite(ref["citation"]))
-        ws.cell(row=r, column=13, value="○")   # 2023年版で引用
-        r += 1
-    ws.append([""] * 14 + ["(新規論文は papers/ にPDFを置いて fill_rob2_from_papers.py を実行すると"
-                            "自動で行が追加されます)", ""])
+        key = ref["pmid"] or f"NOPMID:{ref['no']}"
+        out.append((str(key), short_cite(ref["citation"]), ""))
+    return out
+
+
+def _outcome_list(item):
+    return [{"id": oc["id"], "label": oc["label"], "importance": oc.get("importance")} for oc in (item.get("outcomes") or [])]
+
+
+CHEMO_STRATA = ["白金製剤", "タキサン系"]
+
+
+def sheet_study_chars(wb, item):
+    """研究特性(Minds 4-5の『非直接性 対象』を判断するための表)。CIPNは化学療法の種類で病態・経過・
+    介入効果が大きく異なるため、化学療法の分類を必ず記録する(Claudeが本文から推定→委員が確定)"""
+    ws = wb.create_sheet("研究特性")
+    headers = ["キー(PMID)", "研究コード", "デザイン", "国", "全症例数", "介入群症例数", "化学療法の分類(確定は委員)",
+               "具体的な薬剤", "がん種", "介入の内容(用量・期間)", "対照の内容", "追跡期間・評価時点", "本文の入手", "備考"]
+    header_row(ws, 1, headers, widths=[14, 22, 10, 8, 10, 10, 20, 24, 14, 34, 24, 18, 12, 30])
+    for key, label, design in _study_list(item):
+        ws.append([key, label, design])
+    ws.append([""] * 13 + ["(新規論文は fill_rob2_from_papers.py が自動で行を追加します)"])
+    last = ws.max_row
+    dv = DataValidation(type="list", formula1='"' + ",".join(CHEMO_CLASSES) + '"', allow_blank=True)
+    ws.add_data_validation(dv)
+    dv.add(f"G2:G{last + 40}")
+    for row in ws.iter_rows(min_row=2):
+        for c in row:
+            c.alignment = WRAP
     return ws
 
 
-def sheet_rob2_pair(wb, item):
-    """独立二重レビュー: 評価者1・評価者2が別シートに互いを見ずに記入する"""
+def sheet_45_set(wb, item):
+    """個別研究の評価(Minds 4.3、様式 4-5 評価シート 介入研究)。評価者2名が互いを見ずに独立に記入する。
+    Claude下書きは参考用で、2名の独立評価の代わりにはならない。"""
     reviewers = REVIEWERS_BY_CQ.get(item["cq_id"], ["評価者1", "評価者2"])
-    r1_name = reviewers[0] if len(reviewers) > 0 else "評価者1"
-    r2_name = reviewers[1] if len(reviewers) > 1 else "評価者2(未割当)"
-    # 論文PDF(papers/)から fill_rob2_from_papers.py が埋める下書き。
-    # 委員2名はこれを出発点に各自のシートで修正・確定する
-    _rob2_sheet(wb, "RoB2_Claude下書き", item)
-    ws1 = _rob2_sheet(wb, f"RoB2_{r1_name}", item)
-    ws2 = _rob2_sheet(wb, f"RoB2_{r2_name}", item)
-    n_refs = len(item["references"])
-    return ws1, ws2, r1_name, r2_name, n_refs
+    r1 = reviewers[0] if len(reviewers) > 0 else "評価者1"
+    r2 = reviewers[1] if len(reviewers) > 1 else "評価者2(未割当)"
+    pico, outs, studies = item.get("pico", {}), _outcome_list(item), _study_list(item)
+    title = item.get("title", item["cq_id"])
+    for name in ("4-5_Claude下書き", f"4-5_{r1}", f"4-5_{r2}"):
+        build_45_sheet(wb, name, title, pico, outs, studies)
+    return r1, r2, outs, len(studies) + SPARE_ROWS
 
 
-def sheet_rob2_reconcile(wb, item, r1_name, r2_name, n_refs):
-    """2名の評価を自動照合し、ドメインごとの不一致を検出する(Minds/コクラン標準の
-    独立二重レビュー→照合の手順)。値はすべて評価者シートを参照する数式で、
-    このシート自体には手入力しない(確定列だけ委員が記入する)"""
-    ws = wb.create_sheet("RoB2_照合")
-    headers = ["PMID", "研究", "ドメイン", f"評価者1({r1_name})", f"評価者2({r2_name})",
-               "判定", "確定(委員記入・不一致時は協議のうえ決定)"]
-    header_row(ws, 1, headers, widths=[12, 34, 20, 16, 16, 10, 34])
-
-    s1, s2 = f"'RoB2_{r1_name}'", f"'RoB2_{r2_name}'"
+def sheet_45_recon(wb, item, r1, r2, outs, n_rows):
+    """2名の評価を項目ごとに自動照合し、不一致を検出する(独立二重評価→照合→協議、Minds/コクラン標準)。
+    値はすべて評価者シートを参照する数式。確定列だけ委員が記入する"""
+    ws = wb.create_sheet("4-5_照合")
+    header_row(ws, 1, ["アウトカム", "研究", "項目", f"評価者1({r1})", f"評価者2({r2})", "判定",
+                       "確定(委員記入・不一致時は協議のうえ決定)"], widths=[22, 26, 24, 14, 14, 10, 30])
+    s1, s2 = f"'4-5_{r1}'", f"'4-5_{r2}'"
     row = 2
-    for i in range(n_refs):
-        src_row = i + 2  # 評価者シート側の行(ヘッダ分+1)
-        for col in ROB2_DOMAIN_COLS:
-            col_letter = get_column_letter(col)
-            domain_label = ROB2_HEADERS[col - 1]
-            ws.cell(row=row, column=1, value=f"={s1}!A{src_row}")
-            ws.cell(row=row, column=2, value=f"={s1}!B{src_row}")
-            ws.cell(row=row, column=3, value=domain_label)
-            ws.cell(row=row, column=4, value=f"={s1}!{col_letter}{src_row}")
-            ws.cell(row=row, column=5, value=f"={s2}!{col_letter}{src_row}")
-            ws.cell(row=row, column=6, value=(
-                f'=IF({s1}!{col_letter}{src_row}={s2}!{col_letter}{src_row},'
-                f'IF({s1}!{col_letter}{src_row}="","未入力","一致"),"不一致")'
-            ))
-            row += 1
-    last_row = row - 1
-    if last_row >= 2:
-        ws.conditional_formatting.add(
-            f"F2:F{last_row}",
-            CellIsRule(operator="equal", formula=['"不一致"'], fill=MISMATCH_FILL),
-        )
-    for r in ws.iter_rows(min_row=2, max_row=max(last_row, 2)):
-        r[1].alignment = WRAP
-        r[6].alignment = WRAP
+    for b, oc in enumerate(outs):
+        for j in range(n_rows):
+            src = block_start(b, n_rows) + HEAD_ROWS + j
+            for k, (iname, _) in enumerate(ITEMS):
+                col = get_column_letter(C_ITEM0 + k)
+                ws.cell(row=row, column=1, value=oc["label"])
+                ws.cell(row=row, column=2, value=f'=IF({s1}!A{src}="","",{s1}!A{src})')
+                ws.cell(row=row, column=3, value=iname)
+                ws.cell(row=row, column=4, value=f'=IF({s1}!{col}{src}="","",{s1}!{col}{src})')
+                ws.cell(row=row, column=5, value=f'=IF({s2}!{col}{src}="","",{s2}!{col}{src})')
+                ws.cell(row=row, column=6, value=(
+                    f'=IF(AND({s1}!{col}{src}="",{s2}!{col}{src}=""),"",'
+                    f'IF({s1}!{col}{src}={s2}!{col}{src},"一致","不一致"))'))
+                row += 1
+    last = row - 1
+    if last >= 2:
+        ws.conditional_formatting.add(f"F2:F{last}", CellIsRule(operator="equal", formula=['"不一致"'], fill=MISMATCH_FILL))
     ws.freeze_panes = "A2"
+    return ws
+
+
+def sheet_sr8(wb, item):
+    """エビデンス総体の評価(Minds 4.4、様式 SR-8)。アウトカムごとの確実性(A〜D)。
+    CIPNは化学療法の種類で効果が異なりうるので、層別の行(任意)も置く"""
+    strata = CHEMO_STRATA if item["_source"]["cq"] in ("CQ1", "CQ2") else None
+    return build_sr8_sheet(wb, "SR-8_エビデンス総体", item.get("title", item["cq_id"]), item.get("pico", {}), _outcome_list(item),
+                           strata=strata)
+
+
+def sheet_rob2_ref(wb, item):
+    """RoB 2(Cochrane RoB 2.0)は参考欄。公式様式(4-5)を主とし、補助として Claude が本文から下書きする。
+    独立二重評価・照合の対象にはしない"""
+    ws = wb.create_sheet("RoB2(参考)")
+    header_row(ws, 1, ["キー(PMID)", "研究", "D1 ランダム化の過程", "D2 意図した介入からの逸脱", "D3 アウトカムデータの欠測",
+                       "D4 アウトカム測定", "D5 選択的な結果報告", "総合", "根拠(Claude下書き)"],
+               widths=[14, 24, 16, 16, 16, 14, 16, 10, 60])
+    for key, label, _ in _study_list(item):
+        ws.append([key, label])
+    ws.append(["", "(参考欄。公式様式の評価は 4-5 シート。RoB2 は Some concerns / Low / High の記載でよい)"])
+    return ws
 
 
 def sheet_references(wb, item):
@@ -581,9 +600,11 @@ def build_workbook(item):
     sheet_instruments(wb, item)
     sheet_existing_gl(wb, item)
     sheet_screening(wb, item)
-    _, _, r1, r2, n_refs = sheet_rob2_pair(wb, item)
-    sheet_rob2_reconcile(wb, item, r1, r2, n_refs)
-    sheet_evidence_body(wb, item)
+    sheet_study_chars(wb, item)
+    r1, r2, outs, n_rows = sheet_45_set(wb, item)
+    sheet_45_recon(wb, item, r1, r2, outs, n_rows)
+    sheet_sr8(wb, item)
+    sheet_rob2_ref(wb, item)
     sheet_references(wb, item)
     sheet_draft(wb, item)
     return wb
