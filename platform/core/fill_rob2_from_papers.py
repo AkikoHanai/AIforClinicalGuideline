@@ -267,6 +267,9 @@ def _first_free_row(ws):
 
 def _append_new_row(ws, pmid, label):
     r = _first_free_row(ws)
+    c = ws.cell(row=r, column=ROB2_COL["note"])
+    if c.value and str(c.value).startswith("(新規論文は"):
+        c.value = None   # 末尾の案内行を、行を使う時に消す
     ws.cell(row=r, column=1).value = pmid
     ws.cell(row=r, column=ROB2_COL["cite"]).value = label
     ws.cell(row=r, column=ROB2_COL["newly_added"]).value = "○"

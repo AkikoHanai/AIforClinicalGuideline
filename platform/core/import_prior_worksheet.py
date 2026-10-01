@@ -29,18 +29,61 @@ def rr_ci(a, n1, c, n2):
     return rr, math.exp(math.log(rr) - 1.96 * se), math.exp(math.log(rr) + 1.96 * se)
 
 
-def _find_row(ws, pmid=None, label=None):
-    """PMID で探し、無ければ「第一著者 et al. 年」ラベル(前方一致・大文字小文字無視)で探す"""
+def _find_row(ws, pmid=None, label=None, year=None):
+    """PMID で探し、無ければラベルの姓(どの語でも可)+年(±2年: 電子版と紙版のずれ)で探す"""
     for r in range(2, ws.max_row + 1):
         if pmid and str(ws.cell(row=r, column=1).value or "").strip() == str(pmid):
             return r
-    if label:
-        key = label.lower().replace("et al.", "").replace("et al", "").split()
-        for r in range(2, ws.max_row + 1):
-            v = str(ws.cell(row=r, column=ROB2_COL["cite"]).value or "").lower()
-            if v and all(k in v for k in key):
-                return r
+    if not label:
+        return None
+    import re as _re
+    words = [w.lower() for w in _re.findall(r"[A-Za-z\u00C0-\u024F][A-Za-z\u00C0-\u024F'\-]{2,}", label) if w.lower() not in ("et", "al")]
+    if year is None:
+        m = _re.search(r"(19|20)\d\d", label)
+        year = int(m.group(0)) if m else None
+    for r in range(2, ws.max_row + 1):
+        v = str(ws.cell(row=r, column=ROB2_COL["cite"]).value or "").lower()
+        if not v or not any(w in v for w in words):
+            continue
+        ym = _re.search(r"(19|20)\d\d", v)
+        if year is None or (ym and abs(int(ym.group(0)) - int(year)) <= 2):
+            return r
     return None
+
+
+def _rob2_sheets(wb):
+    fixed = ("RoB2_Claude下書き", "RoB2_照合")
+    return [wb[n] for n in wb.sheetnames if n.startswith("RoB2_") and n not in fixed]
+
+
+def _clear_placeholder(ws, r):
+    """作業シート末尾の案内行「(新規論文は papers/ に…)」を、行を使う時に消す"""
+    c = ws.cell(row=r, column=15)
+    if c.value and str(c.value).startswith("(新規論文は"):
+        c.value = None
+
+
+def _first_free(ws):
+    last = 1
+    for r in range(2, ws.max_row + 1):
+        if ws.cell(row=r, column=1).value:
+            last = r
+    return last + 1
+
+
+def _add_study_row(wb, draft, st):
+    """2023年版のSR表にあるが文献リスト(PMID付き)に無い研究を、全RoB2シートに同じ位置で追加"""
+    import re as _re
+    key = "SR2023:" + _re.sub(r"[^A-Za-z0-9]+", "", st.get("surname") or st.get("label", ""))[:20] + str(st.get("year") or "")
+    for ws in [draft] + _rob2_sheets(wb):
+        if _find_row(ws, key) is not None:
+            continue
+        r = _first_free(ws)
+        _clear_placeholder(ws, r)
+        ws.cell(row=r, column=1).value = key
+        ws.cell(row=r, column=ROB2_COL["cite"]).value = st.get("label")
+        ws.cell(row=r, column=13).value = "○"      # 2023年版で引用(SR表)
+    return _find_row(draft, key)
 
 
 def _append_note(ws, r, text):
@@ -89,11 +132,13 @@ def import_one(ws_dir, spec):
     n = 0
     if draft is not None:
         for st in spec.get("studies", []):
-            r = _find_row(draft, st.get("pmid"), st.get("label"))
+            r = _find_row(draft, st.get("pmid"), st.get("label"), st.get("year"))
             if not r:
-                if not spec.get("quiet"):
-                    print(f"  [warn] {st.get('pmid')} {st.get('label')} は下書きシートにありません")
-                continue
+                if spec.get("add_missing") and (st.get("result_2023") or st.get("rob_2023")):
+                    r = _add_study_row(wb, draft, st)
+                    _append_note(draft, r, "2023年版のSR表にあり、文献リストにPMIDなし(PMIDを確認して記入)")
+                if not r:
+                    continue
             for key, col in (("design", "design"), ("comparator", "comparator")):
                 if st.get(key) and not draft.cell(row=r, column=ROB2_COL[col]).value:
                     draft.cell(row=r, column=ROB2_COL[col]).value = st[key]
@@ -102,6 +147,10 @@ def import_one(ws_dir, spec):
                 _append_note(draft, r, "2023年版RoB(RoB1): " + "、".join(f"{k}{v}(→{ROB1_TO_ROB2.get(k, '')})" for k, v in rob.items()))
             if st.get("result_2023"):
                 _append_note(draft, r, "2023年版の結果要約: " + st["result_2023"])
+            if st.get("n_text") or st.get("drug") or st.get("comparator"):
+                _append_note(draft, r, "2023年版の研究表: " + " / ".join(x for x in [
+                    f"症例数 {st['n_text']}" if st.get("n_text") else "", f"誘発薬 {st['drug']}" if st.get("drug") else "",
+                    f"対照 {st['comparator']}" if st.get("comparator") else ""] if x))
             if st.get("external_quality"):
                 _append_note(draft, r, st["external_quality"])
             e = st.get("effect_from_2023")
