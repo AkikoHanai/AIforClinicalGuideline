@@ -15,6 +15,7 @@ import os
 import re
 import sys
 import tempfile
+import unicodedata
 import zipfile
 
 CQ_WORDS = [("牛車腎気丸", "CQ1-牛車腎気丸"), ("goshajinkigan", "CQ1-牛車腎気丸"), ("カルニチン", "CQ1-カルニチン"), ("carnitine", "CQ1-カルニチン"),
@@ -68,6 +69,17 @@ def classify(path, text):
     return kind, cq
 
 
+def zip_name(info):
+    """UTF-8フラグの無いzip(Macの標準圧縮など)はPythonがcp437で誤読するので、UTF-8として読み直す"""
+    n = info.filename
+    if not (info.flag_bits & 0x800):
+        try:
+            n = n.encode("cp437").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+    return unicodedata.normalize("NFC", n)
+
+
 def expand_zips(roots):
     """.zip が渡されたら一時フォルダに展開して、そのフォルダを走査対象にする"""
     out = []
@@ -76,11 +88,19 @@ def expand_zips(roots):
             tmp = tempfile.mkdtemp(prefix="inv_")
             print(f"zipを展開中: {r} → {tmp}", flush=True)
             with zipfile.ZipFile(r) as z:
-                for n in z.namelist():
+                for info in z.infolist():
+                    n = zip_name(info)
                     if "__MACOSX" in n or n.endswith("/") or n.endswith(".DS_Store"):
                         continue
+                    dest = os.path.join(tmp, n)
                     try:
-                        z.extract(n, tmp)
+                        os.makedirs(os.path.dirname(dest), exist_ok=True)
+                        with z.open(info) as src, open(dest, "wb") as dst:
+                            while True:
+                                b = src.read(1 << 20)
+                                if not b:
+                                    break
+                                dst.write(b)
                     except Exception as e:  # noqa: BLE001
                         print(f"  [skip] {n}: {e}", file=sys.stderr)
             out.append(tmp)

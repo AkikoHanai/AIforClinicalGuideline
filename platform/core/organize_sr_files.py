@@ -50,6 +50,17 @@ def nfc(s):
     return unicodedata.normalize("NFC", s)
 
 
+def zip_name(info):
+    """UTF-8フラグの無いzipの日本語名をcp437誤読から復元"""
+    n = info.filename
+    if not (info.flag_bits & 0x800):
+        try:
+            n = n.encode("cp437").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+    return nfc(n)
+
+
 def sha1(b):
     return hashlib.sha1(b).hexdigest()
 
@@ -78,10 +89,11 @@ def collect(root):
             if fn.lower().endswith(".zip"):
                 try:
                     z = zipfile.ZipFile(p)
-                    for n in z.namelist():
+                    for info in z.infolist():
+                        n = zip_name(info)
                         if n.endswith("/") or "__MACOSX" in n or n.endswith(".DS_Store"):
                             continue
-                        items.append((rel + "!" + nfc(n), z.read(n), re.sub(r"\.zip$", "", pkg).replace(" (1)", "")))
+                        items.append((rel + "!" + n, z.read(info), re.sub(r"\.zip$", "", pkg).replace(" (1)", "")))
                 except zipfile.BadZipFile:
                     print(f"[warn] 壊れたzip: {rel}", file=sys.stderr)
             else:
