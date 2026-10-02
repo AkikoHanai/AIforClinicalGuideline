@@ -490,6 +490,7 @@ def process_cq(cq_dir, model_id, dry_run, no_fetch):
                 status[key] = kind
             continue
         status[key] = kind
+        chars.cell(row=r, column=CHAR_COL["fulltext"], value=KIND_JA.get(kind, kind))
         if dry_run and draft_has_data(draft, key):
             continue  # sync-only/dry-run では、前回(Bedrock)の下書きを仮値で上書きしない
         res = extract_one(text, kind, ctx, outcomes, model_id, dry_run)
