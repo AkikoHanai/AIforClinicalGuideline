@@ -12,6 +12,7 @@
 #   AWS_PROFILE / AWS_ACCESS_KEY_ID など … Bedrock を呼ぶのに必要
 #   BEDROCK_MODEL_ID                    … 省略時 anthropic.claude-sonnet-4-5
 #   SYNC_ONLY=1                          … Bedrockを呼ばず、新規PDFの登録だけ行う
+#   PAPER_DIR=<PDFのフォルダ>            … 論文PDFを2023年版の引用文献と照合して各CQの papers/<PMID>.pdf に配置する
 set -euo pipefail
 
 PDF="${1:-}"
@@ -48,6 +49,11 @@ $PY "$CORE/prepare_review_workspace.py" "$WS/_cq_packages" -o "$WS"
 if ls "$HERE"/prior_worksheets/*.json >/dev/null 2>&1; then
   step "2b. 2023年版の委員ワークシート・海外GLの品質評価を取り込み(platform/prior_worksheets/*.json)"
   $PY "$CORE/import_prior_worksheet.py" "$WS" "$HERE"/prior_worksheets/*.json | grep -v " 0研究" || true
+fi
+
+if [ -n "${PAPER_DIR:-}" ]; then
+  step "2c. 論文PDFを各CQの papers/ に配置($PAPER_DIR)"
+  $PY "$CORE/place_papers.py" "$PAPER_DIR" "$WS"
 fi
 
 step "3. 論文本文 → 4-5下書き(Minds様式)・研究特性・新規論文の登録"
