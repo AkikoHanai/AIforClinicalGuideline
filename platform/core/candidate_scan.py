@@ -6,6 +6,8 @@
   RCT(無作為化比較試験) / 系統的レビュー・メタ解析 / そのうち --since 以降の新しい RCT
 出力: candidate_scan.csv(件数表)、candidate_scan.md(RCT一覧: PMID・年・題名)
 注意: 件数は「質の高いRCT」の数ではない。質は、SR委員が 4-5 様式で評価して初めて決まる。
+      「RCT(全件)」は、CIPNが副次評価項目や背景にすぎない試験も含む上限値。CIPNが主題の目安は「題名にneuropathy等」の列。
+      最終的な件数は、一覧の題名と抄録を読むスクリーニングで確定する。
       Scope 7.2 の基準(メタ解析+RCTが計3件以上で表を作る)を、CQ化の目安として「3件以上」に使う。
 """
 import argparse
@@ -19,6 +21,10 @@ import urllib.request
 BASE = ('("chemotherapy-induced peripheral neuropathy"[tiab] OR CIPN[tiab] OR (neuropath*[tiab] AND '
         '(chemotherap*[tiab] OR oxaliplatin[tiab] OR paclitaxel[tiab] OR docetaxel[tiab] OR cisplatin[tiab] OR bortezomib[tiab] OR vincristine[tiab] OR taxane*[tiab])))')
 RCT = '"randomized controlled trial"[pt]'
+# 「CIPNが主題」の近似: 題名に neuropathy/CIPN/neurotoxicity を含み、研究計画書(protocol)を除く。
+# [pt]=RCT の全件数は、CIPNが副次評価項目や背景にすぎない試験も含むため、上限値でしかない
+TITLE_N = '(neuropath*[ti] OR CIPN[ti] OR neurotoxic*[ti])'
+RCT_TITLE = f'{RCT} AND {TITLE_N} NOT protocol[ti]'
 SR = '("meta-analysis"[pt] OR "systematic review"[pt])'
 # (区分, 名称, PubMed検索語)  区分: 既存CQ(基準として) / 調査対象
 TERMS = [
@@ -92,16 +98,20 @@ def main():
         n_all, _ = search(t)
         n_rct, _ = search(f"{t} AND {RCT}")
         n_sr, _ = search(f"{t} AND {SR}")
-        n_new, ids = search(f"{t} AND {RCT}", retmax=200, since=a.since)
-        rows.append([kind, name, n_all, n_rct, n_sr, n_new])
-        print(f"{name:<40} 全{n_all:4d} RCT{n_rct:3d} SR/MA{n_sr:3d} 新RCT{n_new:3d}")
-        md += [f"## {name}（{kind}）", f"全{n_all}件 / RCT {n_rct}件 / SR・メタ解析 {n_sr}件 / {a.since}以降のRCT {n_new}件", ""]
+        n_new, _ = search(f"{t} AND {RCT}", since=a.since)
+        n_rt, _ = search(f"{t} AND {RCT_TITLE}")
+        n_nt, ids = search(f"{t} AND {RCT_TITLE}", retmax=200, since=a.since)
+        rows.append([kind, name, n_all, n_rct, n_sr, n_new, n_rt, n_nt])
+        print(f"{name:<36} 全{n_all:4d} RCT{n_rct:3d}(題名にneuropathy:{n_rt:3d}) SR/MA{n_sr:3d} 新RCT{n_new:3d}(同:{n_nt:3d})")
+        md += [f"## {name}（{kind}）", f"全{n_all}件 / RCT {n_rct}件(題名にneuropathy等 {n_rt}件) / SR・メタ解析 {n_sr}件 / {a.since}以降のRCT {n_new}件(題名にneuropathy等 {n_nt}件)", "",
+               f"{a.since}以降・題名にneuropathy等を含むRCT(CIPNが主題とみられるもの。内容は未確認):", ""]
         for u, y, title, src in sorted(summaries(ids), key=lambda x: x[1], reverse=True):
             md.append(f"- {y} [{u}](https://pubmed.ncbi.nlm.nih.gov/{u}/) {title} ({src})")
         md.append("")
+    os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)   # 出力先のフォルダが無くても作る
     with open(a.out + ".csv", "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f)
-        w.writerow(["区分", "介入", "CIPN関連の全論文", "RCT", "SR・メタ解析", f"{a.since}以降のRCT"])
+        w.writerow(["区分", "介入", "CIPN関連の全論文", "RCT(全件・上限値)", "SR・メタ解析", f"{a.since}以降のRCT(全件)", "RCT(題名にneuropathy等)", f"{a.since}以降(題名にneuropathy等)"])
         w.writerows(rows)
     open(a.out + ".md", "w", encoding="utf-8").write("\n".join(md) + "\n")
     print(f"\n→ {a.out}.csv / {a.out}.md")
