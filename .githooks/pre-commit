@@ -1,0 +1,3 @@
+#!/bin/sh
+# 承認済み企画書からの逸脱があればコミットを止める
+python3 platform/governance/plan_guard.py || { echo "コミット中止: 企画書からの逸脱を直してください"; exit 1; }

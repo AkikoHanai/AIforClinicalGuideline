@@ -27,6 +27,9 @@ fi
 
 step() { printf '\n== %s ==\n' "$1"; }
 
+step "0a. 承認済み企画書からの逸脱の検査(失敗したら中止)"
+python3 "$(dirname "$0")/governance/plan_guard.py"
+
 step "0. 依存"
 # Homebrew の Python(PEP 668)は直接 pip install できないので platform/.venv に閉じて入れる
 VENV="$HERE/.venv"
