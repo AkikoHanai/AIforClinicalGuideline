@@ -49,6 +49,8 @@ SYNC_ONLY=1 bash platform/run_revision.sh "" review_workspace   # 認証なし: 
 | `CQ*/papers/` | 論文PDF(PMID.pdf)。**必須ではない**: オープンアクセス全文(Europe PMC)は自動取得し `PMID.txt` にキャッシュする。取れなかった有料誌の分だけPDFを置く |
 | `_draft_sheets/*.review.html` | 委員用: Minds推奨文草案の作成シート(内部の検証結果は出さない) |
 | `_secretariat/*.secretariat.html` | 事務局用: 機械検証(R1–R8)・根拠鎖つき |
+| `_meeting/決定記録シート.html` | 推奨作成会議用: 投票(最大3回)・投票除外・成立の判定・確定、JSON/CSVで共有(投票者は統括委員と作成グループ委員。患者代表は含めない) |
+| `_minds_documents/` | Minds書類の一式: CQ別の作業ブック、書類の作成状況(PRISMA件数つき)、推奨作成の記録、管理台帳(COI・外部評価・作成経過) |
 
 既にある `minds_review.xlsx` は2回目以降も上書きしない(委員の記入を守る)。作り直すときは
 `python3 platform/core/prepare_review_workspace.py review_workspace/_cq_packages -o review_workspace --force`。
@@ -67,7 +69,11 @@ macOSで「検証できませんでした」と出て開けないときは、ダ
 | `core/merge_rob2_evidence.py` | 4-5の評価者2名を項目ごとに照合(確定列>一致>要協議)し、SR-8とあわせてCQパッケージへ書き戻す。評価者の入力が無い間は下書きを「未確定」で表示に使う |
 | `core/build_sof.py` | SR-8エビデンス総体 → SoF(化学療法別の層別行を含む) |
 | `core/review_bundle.py` | Minds規則R1–R8と引用整合性の機械検証 |
-| `core/render_console.py` | 草案作成シート(委員用) / 検証画面(事務局用 `--audience secretariat`) |
+| `core/render_console.py` | 草案作成シート(委員用。採用文献の概要表に、がん腫・化学療法・介入・対照を表示し、化学療法の分類で絞り込める) / 検証画面(事務局用 `--audience secretariat`) |
+| `core/render_meeting.py` | 推奨作成会議の決定記録シート(HTML 1ファイル) |
+| `core/export_minds_documents.py` | Minds書類の一式を集め、CQごと・書類ごとの作成状況を点検する |
+| `tests/ui_check.py` | 画面のブラウザ操作テスト(playwright) |
+| `governance/plan_guard.py` | 承認済み企画書からの逸脱の検査 |
 
 ## CQパッケージの書き方（data/cq/*.json）
 

@@ -42,8 +42,8 @@ def text_of(path):
         return " ".join(out)
     return open(path, encoding="utf-8", errors="ignore").read()
 bad = P["禁止する語(企画書にない介入。生成物に現れたらガードが失敗する)"] + P["禁止する旧体制の氏名(2023年版の体制。企画書にない)"]
-scan_dirs = ["scope", "procedures", "review", "core", "data"]
-skip = ("_企画書外_保留", "governance", "soron", "__pycache__", "node_modules", "prior_worksheets", "tests")
+scan_dirs = ["scope", "procedures", "manuals", "review", "core", "data", "tests"]
+skip = ("_企画書外_保留", "governance", "soron", "__pycache__", "node_modules", "prior_worksheets")
 for sd in scan_dirs:
     for dp, dn, fn in os.walk(os.path.join(ROOT, sd)):
         dn[:] = [d for d in dn if d not in skip]
