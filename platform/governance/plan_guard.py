@@ -19,6 +19,8 @@ else:
     h = hashlib.sha256(open(f[0], "rb").read()).hexdigest()
     if h != P["sha256"]: errs.append(f"承認済み企画書のSHA-256が一致しません: {h}")
 
+v2 = glob.glob(os.path.join(HERE, "提案書v2_*.docx"))
+if not v2 or hashlib.sha256(open(v2[0], "rb").read()).hexdigest() != P["提案書v2(正。企画書と異なる点はこちらが優先)"]["sha256"]: errs.append("提案書v2が無い、またはSHA-256が一致しません")
 # 2
 known = {d for it in P["SR項目"] + P["FRQ項目"] for d in it["dir"]}
 cq = os.path.join(ROOT, "scope", "cq_rows.json")
@@ -65,7 +67,7 @@ if os.path.exists(sc):
     for it in P["SR項目"] + P["FRQ項目"]:
         key = it["キー"]
         if key not in t: errs.append(f"Scope改訂案に企画書の項目がありません: {it['名称']}")
-    if "2028年版" not in t: errs.append("Scope改訂案のタイトルが企画書の「2028年版」になっていません")
+    if P["タイトル"] not in t: errs.append("Scope改訂案のタイトルが「" + P["タイトル"] + "」になっていません")
 
 if errs:
     print("【企画書からの逸脱を検出】"); [print(" -", e) for e in errs]; sys.exit(1)
