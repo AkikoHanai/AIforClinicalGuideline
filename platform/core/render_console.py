@@ -76,6 +76,7 @@ details.study>summary::-webkit-details-marker{display:none}
 details.study>summary:before{content:"▸ ";color:#000}
 details.study[open]>summary:before{content:"▾ "}
 .sbody{padding:0 14px 12px;font-size:13.5px}
+.chips{margin:6px 0}.chip{border:1px solid #000;background:#fff;color:#000;padding:2px 10px;margin:0 4px 4px 0;border-radius:12px;font-size:12px;cursor:pointer}.chip.on{font-weight:bold;border-width:2px}
 .tag{display:inline-block;border:1px solid #666;border-radius:3px;padding:0 6px;font-size:11.5px;margin-left:6px;
  background:#fff;color:#000}
 .tag.r{border:2px solid #000;font-weight:700}.tag.ma{border-style:dashed}
@@ -334,11 +335,34 @@ def _studies_html(b):
             f'<details class="study"><summary>{esc(s["title"] or s["id"])}{tags}</summary>'
             f'<div class="sbody">{link}｜{esc(s.get("journal") or "")} '
             f'{esc(s.get("year") or "")}｜デザイン: {esc(s.get("design") or "—")}'
-            f'｜化学療法: {esc(s.get("chemo_class") or "未分類")}{("（" + esc(s.get("chemo_drugs")) + "）") if s.get("chemo_drugs") else ""}'
+            f'｜がん腫: {esc(s.get("cancer") or "—")}｜化学療法: {esc(s.get("chemo_class") or "未分類")}{("（" + esc(s.get("chemo_drugs")) + "）") if s.get("chemo_drugs") else ""}'
             f'｜症例数: {esc(s.get("n_total") or "—")}{("（介入" + esc(s.get("n_int")) + "）") if s.get("n_int") else ""}'
             f'<div class="scroll"><table><tr><th>アウトカム</th><th>評価指標</th><th>対照</th>'
             f'<th>効果</th><th>バイアスリスク（4-5）</th><th>非直接性</th></tr>{"".join(res)}</table></div>{inc}{same}</div></details>')
     return "\n".join(out)
+
+
+def _overview_html(b):
+    """採用文献の概要表(常時表示)。がん腫・化学療法(分類と薬剤・レジメン)・症例数・介入・対照を並べ、化学療法の分類で絞り込める"""
+    rows, classes = [], []
+    for s in sorted(b["studies"], key=_ref_no):
+        cc = s.get("chemo_class") or "未分類"
+        if cc not in classes:
+            classes.append(cc)
+        pmid = s.get("pmid")
+        link = (f'<a href="https://pubmed.ncbi.nlm.nih.gov/{esc(pmid)}/" target="_blank" rel="noopener">{esc(pmid)}</a>' if pmid else "未登録")
+        kind = "新規" if s.get("newly_added") else ("2023年版" if s.get("cited_in_2023") else "")
+        n = esc(s.get("n_total") or "—") + (f"（介入{esc(s.get('n_int'))}）" if s.get("n_int") else "")
+        rows.append(f'<tr data-chemo="{esc(cc)}"><td>{esc(s["title"] or s["id"])}<br><span class="note">{kind}</span></td><td>{link}</td>'
+                    f'<td>{esc(s.get("design") or "—")}</td><td>{esc(s.get("cancer") or "—")}</td>'
+                    f'<td><b>{esc(cc)}</b><br>{esc(s.get("chemo_drugs") or "—")}</td><td>{n}</td>'
+                    f'<td>{esc(s.get("intervention_detail") or "—")}</td><td>{esc(s.get("comparator_detail") or "—")}</td>'
+                    f'<td>{esc(s.get("followup") or "—")}</td></tr>')
+    chips = ('<div class="chips" id="chemoChips"><button type="button" class="chip on" data-f="">すべて</button>' +
+             "".join(f'<button type="button" class="chip" data-f="{esc(c)}">{esc(c)}</button>' for c in classes) + "</div>")
+    return ('<p class="note">化学療法の分類で絞り込めます。空欄は、研究特性シートが未入力であることを示します。</p>' + chips +
+            '<div class="scroll"><table id="ovTable"><tr><th>論文</th><th>PMID</th><th>デザイン</th><th>がん腫</th><th>化学療法(分類・薬剤/レジメン)</th>'
+            '<th>症例数</th><th>介入(用量・期間)</th><th>対照</th><th>追跡期間</th></tr>' + "".join(rows) + '</table></div>')
 
 
 def _incomplete_html(b):
@@ -622,7 +646,8 @@ def render(bundle: dict, audience: str = "committee") -> str:
 <section><h2>エビデンス総体（アウトカムごと）</h2>{_bodies_html(bundle)}
 <p class="note">4-5評価シートの入力と、SR-8エビデンス総体シートの評価(確実性A〜D)を minds_review.xlsx に記入すると反映されます。</p></section>
 
-<section><h2>採用文献（2023年版採用＋新規追加。クリックで結果を展開）</h2>{_studies_html(bundle)}</section>
+<section><h2>採用文献の概要（がん腫・化学療法レジメン・介入・対照）</h2>{_overview_html(bundle)}</section>
+<section><h2>採用文献ごとの結果（2023年版採用＋新規追加。クリックで展開）</h2>{_studies_html(bundle)}</section>
 
 {_candidates_html(bundle)}
 
@@ -717,6 +742,10 @@ function clearAll() {{
   if (!confirm("この画面の入力を消去します。よろしいですか。")) return;
   localStorage.removeItem(KEY); location.reload();
 }}
+document.querySelectorAll('#chemoChips .chip').forEach(c => c.addEventListener('click', () => {{
+  document.querySelectorAll('#chemoChips .chip').forEach(x => x.classList.remove('on')); c.classList.add('on');
+  const f = c.dataset.f; document.querySelectorAll('#ovTable tr[data-chemo]').forEach(r => r.style.display = (!f || r.dataset.chemo === f) ? '' : 'none');
+}}));
 document.addEventListener("input", () => {{ syncNarrStatus(); save(); }});
 document.addEventListener("change", save);
 restore();

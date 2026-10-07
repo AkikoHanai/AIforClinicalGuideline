@@ -82,5 +82,11 @@ step "7. 草案作成シート(委員用) / 検証画面(事務局用)"
 $PY "$CORE/render_console.py" "$WS"/_bundles/*.bundle.json -o "$WS/_draft_sheets"
 $PY "$CORE/render_console.py" "$WS"/_bundles/*.bundle.json -o "$WS/_secretariat" --audience secretariat
 
+step "8. 推奨作成会議の決定記録シート / Minds書類の一式と作成状況の点検"
+DR=""; [ -d "$WS/_drafts" ] && DR="--drafts $WS/_drafts"
+$PY "$CORE/render_meeting.py" -o "$WS/_meeting/決定記録シート.html" $DR
+MT=""; [ -n "${MEETING_JSON:-}" ] && MT="--meeting $MEETING_JSON"
+$PY "$CORE/export_minds_documents.py" "$WS" $MT -o "$WS/_minds_documents"
+
 $PY "$CORE/list_missing_papers.py" "$WS" -o "$WS/_未入手論文一覧.md"
-printf '\n完了: %s/\n  委員用: %s/_draft_sheets/*.review.html\n  事務局用: %s/_secretariat/*.secretariat.html\n' "$WS" "$WS" "$WS"
+printf '\n完了: %s/\n  委員用: %s/_draft_sheets/*.review.html\n  事務局用: %s/_secretariat/*.secretariat.html\n  会議用: %s/_meeting/決定記録シート.html\n  Minds書類: %s/_minds_documents/\n' "$WS" "$WS" "$WS" "$WS" "$WS"

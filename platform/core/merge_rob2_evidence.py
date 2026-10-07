@@ -328,7 +328,7 @@ def merge_one(cq_dir):
                 "cited_in_2023": key in ref_in_2023 or str(key).startswith("SR2023:"), "newly_added": not (key in ref_in_2023 or str(key).startswith(("SR2023:", "NOPMID:"))),
                 "chemo_class": ch.get("chemo_class"), "chemo_drugs": ch.get("chemo_drugs"), "n_total": ch.get("n_total"),
                 "n_int": ch.get("n_int"), "country": ch.get("country"), "cancer": ch.get("cancer"),
-                "comparator_detail": ch.get("comparator_detail"), "rob2_ref": rob2_ref.get(key)})
+                "comparator_detail": ch.get("comparator_detail"), "intervention_detail": ch.get("intervention_detail"), "followup": ch.get("followup"), "rob2_ref": rob2_ref.get(key)})
         if not rw["has_data"]:
             continue
         oid = rw["outcome_id"]
