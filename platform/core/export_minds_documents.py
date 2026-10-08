@@ -127,7 +127,8 @@ def main():
         for cid in ids:
             c = S.get("cq", {}).get(cid, {})
             fin = c.get("final")
-            rec.append([cid, c.get("rec", ""), STR.get(fin["strength"], "") if fin else "未確定", fin["round"] if fin else "", c.get("certainty", ""), fin["at"][:16].replace("T", " ") if fin else "", c.get("memo", "")])
+            nv = len(voters); ne = len(c.get("excl") or {})
+            rec.append([cid, c.get("rec", ""), STR.get(fin["strength"], "") if fin else "未確定", fin["round"] if fin else "", nv - ne, ne, c.get("certainty", ""), fin["at"][:16].replace("T", " ") if fin else "", c.get("memo", "")])
             for r in ("1", "2", "3"):
                 for v, val in (c.get("votes", {}).get(r) or {}).items():
                     votes.append([cid, f"第{r}回", v, STR.get(val, val)])
@@ -135,7 +136,7 @@ def main():
             e = c.get("etd") or {}
             etd.append([cid, e.get("benefit", ""), e.get("certainty", ""), e.get("values", ""), e.get("cost", "")])
             meeting_rows[cid] = "確定" if fin else "未確定"
-        sheet(ws, ["CQ/FRQ", "推奨文(研究課題)", "推奨の強さ", "確定した投票の回", "エビデンスの確実性", "確定日時", "意見の概要"], rec, [34, 60, 22, 10, 10, 18, 40])
+        sheet(ws, ["CQ/FRQ", "推奨文(研究課題)", "推奨の強さ", "確定した投票の回", "有資格者数(分母)", "除外者数", "エビデンスの確実性", "確定日時", "意見の概要"], rec, [34, 60, 22, 10, 10, 8, 10, 18, 40])
         sheet(wb.create_sheet("投票記録"), ["CQ/FRQ", "回", "委員", "投票"], votes, [34, 8, 14, 26])
         sheet(wb.create_sheet("投票除外"), ["CQ/FRQ", "委員", "理由"], excl, [34, 14, 30])
         sheet(wb.create_sheet("考慮した項目"), ["CQ/FRQ", "益と害のバランス", "エビデンス全体の確実性", "患者・市民の価値観と希望", "資源"], etd, [34, 40, 40, 40, 30])

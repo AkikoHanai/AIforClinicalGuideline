@@ -63,6 +63,17 @@ with sync_playwright() as p:
         for i,v in enumerate(pg.evaluate("eligible('CQ1-運動')")): pg.evaluate(f"setVote('{v}','{['1','2','3','4'][i%4]}')")
     pg.evaluate("finalize()")
     ok('B9 3回で集約しなければ推奨なし(3)',pg.evaluate("cq('CQ1-運動').final.strength")=='3')
+    # 分母はCOI除外で変わる
+    pg.evaluate("go('CQ1-鍼灸')"); pg.evaluate("round=1;draw()")
+    el=pg.evaluate("eligible('CQ1-鍼灸')")
+    for i,v in enumerate(el): pg.evaluate(f"setVote('{v}','{'2' if i<12 else '欠席'}')")
+    t=pg.evaluate("tally('CQ1-鍼灸',1)")
+    ok('B15a 有資格16名・参加12名(75%)で成立',len(el)==16 and t['n']==16 and t['part']==12 and t['ok'],f"n={t['n']} 参加={t['part']}")
+    pg.evaluate(f"setExcl('{el[0]}','直接評価した論文の筆頭著者')")
+    t=pg.evaluate("tally('CQ1-鍼灸',1)")
+    ok('B15b 1名を除外すると分母15名・参加11名(73%)で不成立',t['n']==15 and t['part']==11 and not t['ok'],f"n={t['n']} 参加={t['part']} 参加率={t['pr']:.2f}")
+    pg.evaluate(f"setExcl('{el[0]}','')")
+    t=pg.evaluate("tally('CQ1-鍼灸',1)"); ok('B15c 除外を解除すると分母16名に戻る',t['n']==16 and t['ok'])
     # FRQ
     pg.evaluate("go('CQ2-ビタミン-B12')"); ok('B10 FRQは投票欄なし',pg.query_selector('text=投票除外') is None)
     # 変更履歴・保存・書き出し・取り込み

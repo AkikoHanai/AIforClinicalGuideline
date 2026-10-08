@@ -114,10 +114,10 @@ function draw(){
       VOTERS.map(v=>`<tr><td>${v}</td><td><select ${c.final?"disabled":""} onchange="setExcl('${v}',this.value)"><option value=""></option>${["SR担当","直接評価した論文の筆頭著者","その他の利益相反"].map(x=>`<option ${c.excl[v]===x?'selected':''}>${x}</option>`).join("")}</select></td></tr>`).join("")+`</table>`;
     // 投票
     const el=eligible(cur);
-    h+=`<h3>投票</h3><div class="tabs">${[1,2,3].map(r=>`<button class="${r===round?'sel':''}" onclick="round=${r};draw()">第${r}回</button>`).join("")}</div>`;
+    h+=`<h3>投票　<span class="note">有資格者 ${el.length}名(${VOTERS.length}名中、除外 ${VOTERS.length-el.length}名)。成立の分母はこの有資格者数。除外を変えると、判定が再計算される</span></h3><div class="tabs">${[1,2,3].map(r=>`<button class="${r===round?'sel':''}" onclick="round=${r};draw()">第${r}回</button>`).join("")}</div>`;
     const t=tally(cur,round);
     h+=`<table><tr><th>委員(有資格 ${el.length}名)</th><th>投票</th></tr>`+el.map(v=>`<tr><td>${v}</td><td><select ${c.final?"disabled":""} onchange="setVote('${v}',this.value)"><option value=""></option>${["1","2","3","4","5"].map(x=>`<option value="${x}" ${c.votes[round][v]===x?'selected':''}>${STR[x]}</option>`).join("")}<option ${c.votes[round][v]==="棄権"?'selected':''}>棄権</option><option ${c.votes[round][v]==="欠席"?'selected':''}>欠席</option></select></td></tr>`).join("")+`</table>`;
-    h+=`<div class="box">参加 ${t.part}/${t.n}名(${(t.pr*100).toFixed(0)}%。基準75%以上)　最多の選択肢 ${t.best?STR[t.best]:"—"}: ${t.best?t.cnt[t.best]:0}票(参加者の${(t.ag*100).toFixed(0)}%。基準80%以上)　→ <b>${t.complete?(t.ok?"成立":"不成立"):"入力中("+t.entered+"/"+t.n+")"}</b><br><span class="note">参加=欠席でない委員。賛成の割合の分母は参加者(棄権を含む)。過半数の反対がある場合は、推奨文の変更を考慮して次の回に進む。3回で集約しなければ「推奨なし」。</span></div>`;
+    h+=`<div class="box">参加 ${t.part}/${t.n}名(有資格者数が分母。${(t.pr*100).toFixed(0)}%。基準75%以上。参加に必要な最少人数 ${Math.ceil(0.75*t.n)}名)　最多の選択肢 ${t.best?STR[t.best]:"—"}: ${t.best?t.cnt[t.best]:0}票(参加者の${(t.ag*100).toFixed(0)}%。基準80%以上)　→ <b>${t.complete?(t.ok?"成立":"不成立"):"入力中("+t.entered+"/"+t.n+")"}</b><br><span class="note">参加=欠席でない委員。賛成の割合の分母は参加者(棄権を含む)。過半数の反対がある場合は、推奨文の変更を考慮して次の回に進む。3回で集約しなければ「推奨なし」。</span></div>`;
     h+=`<button class="btn noprint" ${c.final?"disabled":""} onclick="finalize()">この結果で確定する</button>`;
   }
   h+=`<h3>意見の概要・議事メモ</h3><textarea oninput="setf('memo',this.value)">${esc(c.memo)}</textarea>`;
@@ -129,9 +129,9 @@ function meta(){ S.meta={date:document.getElementById("mdate").value,chair:docum
 function dl(name,text,type){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); }
 function exportJson(){ dl("決定記録_"+(S.meta.date||"未設定")+".json", JSON.stringify({title:TITLE,exported:new Date().toISOString(),voters:VOTERS,items:ITEMS.map(x=>({id:x.id,name:x.name,kind:x.kind})),state:S},null,1),"application/json"); }
 function exportCsv(){
-  const rows=[["ID","種別","項目","推奨文/研究課題","確定の強さ","確定の回","確実性","有資格","第1回参加","第1回成立","第2回参加","第2回成立","第3回参加","第3回成立","除外(委員:理由)","意見の概要"]];
+  const rows=[["ID","種別","項目","推奨文/研究課題","確定の強さ","確定の回","確実性","有資格者数(分母)","除外者数","第1回参加","第1回成立","第2回参加","第2回成立","第3回参加","第3回成立","除外(委員:理由)","意見の概要"]];
   ITEMS.forEach(it=>{ const c=cq(it.id); const ts=[1,2,3].map(r=>tally(it.id,r));
-    rows.push([it.id,it.kind,it.name,c.rec,c.final?STR[c.final.strength]:"",c.final?c.final.round:"",c.certainty,eligible(it.id).length,
+    rows.push([it.id,it.kind,it.name,c.rec,c.final?STR[c.final.strength]:"",c.final?c.final.round:"",c.certainty,eligible(it.id).length,VOTERS.length-eligible(it.id).length,
       ts[0].part,ts[0].complete?(ts[0].ok?"成立":"不成立"):"",ts[1].part,ts[1].complete?(ts[1].ok?"成立":"不成立"):"",ts[2].part,ts[2].complete?(ts[2].ok?"成立":"不成立"):"",
       Object.entries(c.excl).map(([k,v])=>k+":"+v).join(" / "),c.memo]); });
   dl("決定記録_"+(S.meta.date||"未設定")+".csv","﻿"+rows.map(r=>r.map(x=>'"'+String(x==null?"":x).replace(/"/g,'""')+'"').join(",")).join("\n"),"text/csv");
