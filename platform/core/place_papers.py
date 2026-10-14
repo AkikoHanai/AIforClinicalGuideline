@@ -4,7 +4,10 @@
 
 照合: 引用文献のタイトルが PDF の1〜2ページ目の本文に含まれるか(記号・大小文字・空白は無視)。
 一致したPMIDを持つ全CQ(冷却・圧迫の統合などで複数に載るもの)の papers/ にコピーする。
-一致しないPDFは「未照合」として一覧に出す(新規論文なら、PMIDを付けて papers/<PMID>.pdf に置く)。
+ファイル名が PMID(数字だけ。例: 23733756.pdf)のPDFは、本文の照合をせず PMID で配置する:
+  <フォルダ>/<CQ名>/<PMID>.pdf  → そのCQの papers/ へ(新規論文もここに置ける)
+  <フォルダ>/<PMID>.pdf         → その PMID を引用文献にもつ全CQの papers/ へ
+一致しないPDFは「未照合」として一覧に出す(新規論文なら、<CQ名>のフォルダに入れて PMID.pdf にする)。
 """
 import argparse
 import glob
@@ -47,7 +50,21 @@ def main():
             if r.get("pmid") and len(t) >= 20:
                 refs.append((d, str(r["pmid"]), t, r["citation"]))
     placed, unmatched = [], []
+    cq_dirs = {os.path.basename(d.rstrip("/")): d.rstrip("/") for d in glob.glob(os.path.join(a.workspace, "CQ*/"))}
     for pdf in sorted(glob.glob(os.path.join(a.pdf_dir, "**", "*.pdf"), recursive=True)):
+        stem = os.path.splitext(os.path.basename(pdf))[0].strip()
+        if stem.isdigit():                               # PMIDをファイル名にしたPDF
+            parent = os.path.basename(os.path.dirname(pdf))
+            dests = [cq_dirs[parent]] if parent in cq_dirs else sorted({d for d, p, _, _ in refs if p == stem})
+            if not dests:
+                unmatched.append(pdf); continue
+            for d in dests:
+                dest = os.path.join(d, "papers", f"{stem}.pdf")
+                if not a.dry_run:
+                    os.makedirs(os.path.dirname(dest), exist_ok=True)
+                    shutil.copyfile(pdf, dest)
+                placed.append((os.path.basename(d), stem, os.path.basename(pdf)))
+            continue
         head = norm(pdf_head(pdf))
         hits = {(d, p) for d, p, t, _ in refs if t in head}
         if not hits:
