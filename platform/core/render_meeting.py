@@ -55,7 +55,7 @@ textarea,input,select{font:inherit;border:1px solid #000;padding:3px;box-sizing:
 <div class="note">投票者は統括委員と作成グループ委員(患者代表は含まない)。入力はこの端末のブラウザに自動保存される。共有は、JSONを書き出して事務局へ送る。</div></header>
 <main><nav id="nav"></nav><section id="main"></section></main>
 <script>
-const TITLE = __TITLE__, VOTERS = __VOTERS__, ITEMS = __ITEMS__, DRAFTS = __DRAFTS__;
+const TITLE = __TITLE__, VOTERS = __VOTERS__, ITEMS = __ITEMS__, DRAFTS = __DRAFTS__, REF2023 = __REF2023__;
 const STR = {"1":"1 強く推奨","2":"2 弱く推奨","3":"3 推奨なし","4":"4 行わないことを弱く推奨","5":"5 行わないことを強く推奨"};
 const KEY = "cipn-meeting-record";
 let S = {meta:{}, cq:{}, log:[]}; let cur = ITEMS[0].id; let round = 1;
@@ -101,6 +101,8 @@ function draw(){
   nav(); const it=item(cur), c=cq(cur), frq=it.kind==="FRQ";
   let h=`<h2>${it.kind}: ${it.name}　<span class="note">(${it.plan_id}。SR担当: ${it.sr.join("、")})</span></h2>`;
   if(c.final) h+=`<div class="box">確定: <b>${STR[c.final.strength]}</b>(第${c.final.round}回の投票${c.final.note?"。"+c.final.note:""})　${c.final.at.slice(0,16).replace("T"," ")}　記録者: ${c.final.by||"—"} <button class="btn noprint" onclick="unfinal()">確定を取り消す</button></div>`;
+  const rf=REF2023[cur]||[];
+  if(rf.length) h+=`<div class="box"><b>2023年版の記載</b>`+rf.map(x=>`<div style="margin-top:4px">${esc(x.rec)}<br><span class="note">推奨の強さ ${x.strength} / 確実性 ${x.certainty}`+(x.votes?` / 投票 ${x.votes.n}名(棄権: 利益相反${x.votes.coi}名・SR${x.votes.sr}名)。1強く推奨 ${x.votes.counts[0]}、2提案 ${x.votes.counts[1]}、3推奨なし ${x.votes.counts[2]}、4しないことを提案 ${x.votes.counts[3]}、5しないことを強く推奨 ${x.votes.counts[4]}(分母 ${x.votes.denominator})`:"")+`</span></div>`).join("")+`</div>`;
   h+=`<h3>${frq?"研究課題の記載(推奨は出さない)":"推奨文"}</h3><textarea ${c.final?"disabled":""} oninput="setf('rec',this.value)">${esc(c.rec)}</textarea>`;
   if(!frq){
     h+=`<table><tr><th>エビデンスの確実性(SR-8)</th><td><select onchange="setf('certainty',this.value)"><option value=""></option>${["A","B","C","D"].map(x=>`<option ${c.certainty===x?'selected':''}>${x}</option>`).join("")}</select></td></tr></table>
@@ -144,6 +146,7 @@ document.getElementById("ttl").textContent=TITLE; draw();
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-o", "--out", default="meeting/決定記録シート.html")
+    ap.add_argument("--etd", help="build_etd.py が作った etd_2023.json。2023年版の推奨・投票結果を画面に表示する")
     ap.add_argument("--drafts", help="委員が書き出した草案JSON(CQ_委員.draft.json)のフォルダ。推奨文などを初期値にする")
     a = ap.parse_args()
     drafts = {}
@@ -160,7 +163,11 @@ def main():
                            "certainty": dr.get("rec_certainty") or "", "benefit": dr.get("cons_balance") or "",
                            "etd_certainty": dr.get("cons_certainty") or "", "values": dr.get("cons_values") or "", "cost": dr.get("cons_cost") or "",
                            "from": d.get("reviewer") or ""}
-    html = (HTML.replace("__TITLE__", json.dumps(PLAN["タイトル"], ensure_ascii=False)).replace("__VOTERS__", json.dumps(VOTERS, ensure_ascii=False))
+    ref = {}
+    if a.etd and os.path.exists(a.etd):
+        for it in json.load(open(a.etd, encoding="utf-8")):
+            ref.setdefault(it["dir"], []).append({k: it[k] for k in ("rec", "strength", "certainty", "votes")})
+    html = (HTML.replace("__REF2023__", json.dumps(ref, ensure_ascii=False)).replace("__TITLE__", json.dumps(PLAN["タイトル"], ensure_ascii=False)).replace("__VOTERS__", json.dumps(VOTERS, ensure_ascii=False))
             .replace("__ITEMS__", json.dumps(items(), ensure_ascii=False)).replace("__DRAFTS__", json.dumps(drafts, ensure_ascii=False)))
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     open(a.out, "w", encoding="utf-8").write(html)

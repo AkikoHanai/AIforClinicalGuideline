@@ -70,6 +70,8 @@ macOSで「検証できませんでした」と出て開けないときは、ダ
 | `core/build_sof.py` | SR-8エビデンス総体 → SoF(化学療法別の層別行を含む) |
 | `core/review_bundle.py` | Minds規則R1–R8と引用整合性の機械検証 |
 | `core/render_console.py` | 草案作成シート(委員用。採用文献の概要表に、がん腫・化学療法・介入・対照を表示し、化学療法の分類で絞り込める) / 検証画面(事務局用 `--audience secretariat`) |
+| `core/build_etd.py` | 2023年版PDFから、各CQの推奨・強さ・確実性・投票結果・解説を取り出し、2023年版の体裁の推奨作成の記録(EtD)を作る |
+| `run_jascc.sh` | Googleドライブ JASCC_GL のフォルダで、作業一式・論文・決定記録を管理するコマンド(init / first / papers / full / minds) |
 | `core/render_meeting.py` | 推奨作成会議の決定記録シート(HTML 1ファイル) |
 | `core/export_minds_documents.py` | Minds書類の一式を集め、CQごと・書類ごとの作成状況を点検する |
 | `tests/ui_check.py` | 画面のブラウザ操作テスト(playwright) |

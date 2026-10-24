@@ -46,6 +46,11 @@ if [ -n "$PDF" ]; then
   $PY "$CORE/extract_cipn_guideline.py" "$PDF" -o "$WS/_cq_packages"
 fi
 
+if [ -n "$PDF" ]; then
+  step "1b. 2023年版の推奨作成の記録(EtD)を作成(推奨・強さ・確実性・投票結果・解説の原文)"
+  $PY "$CORE/build_etd.py" "$WS/_cq_packages" --pdf "$PDF" -o "$WS/_etd" 2>/dev/null || echo "(EtDの作成に失敗。PDFと pdftotext を確認)"
+fi
+
 step "2. 作業一式(既存の minds_review.xlsx は保持)"
 $PY "$CORE/prepare_review_workspace.py" "$WS/_cq_packages" -o "$WS"
 
@@ -84,7 +89,8 @@ $PY "$CORE/render_console.py" "$WS"/_bundles/*.bundle.json -o "$WS/_secretariat"
 
 step "8. 推奨作成会議の決定記録シート / Minds書類の一式と作成状況の点検"
 DR=""; [ -d "$WS/_drafts" ] && DR="--drafts $WS/_drafts"
-$PY "$CORE/render_meeting.py" -o "$WS/_meeting/決定記録シート.html" $DR
+ET=""; [ -f "$WS/_etd/etd_2023.json" ] && ET="--etd $WS/_etd/etd_2023.json"
+$PY "$CORE/render_meeting.py" -o "$WS/_meeting/決定記録シート.html" $DR $ET
 MT=""; [ -n "${MEETING_JSON:-}" ] && MT="--meeting $MEETING_JSON"
 $PY "$CORE/export_minds_documents.py" "$WS" $MT -o "$WS/_minds_documents"
 
