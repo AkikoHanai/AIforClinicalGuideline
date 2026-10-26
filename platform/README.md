@@ -72,6 +72,8 @@ macOSで「検証できませんでした」と出て開けないときは、ダ
 | `core/render_console.py` | 草案作成シート(委員用。採用文献の概要表に、がん腫・化学療法・介入・対照を表示し、化学療法の分類で絞り込める) / 検証画面(事務局用 `--audience secretariat`) |
 | `core/build_etd.py` | 2023年版PDFから、各CQの推奨・強さ・確実性・投票結果・解説を取り出し、2023年版の体裁の推奨作成の記録(EtD)を作る |
 | `run_jascc.sh` | Googleドライブ JASCC_GL のフォルダで、作業一式・論文・決定記録を管理するコマンド(init / first / papers / full / minds) |
+| `core/render_screening.py` / `core/merge_screening.py` | スクリーニング管理シート(一次・二次・全文・判定の変更・理由)と、2名の照合 |
+| `etd_draft/`、`core/etd_draft_from_2023.py` | 既存GL → GRADE EtD(11基準)の下書き(提供パッケージ)と、2023年版17CQからの生成 |
 | `core/render_meeting.py` | 推奨作成会議の決定記録シート(HTML 1ファイル) |
 | `core/export_minds_documents.py` | Minds書類の一式を集め、CQごと・書類ごとの作成状況を点検する |
 | `tests/ui_check.py` | 画面のブラウザ操作テスト(playwright) |
