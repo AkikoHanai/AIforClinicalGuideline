@@ -38,7 +38,7 @@ if [ ! -x "$VENV/bin/python" ]; then
   $PY -m venv "$VENV"
 fi
 PY="$VENV/bin/python"
-$PY -c "import openpyxl, boto3" 2>/dev/null || $PY -m pip install -q --upgrade pip openpyxl boto3
+$PY -c "import openpyxl, boto3, pydantic, docx" 2>/dev/null || $PY -m pip install -q --upgrade pip openpyxl boto3 pydantic python-docx
 command -v pdftotext >/dev/null || { echo "pdftotext がありません: brew install poppler"; exit 1; }
 
 if [ -n "$PDF" ]; then
@@ -49,6 +49,7 @@ fi
 if [ -n "$PDF" ]; then
   step "1b. 2023年版の推奨作成の記録(EtD)を作成(推奨・強さ・確実性・投票結果・解説の原文)"
   $PY "$CORE/build_etd.py" "$WS/_cq_packages" --pdf "$PDF" -o "$WS/_etd" 2>/dev/null || echo "(EtDの作成に失敗。PDFと pdftotext を確認)"
+  $PY "$CORE/etd_draft_from_2023.py" "$WS/_etd/etd_2023.json" -o "$WS/_etd/etd_draft" || echo "(GRADE EtD下書きの作成に失敗。pydantic と python-docx を確認)"
 fi
 
 step "2. 作業一式(既存の minds_review.xlsx は保持)"
