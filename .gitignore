@@ -67,3 +67,6 @@ migration_bundle/
 
 # Validation output
 sr_validation_output/
+platform/portal/infra/cdk.out/
+platform/portal/api/approved_plan.json
+platform/portal/out/

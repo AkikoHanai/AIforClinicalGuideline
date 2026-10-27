@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GL作成ポータル</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="login" class="login hidden">
+  <h1>GL作成ポータル</h1>
+  <p>がん薬物療法に伴う末梢神経障害診療ガイドライン2028年版</p>
+  <button id="loginBtn" class="primary">ログイン</button>
+  <p class="small">招待された委員だけがログインできます。招待メールの仮パスワードでログインしてください。</p>
+</div>
+<div id="app" class="app hidden">
+  <nav class="side">
+    <div class="brand">GL作成ポータル<span class="small">2028年版</span></div>
+    <a href="#dashboard" data-page="dashboard">ダッシュボード</a>
+    <a href="#members" data-page="members">メンバー管理</a>
+    <a href="#cq" data-page="cq">CQ・PICO一覧</a>
+    <a href="#soron" data-page="soron">総論(A〜N)</a>
+    <a href="#screening" data-page="screening">SR作業(スクリーニング)</a>
+    <a href="#decision" data-page="decision">推奨決定・原稿執筆</a>
+    <a href="#tasks" data-page="tasks">依頼事項</a>
+    <a href="#audit" data-page="audit">承認ログ(Audit Trail)</a>
+    <div class="me"><span id="meName"></span><span id="meGroups" class="small"></span><button id="logoutBtn" class="link">ログアウト</button></div>
+  </nav>
+  <main id="main"></main>
+</div>
+<div id="toast" class="toast hidden"></div>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

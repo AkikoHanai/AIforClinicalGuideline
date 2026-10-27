@@ -42,13 +42,14 @@ def text_of(path):
         return " ".join(out)
     return open(path, encoding="utf-8", errors="ignore").read()
 bad = P["禁止する語(企画書にない介入。生成物に現れたらガードが失敗する)"] + P["禁止する旧体制の氏名(2023年版の体制。企画書にない)"]
-scan_dirs = ["scope", "procedures", "manuals", "meetings", "review", "core", "data", "tests"]
-skip = ("_企画書外_保留", "governance", "soron", "__pycache__", "node_modules", "prior_worksheets")
+scan_dirs = ["scope", "procedures", "manuals", "meetings", "review", "core", "data", "tests", "portal"]
+skip = ("_企画書外_保留", "governance", "soron", "__pycache__", "node_modules", "prior_worksheets", "cdk.out")
 for sd in scan_dirs:
     for dp, dn, fn in os.walk(os.path.join(ROOT, sd)):
         dn[:] = [d for d in dn if d not in skip]
         for n in fn:
             if not n.endswith((".docx", ".xlsx", ".py", ".js", ".md", ".sh", ".json", ".html")): continue
+            if n == "approved_plan.json": continue  # 企画書の機械可読版の複製(禁止語の一覧そのものを含む)
             p = os.path.join(dp, n)
             try: t = text_of(p)
             except Exception: continue
