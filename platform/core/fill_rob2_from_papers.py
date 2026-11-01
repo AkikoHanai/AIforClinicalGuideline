@@ -36,7 +36,7 @@ import xml.etree.ElementTree as ET
 from openpyxl import load_workbook
 
 from minds_forms import (C_CODE, C_COMMENT, C_CTRL_DEN, C_CTRL_NUM, C_DESIGN, C_EFF_CI, C_EFF_TYPE, C_EFF_VAL, C_INSTR,
-                         C_INT_DEN, C_INT_NUM, C_ITEM0, CHEMO_CLASSES, ITEM_KEYS, add_study_all_blocks, ai_reliability_note, classify_chemo, find_row, read_45)
+                         C_INT_DEN, C_INT_NUM, C_ITEM0, CHEMO_CLASSES, ITEM_KEYS, add_study_all_blocks, classify_chemo, find_row, read_45)
 
 DEFAULT_MODEL = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5")
 DRAFT_SHEET = "4-5_Claude下書き"
@@ -71,6 +71,16 @@ PROMPT = """CQ: {cq_title}
 - 非直接性 対象/介入/対照/アウトカム = 本CQのPICOとのずれ(0=一致、-1=やや異なる、-2=大きく異なる)。
   対象では特に「化学療法の種類(白金製剤/タキサン系 等)が本CQの対象と一致するか」を評価する。
 - 非RCTの場合、ランダム化・コンシールメントは null とし、デザインを書く。
+
+判定の手順(各項目で同じ):
+1. 本文(Methods、Results、図表の注記)から、その項目に該当する記載を探し、原文を短く引用する。引用できない記載を根拠にしない。
+2. 記載があり適切なら 0。記載があり不適切なら -2(盲検化の2項目は -1)。記載がなければ -1 とし、根拠欄に「記載なし」と書く。推測で 0 にしない。
+3. 項目ごとに確認する記載: ランダム化=乱数の生成方法。コンシールメント=中央割付・封筒・ウェブ等の割付の隠蔽方法。
+   盲検化=誰が盲検化されたか。ITT=解析集団の定義(ITT / full analysis set / per protocol)。
+   アウトカム不完全報告=群ごとの脱落・欠測の数と割合、その扱い。選択的アウトカム報告=試験登録番号・プロトコールと、報告されたアウトカムの対応。
+   早期試験中止=予定症例数と中止の有無・理由。その他=資金源・COI・単施設・ベースラインの不均衡。
+4. 非直接性は、本CQのP(がん腫・化学療法の種類)・I・C・Oと、本文の記載を1つずつ比べる。
+5. rationale には、項目ごとの引用と判定の理由を書く。
 
 以下の論文本文からJSONを1つだけ返してください(説明文は不要)。
 {{
@@ -287,7 +297,7 @@ def write_45_results(ws, key, res, kind, overwrite=True):
             ws.cell(row=row, column=C_INSTR, value=rr["instrument"])
         if res.get("design"):
             ws.cell(row=row, column=C_DESIGN, value=res["design"])
-        ws.cell(row=row, column=C_COMMENT, value=f"[Claude下書き/本文:{KIND_JA.get(kind, kind)}] {rr.get('rationale') or ''} ［{ai_reliability_note()}］"[:1000])
+        ws.cell(row=row, column=C_COMMENT, value=f"[Claude下書き/本文:{KIND_JA.get(kind, kind)}] {rr.get('rationale') or ''}"[:1000])
         n += 1
     return n
 
@@ -497,7 +507,7 @@ def process_cq(cq_dir, model_id, dry_run, no_fetch):
         if dry_run and draft_has_data(draft, key):
             continue  # sync-only/dry-run では、前回(Bedrock)の下書きを仮値で上書きしない
         res = extract_one(text, kind, ctx, outcomes, model_id, dry_run)
-        if kind == "abstract":  # 抄録のみでは15項目の判定を作らない(検証で一致率が低い。統括委員長の決定 2026-11-01)。研究特性だけを使う
+        if kind == "abstract":  # 抄録のみでは15項目の判定を作らない(様式4-5は本文に基づく。統括委員長の決定 2026-11-01)。研究特性だけを使う
             for rr in res.get("results") or []:
                 rr["items"] = {k: None for k in (rr.get("items") or {})}
                 rr["rationale"] = "抄録のみのため判定せず(PDFを配置して再実行)。" + (rr.get("rationale") or "")
