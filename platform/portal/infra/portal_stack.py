@@ -38,6 +38,10 @@ class PortalStack(Stack):
             cognito.CfnUserPoolGroup(self, f"Group{GROUPS.index(g)}", user_pool_id=pool.user_pool_id, group_name=g)
         domain = pool.add_domain("Domain", cognito_domain=cognito.CognitoDomainOptions(domain_prefix=f"{name}-{cdk.Fn.select(0, cdk.Fn.split('-', cdk.Fn.select(2, cdk.Fn.split('/', self.stack_id))))}"))
 
+        papers = s3.Bucket(self, "Papers", bucket_name=f"{name}-papers-{self.account}", block_public_access=s3.BlockPublicAccess.BLOCK_ALL, encryption=s3.BucketEncryption.S3_MANAGED,
+                           versioned=True, enforce_ssl=True, removal_policy=RemovalPolicy.RETAIN,
+                           cors=[s3.CorsRule(allowed_methods=[s3.HttpMethods.PUT, s3.HttpMethods.GET], allowed_origins=["*"], allowed_headers=["*"], max_age=3600)])
+
         bucket = s3.Bucket(self, "Web", block_public_access=s3.BlockPublicAccess.BLOCK_ALL, encryption=s3.BucketEncryption.S3_MANAGED,
                            removal_policy=RemovalPolicy.DESTROY, auto_delete_objects=True)
         dist = cf.Distribution(self, "Cdn", default_behavior=cf.BehaviorOptions(origin=origins.S3BucketOrigin.with_origin_access_control(bucket),
@@ -54,9 +58,14 @@ class PortalStack(Stack):
                                                               callback_urls=[site + "/", local + "/"], logout_urls=[site + "/", local + "/"]),
                                  prevent_user_existence_errors=True, id_token_validity=Duration.hours(8), access_token_validity=Duration.hours(8), refresh_token_validity=Duration.days(7))
 
-        fn = lam.Function(self, "Api", runtime=lam.Runtime.PYTHON_3_12, handler="handler.handler", code=lam.Code.from_asset(API_DIR), timeout=Duration.seconds(20), memory_size=512,
-                          environment={"TABLE_NAME": table.table_name, "USER_POOL_ID": pool.user_pool_id}, log_retention=logs.RetentionDays.ONE_YEAR)
+        fn = lam.Function(self, "Api", runtime=lam.Runtime.PYTHON_3_12, handler="handler.handler", code=lam.Code.from_asset(API_DIR), timeout=Duration.seconds(120), memory_size=1024,
+                          environment={"TABLE_NAME": table.table_name, "USER_POOL_ID": pool.user_pool_id, "PAPERS_BUCKET": papers.bucket_name,
+                                       "BEDROCK_MODEL_ID": os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5")},
+                          log_retention=logs.RetentionDays.ONE_YEAR)
         table.grant_read_write_data(fn)
+        papers.grant_read_write(fn)
+        fn.add_to_role_policy(iam.PolicyStatement(actions=["bedrock:InvokeModel", "bedrock:Converse"], resources=["*"]))
+        fn.add_to_role_policy(iam.PolicyStatement(actions=["lambda:InvokeFunction"], resources=[f"arn:aws:lambda:{self.region}:{self.account}:function:*"]))
         fn.add_to_role_policy(iam.PolicyStatement(actions=["cognito-idp:AdminCreateUser", "cognito-idp:AdminAddUserToGroup", "cognito-idp:AdminRemoveUserFromGroup", "cognito-idp:AdminListGroupsForUser"],
                                                   resources=[pool.user_pool_arn]))
 
@@ -71,5 +80,5 @@ class PortalStack(Stack):
                                   sources=[s3deploy.Source.asset(WEB_DIR, exclude=["config.js"]), s3deploy.Source.data("config.js", config)])
 
         for k, v in {"SiteUrl": site, "ApiUrl": api.api_endpoint, "UserPoolId": pool.user_pool_id, "ClientId": client.user_pool_client_id,
-                     "CognitoDomain": f"{domain.domain_name}.auth.{self.region}.amazoncognito.com", "TableName": table.table_name}.items():
+                     "CognitoDomain": f"{domain.domain_name}.auth.{self.region}.amazoncognito.com", "TableName": table.table_name, "PapersBucket": papers.bucket_name}.items():
             cdk.CfnOutput(self, k, value=v)

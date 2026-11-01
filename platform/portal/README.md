@@ -1,48 +1,46 @@
 # GL作成ポータル(AWS)
 
-がん薬物療法に伴う末梢神経障害診療ガイドライン2028年版の作成を、委員がブラウザで進めるためのポータル。
-千葉大学の AWS アカウント(東京リージョン)に置く。Google ドライブ JASCC_GL は、原稿と論文の保管に使い続ける。
+がん薬物療法に伴う末梢神経障害診療ガイドライン2028年版の作成を、CIPN診療ガイドライン2023年版の手順(Minds 2020)のとおりに、委員がブラウザで進めるためのポータル。
+千葉大学の AWS アカウント(東京リージョン)に置く。名簿・COI は Google フォーム・ドライブで管理し、ポータルには置かない。
+Google ドライブとの受け渡しは統括委員長の Mac を経由する。
 
-## 画面
-| 画面 | 内容 | 編集できる人 |
+## 画面と、委員が行う判断
+| 画面 | 内容 | 判断する人(Minds) |
 |---|---|---|
-| ダッシュボード | 現在の段階、自分のタスク、担当CQ・総論、承認リクエスト、CQごとの進捗、承認ログ | 段階の変更は統括委員会・事務局 |
-| メンバー管理 | 企画書の名簿。役割(グループ)、メールアドレス、Cognito への招待 | 統括委員会・事務局 |
-| CQ・PICO一覧 | SR項目11・FRQ項目4。8段階(検索〜解説文)の状態、PICO、備考 | 担当委員、SR委員長、統括委員会、事務局 |
-| 総論(A〜N) | 企画書の総論18項目。状態(未着手・執筆中・査読中・完了)、期限、原稿URL | 執筆者本人、SR委員長、統括委員会、事務局。担当の変更は統括委員会 |
-| SR作業(スクリーニング) | スクリーニング管理シートの JSON の取り込みと、担当者別の進捗。照合用に JSON を返す | 本人の JSON は本人、他人の JSON は SR委員長以上 |
-| 推奨決定・原稿執筆 | 様式4-5、様式SR-8・SoF、EtD、解説文の状態 | CQ・PICO一覧と同じ |
-| 依頼事項 | 依頼事項の作成、担当、期限、状態 | 作成はSR委員長以上。状態は担当本人 |
-| 承認リクエスト | 申請、承認・差戻し | 決定は統括委員会のみ |
-| 承認ログ | 全ての変更の追記。更新・削除の操作はない | — |
+| ダッシュボード | 現在の段階、自分の未提出の様式4-5、担当CQ・総論、CQごとの進捗(入力の完了から自動判定)、作成経過の記録 | — |
+| CQ・PICO・アウトカム | SR項目11・FRQ項目4(企画書)。PICO(Pにがん腫・化学療法の種類)、アウトカム(様式4-5・SR-8の単位) | 担当委員、SR委員長 |
+| 論文(PDF登録・本文) | 二次スクリーニング採用論文を PMID で登録し、PDF を置く。本文を抽出し、Method・Result の段落に ID を付ける。研究特性(がん腫、化学療法の分類7区分・薬剤名、デザイン、N、介入、対照、評価時点) | 担当委員 |
+| 様式4-5 | 左に本文の段落(Method・Result、検索、根拠の段落を強調)と PDF、右に 15 項目の判定(0/-1/-2)・根拠の段落ID・引用。2名が独立に判定し提出(相手の評価は2名が提出するまで見えない)。提出後、照合欄で協議の結果を確定。Claude 下書き(本文の段落だけを根拠に作る。本文がない論文では作らない)は出発点として取り込み、修正して提出する | 担当委員2名(照合)、SR委員長 |
+| 様式SR-8 | アウトカムごとに、確定した様式4-5を化学療法の分類で層別して表示。5要因(0/-1/-2)、上昇要因、確実性(A〜D)、層別の結論 | SRチーム |
+| EtD・推奨 | 2023年版の体裁。左に 2023年版の記述(推奨文・強さ・確実性・解説の段落ID・投票)、右に 2028年版の案(推奨文は癌腫・レジメンを明記、強さ、確実性、4つの考慮事項と根拠の段落ID、投票の記録、解説) | 作成グループ(投票)、統括委員会(確定) |
+| 総論(A〜N) | 企画書の 18 項目。状態、期限、原稿URL(Google ドライブ) | 執筆者 |
+| スクリーニングの進捗 | スクリーニング管理シートの JSON の取り込みと担当者別の進捗 | — |
+| 利用者 | ログイン用の登録と招待(氏名は企画書の表記) | 事務局 |
+| 作成経過の記録 | 全操作の追記。更新・削除の操作はない | — |
 
-COI の申告は学会が管理するため、ポータルには置かない。論文 PDF も置かない(PMID と入手状況だけ)。
-判断(採否、バイアスリスク、推奨)は委員が行う。ポータルは記録と集計だけを行う。
+規則: 盲検化の2項目は -2 を使わない(統括委員長の決定)。抄録のみの論文では下書きを作らない。判断は委員が行い、AI は本文の段落を根拠とする下書きに限る。
 
 ## 構成(`infra/portal_stack.py`)
-Cognito(招待制、メールでログイン、MFA任意、役割のグループ7つ) / DynamoDB 1テーブル(`jascc-gl-portal`、PITR) /
-Lambda(Python 3.12、`api/handler.py`)+ API Gateway HTTP API(Cognito JWT 認可) / S3 + CloudFront(`web/`)。
-テーブルと利用者プールはスタックを消しても残る。費用は月額およそ数米ドル(利用者30名、1日数百リクエストの想定)。
+Cognito(招待制、メール、MFA任意、役割グループ7つ)/ DynamoDB 1テーブル(PITR)/ S3(論文PDFと本文、非公開・暗号化・版管理)/
+Lambda(Python 3.12、`api/`。pypdf 同梱。Bedrock で下書き)+ API Gateway HTTP API(Cognito JWT 認可)/ S3 + CloudFront(`web/`)。
+テーブル・利用者プール・論文バケットはスタックを消しても残る。
 
-## 展開
+## 展開(Mac)
 ```bash
+cd ~/AIforClinicalGuideline && git checkout claude/sleepy-turing-a740xe && git pull
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r platform/portal/infra/requirements.txt boto3
 npm install -g aws-cdk
-python3 -m pip install -r platform/portal/infra/requirements.txt
-cd platform/portal/infra && cdk deploy --require-approval never --outputs-file ../out/outputs.json
+export AWS_DEFAULT_REGION=ap-northeast-1
+cd platform/portal/infra && cdk deploy --require-approval never --outputs-file ../out/outputs.json && cd ~/AIforClinicalGuideline
+python3 platform/portal/scripts/admin_user.py <メールアドレス> 華井明子      # 統括委員長の利用者と招待メール
+python3 platform/portal/scripts/admin_user.py --seed <メールアドレス>       # 企画書の CQ・総論を入れる
 ```
-出力の `SiteUrl` がポータルの URL。初回は次の2つを行う。
-1. 統括委員長の利用者を作り、統括委員会のグループに入れる(招待メールが届く):
-   `python3 platform/portal/scripts/admin_user.py <メールアドレス> <氏名>`
-2. ポータルにログインし、メンバー管理の下にある「初期データの作成」(`POST /admin/seed`)を実行する。
-   または `python3 platform/portal/scripts/admin_user.py --seed <メールアドレス>`。企画書の名簿・CQ・総論が入る。
-以後の委員の招待は、メンバー管理の画面から行う(メールアドレスを入れて「招待」)。
+Bedrock のモデルは環境変数 `BEDROCK_MODEL_ID`(省略時 `anthropic.claude-sonnet-4-5`)で指定し、`cdk deploy` の前に設定する。
+2023年版の記述は、`run_jascc.sh first` が作る `etd_2023.json` を、`POST /gl2023` で取り込む(事務局。`scripts/admin_user.py --gl2023 <json> <メールアドレス>`)。
 
 ## 試験
 ```bash
-python3 -m pip install moto pytest
-python3 -m pytest platform/portal/tests -q      # API(moto で DynamoDB を模擬)
+pip install moto pytest pypdf
+python3 -m pytest platform/portal/tests -q
 ```
-
-## 既存ツールとの関係
-- スクリーニング管理シート(`core/render_screening.py`)の JSON を、SR作業の画面で取り込む。照合(`core/merge_screening.py`)は、画面から JSON を取り出して Mac で実行する。
-- 決定記録(`core/render_meeting.py`)と Minds 書類(`core/export_minds_documents.py`)は、これまでどおり生成し、段階の状態だけをポータルに反映する。

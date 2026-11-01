@@ -71,3 +71,5 @@ platform/portal/infra/cdk.out/
 platform/portal/api/approved_plan.json
 platform/portal/out/
 platform/node_modules/
+platform/portal/api/pypdf/
+platform/portal/api/pypdf-*.dist-info/

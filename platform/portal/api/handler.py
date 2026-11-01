@@ -1,33 +1,48 @@
 """GL作成ポータルの API(AWS Lambda)。API Gateway(HTTP API)の JWT 認可(Cognito)を通った要求だけが届く。
+CIPN診療ガイドライン2023年版の作成手順(Minds)を踏襲する。判断は委員が行い、この API は記録・集計・下書きの生成だけを行う。
 
-データは DynamoDB の1テーブル(pk, sk)に置く。
-  MEMBER/<氏名>        名簿(企画書の体制)。email と Cognito のグループを持つ
-  CQ/<id>              SR項目11・FRQ項目4(企画書)。段階ごとの状態
-  SORON/<key>          総論A〜N(企画書)。執筆の状態
-  TASK/<id>            依頼事項(担当、期限、状態)
-  APPROVAL/<id>        承認リクエスト(申請、承認・差戻し)
-  AUDIT/<時刻>#<id>    承認ログ。追記だけで、更新・削除の API はない
-  SCREEN/<CQ>#<担当>   スクリーニング管理シートが出力する JSON(担当者ごとの最新)
-  PHASE/current        現在の段階
-判断(採否、バイアスリスク、推奨)は委員が行う。この API は記録と集計だけを行う。
+DynamoDB 1テーブル(pk, sk):
+  USER/<email>                利用者(氏名、役割)。名簿・COIはGoogleフォーム・ドライブで管理し、ここには置かない
+  CQ/<id>                     SR項目11・FRQ項目4(企画書)。PICO、アウトカム一覧、段階
+  PAPER/<cq>#<pmid>           登録した論文。PDFは S3(papers/<cq>/<pmid>.pdf)、本文の段落は S3(text/<cq>/<pmid>.json)。研究特性
+  F45/<cq>#<pmid>#<outcome>#<評価者>   様式4-5。評価者= 委員の氏名 / "AI"(下書き) / "確定"(照合の結果)
+  SR8/<cq>#<outcome>          様式SR-8(エビデンス総体)
+  ETD/<cq>                    EtD(2023年版の体裁: 推奨文、強さ、確実性、4つの考慮事項、投票)
+  GL2023/<cq>                 2023年版の記述(推奨文・解説・投票。build_etd.py の etd_2023.json を取り込む)
+  SORON/<key>                 総論A〜N(企画書)
+  SCREEN/<cq>#<担当>          スクリーニング管理シートの JSON
+  AUDIT/<時刻>#<id>           作成経過の記録。追記のみ
+  PHASE/current               現在の段階
 """
-import json, os, re, time, uuid, datetime
+import base64, datetime, json, os, re, time, uuid
 import boto3
 from boto3.dynamodb.conditions import Key
 
 TABLE = os.environ.get("TABLE_NAME", "jascc-gl-portal")
+BUCKET = os.environ.get("PAPERS_BUCKET", "")
 USER_POOL = os.environ.get("USER_POOL_ID", "")
+FUNCTION = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "")
 HERE = os.path.dirname(os.path.abspath(__file__))
 _ddb = None
 
-ROLE_ADMIN = {"統括委員会", "事務局"}            # 全ての編集、メンバー管理、承認の決定
-ROLE_LEAD = ROLE_ADMIN | {"SR委員長"}            # CQの段階・依頼事項の編集
+ROLE_ADMIN = {"統括委員会", "事務局"}
+ROLE_LEAD = ROLE_ADMIN | {"SR委員長"}
+ROLE_GROUP = {"統括委員会", "作成グループ"}  # 推奨作成(EtD・投票)
 GROUPS = ["統括委員会", "事務局", "SR委員長", "作成グループ", "SR委員", "総説執筆者", "外部評価委員"]
 CQ_STAGES = ["検索", "一次スクリーニング", "二次スクリーニング", "全文入手", "様式4-5", "様式SR-8・SoF", "EtD", "解説文"]
 STAGE_STATES = ["未着手", "進行中", "完了"]
 SORON_STATES = ["未着手", "執筆中", "査読中", "完了"]
-TASK_STATES = ["未着手", "進行中", "完了"]
 PHASES = ["STEP 1 Scope・体制", "STEP 2 検索・スクリーニング", "STEP 3 システマティックレビュー実施中", "STEP 4 推奨作成", "STEP 5 解説・総論執筆", "STEP 6 外部評価・パブリックコメント", "STEP 7 公開"]
+ITEM_KEYS = ["randomization", "concealment", "blinding_participants", "blinding_assessors", "itt", "incomplete_outcome", "selective_reporting", "early_stopping", "other_bias", "bias_summary",
+             "ind_population", "ind_intervention", "ind_comparator", "ind_outcome", "ind_summary"]
+ITEM_JA = ["ランダム化", "コンシールメント", "盲検化(参加者・医療提供者)", "盲検化(アウトカム評価者)", "ITT", "アウトカム不完全報告", "選択的アウトカム報告", "早期試験中止", "その他のバイアス", "バイアスリスク まとめ",
+           "非直接性 対象", "非直接性 介入", "非直接性 対照", "非直接性 アウトカム", "非直接性 まとめ"]
+CHEMO_CLASSES = ["白金製剤", "タキサン系", "ビンカアルカロイド系", "プロテアソーム阻害薬", "複数/混合", "その他", "不明"]
+SR8_KEYS = ["rob", "inconsistency", "imprecision", "indirectness", "publication_bias", "upgrade", "certainty"]
+SR8_JA = ["バイアスリスク", "非一貫性", "不精確性", "非直接性", "その他(出版バイアス)", "上昇要因", "エビデンスの確実性(A〜D)"]
+ETD_CONSIDERATIONS = [("benefit_harm", "益と害のバランス"), ("certainty", "エビデンスの確実性"), ("values", "患者の価値観・希望"), ("cost", "コスト・資源")]
+STRENGTH = ["1 強い推奨(実施する)", "2 弱い推奨(実施する)", "3 推奨なし", "4 弱い推奨(実施しない)", "5 強い推奨(実施しない)"]
+CERT = ["A(高)", "B(中)", "C(低)", "D(非常に低)"]
 
 
 def table():
@@ -37,8 +52,13 @@ def table():
     return _ddb
 
 
+def s3():
+    from botocore.config import Config
+    return boto3.client("s3", config=Config(signature_version="s3v4"))
+
+
 def now():
-    return datetime.datetime.now(datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=9))).isoformat(timespec="seconds")
+    return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).isoformat(timespec="seconds")
 
 
 def new_id():
@@ -46,7 +66,23 @@ def new_id():
 
 
 def resp(code, body):
-    return {"statusCode": code, "headers": {"Content-Type": "application/json; charset=utf-8"}, "body": json.dumps(body, ensure_ascii=False, default=str)}
+    return {"statusCode": code, "headers": {"Content-Type": "application/json; charset=utf-8"}, "body": json.dumps(body, ensure_ascii=False, default=_dec)}
+
+
+def _dec(o):
+    import decimal
+    if isinstance(o, decimal.Decimal):
+        return int(o) if o == int(o) else float(o)
+    return str(o)
+
+
+def _py(o):
+    """DynamoDB が受け付けない float を Decimal に変える"""
+    import decimal
+    if isinstance(o, float): return decimal.Decimal(str(o))
+    if isinstance(o, dict): return {k: _py(v) for k, v in o.items()}
+    if isinstance(o, list): return [_py(v) for v in o]
+    return o
 
 
 class Forbidden(Exception):
@@ -57,15 +93,12 @@ class Forbidden(Exception):
 def caller(event):
     claims = (((event.get("requestContext") or {}).get("authorizer") or {}).get("jwt") or {}).get("claims") or {}
     groups = claims.get("cognito:groups") or []
-    if isinstance(groups, str):  # HTTP API は "[a b]" の文字列で渡すことがある
+    if isinstance(groups, str):
         groups = [g for g in re.split(r"[\s,\[\]]+", groups) if g]
     email = (claims.get("email") or "").lower()
-    member = None
-    if email:
-        for m in query("MEMBER"):
-            if (m.get("email") or "").lower() == email:
-                member = m; break
-    return {"email": email, "groups": groups, "name": (member or {}).get("name", ""), "member": member}
+    u = get("USER", email) if email else None
+    name = (u or {}).get("name") or claims.get("name") or ""
+    return {"email": email, "groups": groups, "name": name}
 
 
 def require(user, roles):
@@ -74,10 +107,11 @@ def require(user, roles):
 
 
 # ---------- DynamoDB ----------
-def query(pk):
+def query(pk, prefix=None):
     items, kw = [], {}
+    cond = Key("pk").eq(pk) & Key("sk").begins_with(prefix) if prefix else Key("pk").eq(pk)
     while True:
-        r = table().query(KeyConditionExpression=Key("pk").eq(pk), **kw)
+        r = table().query(KeyConditionExpression=cond, **kw)
         items += r.get("Items", [])
         if "LastEvaluatedKey" not in r:
             return items
@@ -90,37 +124,28 @@ def get(pk, sk):
 
 def put(pk, sk, item):
     item = dict(item); item.update({"pk": pk, "sk": sk, "updated_at": now()})
-    table().put_item(Item=item); return item
+    table().put_item(Item=_py(item)); return item
 
 
 def audit(user, action, target, detail=""):
-    """承認ログ。追記のみ。"""
-    sk = f"{datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='microseconds')}#{uuid.uuid4().hex[:6]}"  # 並び順のため精度を上げる
-    table().put_item(Item={"pk": "AUDIT", "sk": sk, "at": now(), "actor": user.get("name") or user.get("email", ""), "email": user.get("email", ""),
-                           "action": action, "target": target, "detail": detail}, ConditionExpression="attribute_not_exists(pk)")
+    """作成経過の記録。追記のみ。"""
+    sk = f"{datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='microseconds')}#{uuid.uuid4().hex[:6]}"
+    table().put_item(Item={"pk": "AUDIT", "sk": sk, "at": now(), "actor": user.get("name") or user.get("email", ""), "email": user.get("email", ""), "action": action, "target": target, "detail": detail[:1000]},
+                     ConditionExpression="attribute_not_exists(pk)")
 
 
 # ---------- 初期データ(企画書) ----------
+def strip(s):
+    return re.sub(r"\(.*?\)", "", s).strip()
+
+
 def seed(user):
     plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
     n = 0
-    body = plan["体制"]
-    roles = {}
-    for m in body["統括委員会"]: roles.setdefault(strip(m), []).append("統括委員会")
-    for m in body["診療ガイドライン作成グループ委員"]: roles.setdefault(strip(m), []).append("作成グループ")
-    for m in body["SRチーム委員(仮案)"]: roles.setdefault(strip(m), []).append("SR委員長" if "委員長" in m else "SR委員")
-    for m in body["外部評価委員(仮)"]: roles.setdefault(strip(m), []).append("外部評価委員")
-    for k, v in plan["総論"].items():
-        for a in re.split("[・]", v.split(":")[-1]):
-            if a and a not in ("GL委員会に依頼",):
-                roles.setdefault(full_name(a, roles), []).append("総説執筆者")
-    for name, rs in roles.items():
-        if not get("MEMBER", name):
-            put("MEMBER", name, {"name": name, "roles": sorted(set(rs)), "email": "", "note": ""}); n += 1
     for it in plan["SR項目"] + plan["FRQ項目"]:
         if not get("CQ", it["id"]):
-            put("CQ", it["id"], {"id": it["id"], "kind": "SR" if it["id"][0] != "F" else "FRQ", "category": it.get("区分", "FRQ(将来の研究課題)"), "title": it["名称"],
-                                 "assignees": it["担当"], "dirs": it["dir"], "stages": {s: "未着手" for s in CQ_STAGES}, "pico": {"P": "", "I": it["名称"], "C": "", "O": ""}, "note": ""}); n += 1
+            put("CQ", it["id"], {"id": it["id"], "kind": "SR" if it["id"][0] != "F" else "FRQ", "category": it.get("区分", "FRQ(将来の研究課題)"), "title": it["名称"], "assignees": it["担当"], "dirs": it["dir"],
+                                 "stages": {s: "未着手" for s in CQ_STAGES}, "pico": {"P": "", "I": it["名称"], "C": "", "O": ""}, "outcomes": [], "note": ""}); n += 1
     for k, v in plan["総論"].items():
         if not get("SORON", k):
             title, _, author = v.rpartition(":")
@@ -131,58 +156,58 @@ def seed(user):
     return {"created": n}
 
 
-def strip(s):
-    return re.sub(r"\(.*?\)", "", s).strip()
-
-
-def full_name(short, roles):
-    """総論の担当(姓)を、名簿の氏名に合わせる。"""
-    for n in roles:
-        if n.startswith(short) or n == short:
-            return n
-    return short
-
-
 # ---------- 集計 ----------
-def cq_progress(cq):
-    done = sum(1 for s in CQ_STAGES if cq.get("stages", {}).get(s) == "完了")
-    return round(100 * done / len(CQ_STAGES))
+def stage_auto(cq):
+    """入力の完了から段階を判定する(委員の操作を要しない)"""
+    cqid = cq["id"]
+    papers = query("PAPER", f"{cqid}#")
+    st = dict(cq.get("stages", {}))
+    if papers:
+        st["全文入手"] = "完了" if all(p.get("status") == "本文抽出済" for p in papers) else "進行中"
+        f45 = query("F45", f"{cqid}#")
+        fixed = {s["sk"].rsplit("#", 1)[0] for s in f45 if s["sk"].endswith("#確定")}
+        need = {f"{cqid}#{p['pmid']}#{o}" for p in papers for o in (cq.get("outcomes") or [])}
+        st["様式4-5"] = "完了" if need and need <= fixed else ("進行中" if f45 else st.get("様式4-5", "未着手"))
+        sr8 = query("SR8", f"{cqid}#")
+        st["様式SR-8・SoF"] = "完了" if cq.get("outcomes") and all(any(s["sk"] == f"{cqid}#{o}" and s.get("certainty") for s in sr8) for o in cq["outcomes"]) else ("進行中" if sr8 else st.get("様式SR-8・SoF", "未着手"))
+        etd = get("ETD", cqid)
+        if etd:
+            st["EtD"] = "完了" if etd.get("status") == "確定" else "進行中"
+    return st
 
 
-def screening_progress(d):
-    P = d.get("papers", [])
-    s1 = lambda p: (p.get("s1") or {}).get("decision", "")
-    s2 = lambda p: (p.get("s2") or {}).get("decision", "")
-    need2 = lambda p: (s1(p) in ("採用", "保留") or p.get("direct")) and not s2(p)
-    targ = lambda p: s2(p) == "採用" or need2(p)
-    return {"reviewer": d.get("reviewer", ""), "saved_at": d.get("saved_at", ""), "papers": len(P),
-            "s1_done": sum(1 for p in P if s1(p)), "s1_todo": sum(1 for p in P if not s1(p) and not p.get("direct")),
-            "s2_done": sum(1 for p in P if s2(p)), "s2_todo": sum(1 for p in P if need2(p)),
-            "ft_missing": sum(1 for p in P if targ(p) and (p.get("ft") or "未入手") == "未入手"),
-            "ft_read": sum(1 for p in P if targ(p) and p.get("ft") == "読了"),
-            "no_reason": sum(1 for p in P if (s1(p) == "除外" and not (p.get("s1") or {}).get("reason", "").strip()) or (s2(p) == "除外" and not (p.get("s2") or {}).get("reason", "").strip()))}
+def progress(st):
+    return round(100 * sum(1 for s in CQ_STAGES if st.get(s) == "完了") / len(CQ_STAGES))
 
 
 def dashboard(user):
     cqs = sorted(query("CQ"), key=lambda c: c["id"])
     soron = sorted(query("SORON"), key=lambda s: s["key"])
-    tasks = query("TASK")
-    mine = [t for t in tasks if user["name"] and t.get("assignee") == user["name"] and t.get("status") != "完了"]
-    my_cq = [c for c in cqs if user["name"] and any(user["name"].startswith(a) for a in c.get("assignees", []))]
-    my_soron = [s for s in soron if user["name"] and any(user["name"].startswith(a) for a in re.split("[・]", s.get("author", "")))]
-    approvals = [a for a in query("APPROVAL") if a.get("status") == "申請中"]
-    audits = sorted(query("AUDIT"), key=lambda a: a["sk"], reverse=True)[:20]
-    return {"user": {"name": user["name"], "email": user["email"], "groups": user["groups"]}, "phase": (get("PHASE", "current") or {}).get("phase", ""),
-            "my_tasks": mine, "my_cq": [{"id": c["id"], "title": c["title"], "progress": cq_progress(c)} for c in my_cq],
+    out_cq = []
+    for c in cqs:
+        st = stage_auto(c); out_cq.append({**c, "stages": st, "progress": progress(st)})
+    my_cq = [c for c in out_cq if user["name"] and any(user["name"].startswith(a) for a in c.get("assignees", []))]
+    my_soron = [s for s in soron if user["name"] and any(user["name"].startswith(a) for a in re.split("[・]", s.get("author", "")) if a)]
+    todo = []
+    for c in my_cq:
+        for p in query("PAPER", f"{c['id']}#"):
+            for o in c.get("outcomes") or []:
+                mine = get("F45", f"{c['id']}#{p['pmid']}#{o}#{user['name']}")
+                if not (mine and mine.get("submitted")):
+                    todo.append({"cq": c["id"], "pmid": p["pmid"], "title": p.get("title", ""), "outcome": o})
+    return {"user": user, "phase": (get("PHASE", "current") or {}).get("phase", ""), "cq": out_cq, "my_cq": [{"id": c["id"], "title": c["title"], "progress": c["progress"]} for c in my_cq],
+            "my_f45_todo": todo[:50], "my_f45_todo_count": len(todo),
             "my_soron": [{"key": s["key"], "label": s["label"], "title": s["title"], "status": s["status"]} for s in my_soron],
-            "pending_approvals": approvals, "cq": [{**c, "progress": cq_progress(c)} for c in cqs],
-            "soron_summary": {st: sum(1 for s in soron if s.get("status") == st) for st in SORON_STATES}, "audit": audits}
+            "soron_summary": {st: sum(1 for s in soron if s.get("status") == st) for st in SORON_STATES},
+            "audit": sorted(query("AUDIT"), key=lambda a: a["sk"], reverse=True)[:20]}
 
 
 # ---------- ルーティング ----------
 def handler(event, context=None):
+    if event.get("task") == "draft45":  # 非同期の下書き(自分自身を invoke)
+        return run_draft45(event)
     method = (event.get("requestContext") or {}).get("http", {}).get("method") or event.get("httpMethod", "GET")
-    path = re.sub(r"^/(prod|v1)", "", event.get("rawPath") or event.get("path") or "/")
+    path = event.get("rawPath") or event.get("path") or "/"
     body = {}
     if event.get("body"):
         try:
@@ -193,23 +218,23 @@ def handler(event, context=None):
         user = caller(event)
         if not user["email"]:
             return resp(401, {"error": "ログインが必要です"})
-        return route(method, path, body, user)
+        return route(method, [p for p in path.split("/") if p], body, user)
     except Forbidden as e:
         return resp(403, {"error": str(e)})
     except KeyError as e:
         return resp(400, {"error": f"項目がありません: {e}"})
 
 
-def route(method, path, body, user):
-    parts = [p for p in path.split("/") if p]
+def route(method, parts, body, user):
     head = parts[0] if parts else ""
     if head == "me":
-        return resp(200, {"name": user["name"], "email": user["email"], "groups": user["groups"], "member": user["member"]})
+        return resp(200, user)
+    if head == "meta":
+        return resp(200, {"stages": CQ_STAGES, "stage_states": STAGE_STATES, "soron_states": SORON_STATES, "phases": PHASES, "groups": GROUPS, "item_keys": ITEM_KEYS, "item_ja": ITEM_JA,
+                          "chemo_classes": CHEMO_CLASSES, "sr8_keys": SR8_KEYS, "sr8_ja": SR8_JA, "etd_considerations": ETD_CONSIDERATIONS, "strength": STRENGTH, "cert": CERT})
     if head == "dashboard":
         return resp(200, dashboard(user))
-    if head == "meta":
-        return resp(200, {"stages": CQ_STAGES, "stage_states": STAGE_STATES, "soron_states": SORON_STATES, "task_states": TASK_STATES, "phases": PHASES, "groups": GROUPS})
-    if head == "admin" and len(parts) > 1 and parts[1] == "seed" and method == "POST":
+    if head == "admin" and parts[1:2] == ["seed"] and method == "POST":
         require(user, ROLE_ADMIN); return resp(200, seed(user))
     if head == "phase":
         if method == "PUT":
@@ -217,81 +242,321 @@ def route(method, path, body, user):
             if body["phase"] not in PHASES: return resp(400, {"error": "段階の値が不正です"})
             put("PHASE", "current", {"phase": body["phase"]}); audit(user, "段階の変更", "全体", body["phase"]); return resp(200, {"ok": True})
         return resp(200, get("PHASE", "current") or {})
-    if head == "members":
-        return members(method, parts, body, user)
+    if head == "users":
+        return users(method, parts, body, user)
     if head == "cq":
         return cq(method, parts, body, user)
+    if head == "papers":
+        return papers(method, parts, body, user)
+    if head == "f45":
+        return f45(method, parts, body, user)
+    if head == "sr8":
+        return sr8(method, parts, body, user)
+    if head == "etd":
+        return etd(method, parts, body, user)
+    if head == "gl2023":
+        return gl2023(method, parts, body, user)
     if head == "soron":
         return soron(method, parts, body, user)
-    if head == "tasks":
-        return tasks(method, parts, body, user)
-    if head == "approvals":
-        return approvals(method, parts, body, user)
-    if head == "audit":
-        return resp(200, sorted(query("AUDIT"), key=lambda a: a["sk"], reverse=True))
     if head == "screening":
         return screening(method, parts, body, user)
+    if head == "audit":
+        return resp(200, sorted(query("AUDIT"), key=lambda a: a["sk"], reverse=True))
     return resp(404, {"error": "ありません"})
 
 
-def members(method, parts, body, user):
+# ---------- 利用者(ログイン用。名簿ではない) ----------
+def users(method, parts, body, user):
     if method == "GET":
-        return resp(200, sorted(query("MEMBER"), key=lambda m: m["name"]))
+        return resp(200, sorted(query("USER"), key=lambda u: u.get("name", "")))
     require(user, ROLE_ADMIN)
-    name = body["name"].strip()
     if method in ("POST", "PUT"):
-        old = get("MEMBER", name) or {"name": name}
-        item = {**old, "roles": body.get("roles", old.get("roles", [])), "email": body.get("email", old.get("email", "")).strip().lower(), "note": body.get("note", old.get("note", ""))}
-        put("MEMBER", name, item)
-        invited = False
-        if body.get("invite") and item["email"] and USER_POOL:
-            invited = invite(item["email"], name, item["roles"])
-        audit(user, "名簿の更新" + ("と招待" if invited else ""), name, f"役割: {'・'.join(item['roles'])}")
-        return resp(200, {**item, "invited": invited})
-    if method == "DELETE":
-        table().delete_item(Key={"pk": "MEMBER", "sk": name}); audit(user, "名簿から削除", name); return resp(200, {"ok": True})
+        email = body["email"].strip().lower(); name = body["name"].strip(); roles = [g for g in body.get("roles", []) if g in GROUPS]
+        put("USER", email, {"email": email, "name": name, "roles": roles})
+        invited = invite(email, name, roles) if body.get("invite") and USER_POOL else False
+        audit(user, "利用者の登録" + ("と招待" if invited else ""), name, "役割: " + "・".join(roles)); return resp(200, {"email": email, "name": name, "roles": roles, "invited": invited})
+    if method == "DELETE" and len(parts) > 1:
+        table().delete_item(Key={"pk": "USER", "sk": parts[1].lower()}); audit(user, "利用者の削除", parts[1]); return resp(200, {"ok": True})
     return resp(405, {"error": "方法が不正です"})
 
 
 def invite(email, name, roles):
-    """Cognito に利用者を作り、招待メールを送る。既にある場合はグループだけ合わせる。"""
     idp = boto3.client("cognito-idp")
     try:
         idp.admin_create_user(UserPoolId=USER_POOL, Username=email, UserAttributes=[{"Name": "email", "Value": email}, {"Name": "email_verified", "Value": "true"}, {"Name": "name", "Value": name}],
                               DesiredDeliveryMediums=["EMAIL"])
     except idp.exceptions.UsernameExistsException:
-        pass
+        idp.admin_update_user_attributes(UserPoolId=USER_POOL, Username=email, UserAttributes=[{"Name": "name", "Value": name}])
     current = {g["GroupName"] for g in idp.admin_list_groups_for_user(Username=email, UserPoolId=USER_POOL).get("Groups", [])}
-    for g in set(roles) - current:
-        idp.admin_add_user_to_group(UserPoolId=USER_POOL, Username=email, GroupName=g)
-    for g in current - set(roles):
-        idp.admin_remove_user_from_group(UserPoolId=USER_POOL, Username=email, GroupName=g)
+    for g in set(roles) - current: idp.admin_add_user_to_group(UserPoolId=USER_POOL, Username=email, GroupName=g)
+    for g in current - set(roles): idp.admin_remove_user_from_group(UserPoolId=USER_POOL, Username=email, GroupName=g)
     return True
+
+
+# ---------- CQ ----------
+def is_assignee(user, c):
+    return bool(user["name"]) and any(user["name"].startswith(a) for a in c.get("assignees", []))
 
 
 def cq(method, parts, body, user):
     if method == "GET":
         if len(parts) > 1:
-            c = get("CQ", parts[1]); return resp(200, {**c, "progress": cq_progress(c)}) if c else resp(404, {"error": "ありません"})
-        return resp(200, [{**c, "progress": cq_progress(c)} for c in sorted(query("CQ"), key=lambda c: c["id"])])
+            c = get("CQ", parts[1])
+            if not c: return resp(404, {"error": "ありません"})
+            st = stage_auto(c); return resp(200, {**c, "stages": st, "progress": progress(st)})
+        return resp(200, [{**c, "stages": stage_auto(c), "progress": progress(stage_auto(c))} for c in sorted(query("CQ"), key=lambda c: c["id"])])
     if method == "PUT" and len(parts) > 1:
         c = get("CQ", parts[1])
         if not c: return resp(404, {"error": "ありません"})
-        own = user["name"] and any(user["name"].startswith(a) for a in c.get("assignees", []))
-        if not own: require(user, ROLE_LEAD)
-        changes = []
-        if "stages" in body:
-            for s, v in body["stages"].items():
-                if s in CQ_STAGES and v in STAGE_STATES and c["stages"].get(s) != v:
-                    changes.append(f"{s}: {c['stages'].get(s)}→{v}"); c["stages"][s] = v
-        if "pico" in body:
-            c["pico"] = {k: str(body["pico"].get(k, c["pico"].get(k, ""))) for k in "PICO"}; changes.append("PICO")
-        if "note" in body:
-            c["note"] = str(body["note"]); changes.append("備考")
-        put("CQ", c["id"], c); audit(user, "CQの更新", c["id"], "、".join(changes)); return resp(200, {**c, "progress": cq_progress(c)})
+        if not is_assignee(user, c): require(user, ROLE_LEAD)
+        ch = []
+        if "pico" in body: c["pico"] = {k: str(body["pico"].get(k, c["pico"].get(k, ""))) for k in "PICO"}; ch.append("PICO")
+        if "outcomes" in body: c["outcomes"] = [str(o).strip() for o in body["outcomes"] if str(o).strip()]; ch.append("アウトカム: " + "、".join(c["outcomes"]))
+        if "note" in body: c["note"] = str(body["note"]); ch.append("備考")
+        for s in ("検索", "一次スクリーニング", "二次スクリーニング", "解説文"):  # 入力から自動判定できない段階だけ手で更新する
+            if s in (body.get("stages") or {}) and body["stages"][s] in STAGE_STATES: c["stages"][s] = body["stages"][s]; ch.append(f"{s}: {body['stages'][s]}")
+        put("CQ", c["id"], c); audit(user, "CQの更新", c["id"], "、".join(ch)); st = stage_auto(c); return resp(200, {**c, "stages": st, "progress": progress(st)})
     return resp(405, {"error": "方法が不正です"})
 
 
+# ---------- 論文(PDF登録・本文) ----------
+def paper_key(cqid, pmid):
+    return f"{cqid}#{pmid}"
+
+
+def papers(method, parts, body, user):
+    # GET /papers/<cq>                      一覧
+    # POST /papers/<cq>/<pmid>/upload-url   PDF置き場(署名付きURL)。登録も行う
+    # POST /papers/<cq>/<pmid>/extract      PDFから段落を抽出して保存
+    # GET /papers/<cq>/<pmid>/text          段落(ID付き)
+    # GET /papers/<cq>/<pmid>/pdf-url       PDF閲覧(署名付きURL)
+    # PUT /papers/<cq>/<pmid>               研究特性・題名
+    if method == "GET" and len(parts) == 2:
+        return resp(200, sorted(query("PAPER", f"{parts[1]}#"), key=lambda p: p["pmid"]))
+    if len(parts) < 3: return resp(400, {"error": "CQ と PMID が必要です"})
+    cqid, pmid = parts[1], re.sub(r"\D", "", parts[2])
+    c = get("CQ", cqid)
+    if not c or not pmid: return resp(404, {"error": "CQ または PMID が不正です"})
+    sub = parts[3] if len(parts) > 3 else ""
+    p = get("PAPER", paper_key(cqid, pmid))
+    if method == "GET" and sub == "text":
+        if not p or not p.get("text_key"): return resp(404, {"error": "本文が未抽出です"})
+        return resp(200, json.loads(s3().get_object(Bucket=BUCKET, Key=p["text_key"])["Body"].read()))
+    if method == "GET" and sub == "pdf-url":
+        if not p or not p.get("s3_key"): return resp(404, {"error": "PDFが未登録です"})
+        url = s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": p["s3_key"], "ResponseContentType": "application/pdf", "ResponseContentDisposition": "inline"}, ExpiresIn=900)
+        audit(user, "PDFの閲覧", f"{cqid} / PMID {pmid}"); return resp(200, {"url": url})
+    if not (is_assignee(user, c) or set(user["groups"]) & ROLE_LEAD): raise Forbidden("この CQ の担当委員、SR委員長、統括委員会、事務局に限ります")
+    if method == "POST" and sub == "upload-url":
+        key = f"papers/{cqid}/{pmid}.pdf"
+        if not p:
+            p = put("PAPER", paper_key(cqid, pmid), {"cq": cqid, "pmid": pmid, "title": body.get("title", ""), "s3_key": key, "status": "登録", "registered_by": user["name"] or user["email"], "chars": {}})
+            audit(user, "論文の登録", f"{cqid} / PMID {pmid}", body.get("title", ""))
+        url = s3().generate_presigned_url("put_object", Params={"Bucket": BUCKET, "Key": key, "ContentType": "application/pdf"}, ExpiresIn=900)
+        return resp(200, {"url": url, "key": key})
+    if method == "POST" and sub == "extract":
+        if not p: return resp(404, {"error": "未登録です"})
+        from extract_text import pdf_pages, paragraphs
+        data = s3().get_object(Bucket=BUCKET, Key=p["s3_key"])["Body"].read()
+        pages = pdf_pages(data); paras = paragraphs(pmid, pages)
+        text_key = f"text/{cqid}/{pmid}.json"
+        s3().put_object(Bucket=BUCKET, Key=text_key, Body=json.dumps({"pmid": pmid, "pages": len(pages), "paragraphs": paras}, ensure_ascii=False).encode(), ContentType="application/json")
+        secs = {s: sum(1 for x in paras if x["section"] == s) for s in ("abstract", "methods", "results", "discussion", "other")}
+        p.update({"text_key": text_key, "status": "本文抽出済", "pages": len(pages), "n_paragraphs": len(paras), "sections": secs}); put("PAPER", p["sk"], p)
+        audit(user, "本文の抽出", f"{cqid} / PMID {pmid}", f"{len(pages)}ページ、{len(paras)}段落(Method {secs['methods']}、Result {secs['results']})")
+        return resp(200, {"pages": len(pages), "paragraphs": len(paras), "sections": secs})
+    if method == "PUT" and not sub:
+        if not p: return resp(404, {"error": "未登録です"})
+        if "title" in body: p["title"] = str(body["title"])
+        if "chars" in body:
+            ch = {k: str(body["chars"].get(k, "")) for k in ("design", "cancer", "chemo_drugs", "chemo_class", "n_total", "n_int", "intervention_detail", "comparator_detail", "followup")}
+            if ch["chemo_class"] and ch["chemo_class"] not in CHEMO_CLASSES: return resp(400, {"error": "化学療法の分類は " + "/".join(CHEMO_CLASSES)})
+            p["chars"] = ch
+        put("PAPER", p["sk"], p); audit(user, "研究特性の更新", f"{cqid} / PMID {pmid}", f"がん腫: {p['chars'].get('cancer', '')}、分類: {p['chars'].get('chemo_class', '')}"); return resp(200, p)
+    if method == "DELETE" and not sub:
+        require(user, ROLE_LEAD)
+        if p: table().delete_item(Key={"pk": "PAPER", "sk": p["sk"]}); audit(user, "論文の登録解除", f"{cqid} / PMID {pmid}")
+        return resp(200, {"ok": True})
+    return resp(405, {"error": "方法が不正です"})
+
+
+# ---------- 様式4-5 ----------
+def f45_key(cqid, pmid, outcome, reviewer):
+    return f"{cqid}#{pmid}#{outcome}#{reviewer}"
+
+
+def f45(method, parts, body, user):
+    # GET  /f45/<cq>/<pmid>/<outcome>            自分の評価、AI下書き、照合(2名が提出済みのときだけ相手の評価と確定欄)
+    # PUT  /f45/<cq>/<pmid>/<outcome>            自分の評価の保存(submitted=true で提出)
+    # PUT  /f45/<cq>/<pmid>/<outcome>/final      照合の確定(提出済みの2名、またはSR委員長以上)
+    # POST /f45/<cq>/<pmid>/<outcome>/draft      AI下書きの作成(本文抽出済みの論文に限る。非同期)
+    if len(parts) < 4: return resp(400, {"error": "CQ、PMID、アウトカムが必要です"})
+    cqid, pmid, outcome = parts[1], parts[2], parts[3]
+    sub = parts[4] if len(parts) > 4 else ""
+    c = get("CQ", cqid); p = get("PAPER", paper_key(cqid, pmid))
+    if not c or not p: return resp(404, {"error": "CQ または論文がありません"})
+    if outcome not in (c.get("outcomes") or []): return resp(400, {"error": "この CQ のアウトカムにありません(CQ・PICO一覧で登録)"})
+    recs = {r["sk"].rsplit("#", 1)[1]: r for r in query("F45", f"{cqid}#{pmid}#{outcome}#")}
+    reviewers = sorted(k for k in recs if k not in ("AI", "確定"))
+    submitted = [k for k in reviewers if recs[k].get("submitted")]
+    lead = bool(set(user["groups"]) & ROLE_LEAD)
+    if method == "GET":
+        mine = recs.get(user["name"])
+        both = len(submitted) >= 2
+        others = {k: v for k, v in recs.items() if k not in ("AI", "確定", user["name"])} if (both or lead) else {}
+        return resp(200, {"mine": mine, "ai": recs.get("AI"), "final": recs.get("確定"), "others": others, "reviewers": reviewers, "submitted": submitted, "reconcile_open": both,
+                          "paper": p, "item_keys": ITEM_KEYS, "item_ja": ITEM_JA})
+    if method == "PUT" and not sub:
+        if not user["name"]: return resp(400, {"error": "利用者の氏名が未登録です(事務局に依頼)"})
+        if not (is_assignee(user, c) or lead): raise Forbidden("この CQ の担当委員に限ります")
+        mine = recs.get(user["name"]) or {}
+        if mine.get("submitted") and not lead and body.get("submitted") is not False:
+            return resp(409, {"error": "提出済みです。変更は照合で行います"})
+        items = norm_items(body.get("items") or {})
+        rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": user["name"], "items": items, "counts": body.get("counts") or {}, "effect": body.get("effect") or {},
+               "instrument": str(body.get("instrument", "")), "note": str(body.get("note", "")), "submitted": bool(body.get("submitted")), "submitted_at": now() if body.get("submitted") else ""}
+        put("F45", f45_key(cqid, pmid, outcome, user["name"]), rec)
+        audit(user, "様式4-5の" + ("提出" if rec["submitted"] else "保存"), f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); return resp(200, rec)
+    if method == "PUT" and sub == "final":
+        if not (lead or (user["name"] in submitted and len(submitted) >= 2)): raise Forbidden("照合の確定は、提出済みの評価者2名、またはSR委員長以上に限ります")
+        if len(submitted) < 2 and not lead: return resp(409, {"error": "2名の提出が必要です"})
+        items = norm_items(body.get("items") or {})
+        rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "確定", "items": items, "counts": body.get("counts") or {}, "effect": body.get("effect") or {}, "instrument": str(body.get("instrument", "")),
+               "note": str(body.get("note", "")), "fixed_by": user["name"], "based_on": submitted}
+        put("F45", f45_key(cqid, pmid, outcome, "確定"), rec); audit(user, "様式4-5の確定(照合)", f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); return resp(200, rec)
+    if method == "POST" and sub == "draft":
+        if not (is_assignee(user, c) or lead): raise Forbidden("この CQ の担当委員に限ります")
+        if p.get("status") != "本文抽出済": return resp(409, {"error": "本文が未抽出です。PDFを登録し、本文を抽出してください(抄録だけでは作りません)"})
+        put("F45", f45_key(cqid, pmid, outcome, "AI"), {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "作成中", "requested_by": user["name"]})
+        ev = {"task": "draft45", "cq": cqid, "pmid": pmid, "outcome": outcome, "user": user}
+        if FUNCTION:
+            boto3.client("lambda").invoke(FunctionName=FUNCTION, InvocationType="Event", Payload=json.dumps(ev, ensure_ascii=False).encode())
+        else:
+            run_draft45(ev)
+        audit(user, "様式4-5の下書きを依頼", f"{cqid} / PMID {pmid} / {outcome}"); return resp(202, {"status": "作成中"})
+    return resp(405, {"error": "方法が不正です"})
+
+
+def norm_items(items):
+    out = {}
+    for k in ITEM_KEYS:
+        it = items.get(k) or {}
+        v = it.get("v") if isinstance(it, dict) else it
+        if isinstance(v, str) and v.strip() in ("0", "-1", "-2"): v = int(v)
+        if v not in (0, -1, -2): v = None
+        if k in ("blinding_participants", "blinding_assessors") and v == -2: v = -1  # 統括委員長の決定
+        out[k] = {"v": v, "evidence": [str(e) for e in (it.get("evidence") or [])][:10] if isinstance(it, dict) else [], "quote": str(it.get("quote", ""))[:400] if isinstance(it, dict) else ""}
+    return out
+
+
+def summarize_items(items):
+    return " ".join(f"{ja}={items[k]['v'] if items[k]['v'] is not None else '—'}" for k, ja in zip(ITEM_KEYS, ITEM_JA))
+
+
+def run_draft45(ev):
+    cqid, pmid, outcome, user = ev["cq"], ev["pmid"], ev["outcome"], ev.get("user") or {"name": "system", "email": ""}
+    key = f45_key(cqid, pmid, outcome, "AI")
+    try:
+        c = get("CQ", cqid); p = get("PAPER", paper_key(cqid, pmid))
+        from extract_text import relevant
+        import draft45
+        text = json.loads(s3().get_object(Bucket=BUCKET, Key=p["text_key"])["Body"].read())
+        paras = relevant(text["paragraphs"])
+        out = draft45.draft(c["title"], c["pico"].get("P"), c["pico"].get("I") or c["title"], outcome, paras)
+        rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "下書き", "items": out["items"], "study": out.get("study") or {}, "design": out.get("design"),
+               "counts": out.get("counts") or {}, "effect": out.get("effect") or {}, "model": draft45.MODEL_ID, "paragraphs_used": [x["id"] for x in paras], "at": now()}
+        put("F45", key, rec); audit(user, "様式4-5の下書きを作成", f"{cqid} / PMID {pmid} / {outcome}", f"段落 {len(paras)}件を根拠に。" + summarize_items(out["items"]))
+        return {"ok": True}
+    except Exception as e:
+        put("F45", key, {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "失敗", "error": str(e)[:500]})
+        audit(user, "様式4-5の下書きに失敗", f"{cqid} / PMID {pmid} / {outcome}", str(e)[:300]); return {"ok": False}
+
+
+# ---------- 様式SR-8 ----------
+def sr8(method, parts, body, user):
+    # GET /sr8/<cq>              アウトカムごとの SR-8 と、確定済み様式4-5の集計(研究数、分類別)
+    # PUT /sr8/<cq>/<outcome>    SRチーム(担当委員・SR委員長)が記入
+    if len(parts) < 2: return resp(400, {"error": "CQ が必要です"})
+    cqid = parts[1]; c = get("CQ", cqid)
+    if not c: return resp(404, {"error": "ありません"})
+    if method == "GET":
+        papers = {p["pmid"]: p for p in query("PAPER", f"{cqid}#")}
+        finals = [r for r in query("F45", f"{cqid}#") if r["sk"].endswith("#確定")]
+        rows = {r["sk"].rsplit("#", 1)[0]: r for r in query("SR8", f"{cqid}#")}
+        out = []
+        for o in c.get("outcomes") or []:
+            fs = [f for f in finals if f["outcome"] == o]
+            by_class = {}
+            for f in fs:
+                cls = (papers.get(f["pmid"], {}).get("chars") or {}).get("chemo_class") or "不明"
+                by_class.setdefault(cls, []).append({"pmid": f["pmid"], "bias_summary": f["items"]["bias_summary"]["v"], "ind_summary": f["items"]["ind_summary"]["v"], "effect": f.get("effect"), "counts": f.get("counts")})
+            out.append({"outcome": o, "n_studies": len(fs), "by_chemo_class": by_class, "sr8": rows.get(f"{cqid}#{o}")})
+        return resp(200, {"cq": cqid, "outcomes": out, "sr8_keys": SR8_KEYS, "sr8_ja": SR8_JA})
+    if method == "PUT" and len(parts) > 2:
+        o = parts[2]
+        if o not in (c.get("outcomes") or []): return resp(400, {"error": "アウトカムがありません"})
+        if not (is_assignee(user, c) or set(user["groups"]) & ROLE_LEAD): raise Forbidden("SRチーム(担当委員・SR委員長)に限ります")
+        rec = {"cq": cqid, "outcome": o, "by": user["name"]}
+        for k in ("rob", "inconsistency", "imprecision", "indirectness", "publication_bias"):
+            v = body.get(k); rec[k] = int(v) if str(v) in ("0", "-1", "-2") else None
+        rec["upgrade"] = int(body["upgrade"]) if str(body.get("upgrade")) in ("0", "1", "2") else None
+        rec["certainty"] = body.get("certainty") if body.get("certainty") in CERT else ""
+        rec["strata"] = str(body.get("strata", "")); rec["effect_summary"] = str(body.get("effect_summary", "")); rec["note"] = str(body.get("note", ""))
+        put("SR8", f"{cqid}#{o}", rec); audit(user, "様式SR-8の記入", f"{cqid} / {o}", f"確実性 {rec['certainty'] or '—'}"); return resp(200, rec)
+    return resp(405, {"error": "方法が不正です"})
+
+
+# ---------- EtD(2023年版の体裁) ----------
+def etd(method, parts, body, user):
+    if len(parts) < 2: return resp(400, {"error": "CQ が必要です"})
+    cqid = parts[1]; c = get("CQ", cqid)
+    if not c: return resp(404, {"error": "ありません"})
+    if method == "GET":
+        e = get("ETD", cqid) or {"cq": cqid, "rec_draft": "", "strength": "", "certainty": "", "scope_note": "", "considerations": {k: {"text": "", "evidence": []} for k, _ in ETD_CONSIDERATIONS}, "vote": {}, "status": "下書き"}
+        sr = {r["outcome"]: r for r in query("SR8", f"{cqid}#")}
+        return resp(200, {"etd": e, "gl2023": get("GL2023", cqid), "sr8": sr, "considerations": ETD_CONSIDERATIONS, "strength": STRENGTH, "cert": CERT})
+    if method == "PUT":
+        require(user, ROLE_GROUP | ROLE_LEAD)
+        e = get("ETD", cqid) or {"cq": cqid, "considerations": {}, "vote": {}}
+        if e.get("status") == "確定" and body.get("status") != "下書き": require(user, {"統括委員会"})
+        for k in ("rec_draft", "scope_note", "narrative"):
+            if k in body: e[k] = str(body[k])
+        if "strength" in body: e["strength"] = body["strength"] if body["strength"] in STRENGTH else ""
+        if "certainty" in body: e["certainty"] = body["certainty"] if body["certainty"] in CERT else ""
+        if "considerations" in body:
+            e["considerations"] = {k: {"text": str((body["considerations"].get(k) or {}).get("text", "")), "evidence": [str(x) for x in (body["considerations"].get(k) or {}).get("evidence", [])][:30]} for k, _ in ETD_CONSIDERATIONS}
+        if "vote" in body:
+            v = body["vote"]; counts = [int(x or 0) for x in (v.get("counts") or [0, 0, 0, 0, 0])][:5]
+            denom = int(v.get("denominator") or sum(counts)); top = max(counts) if counts else 0
+            e["vote"] = {"round": int(v.get("round") or 1), "counts": counts, "denominator": denom, "coi_excluded": int(v.get("coi_excluded") or 0), "sr_excluded": int(v.get("sr_excluded") or 0),
+                         "agreement": round(100 * top / denom) if denom else None, "date": str(v.get("date", "")), "note": str(v.get("note", ""))}
+        if "status" in body and body["status"] in ("下書き", "協議中", "確定"):
+            if body["status"] == "確定": require(user, {"統括委員会"})
+            e["status"] = body["status"]
+        put("ETD", cqid, e); audit(user, "EtDの更新", cqid, f"状態 {e.get('status', '下書き')}" + (f"、投票 第{e['vote']['round']}回 合意率 {e['vote']['agreement']}%" if e.get("vote") else "")); return resp(200, e)
+    return resp(405, {"error": "方法が不正です"})
+
+
+def gl2023(method, parts, body, user):
+    """2023年版の記述(build_etd.py の etd_2023.json)。統括委員会・事務局が取り込む。CQ ごとに、推奨文・強さ・確実性・解説・投票を置く"""
+    if method == "GET":
+        return resp(200, sorted(query("GL2023"), key=lambda g: g["sk"])) if len(parts) < 2 else resp(200, get("GL2023", parts[1]) or {})
+    if method == "POST":
+        require(user, ROLE_ADMIN)
+        items = body if isinstance(body, list) else body.get("items")
+        if not isinstance(items, list): return resp(400, {"error": "etd_2023.json の配列が必要です"})
+        plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
+        dir2id = {d: it["id"] for it in plan["SR項目"] + plan["FRQ項目"] for d in it["dir"]}  # 2023年版の作業フォルダ名 → 企画書の項目ID
+        n = 0
+        for n_, it in enumerate(items, 1):
+            cqid = it.get("plan_id") or it.get("cq") or dir2id.get(it.get("dir", "")) or f"CQ{n_:02d}"
+            paras = [{"id": f"GL2023-{cqid}-p{i + 1:03d}", "text": s} for i, s in enumerate(x for x in re.split(r"(?<=。)\s*", it.get("narrative") or "") if x.strip())]
+            put("GL2023", cqid, {"cq": cqid, "title": it.get("title", ""), "dir": it.get("dir", ""), "rec": it.get("rec", ""), "strength": it.get("strength", ""), "certainty": it.get("certainty", ""), "votes": it.get("votes"), "paragraphs": paras}); n += 1
+        audit(user, "2023年版の記述の取り込み", "全CQ", f"{n}件"); return resp(200, {"imported": n})
+    return resp(405, {"error": "方法が不正です"})
+
+
+# ---------- 総論 ----------
 def soron(method, parts, body, user):
     if method == "GET":
         return resp(200, sorted(query("SORON"), key=lambda s: s["key"]))
@@ -300,77 +565,40 @@ def soron(method, parts, body, user):
         if not s: return resp(404, {"error": "ありません"})
         own = user["name"] and any(user["name"].startswith(a) for a in re.split("[・]", s.get("author", "")) if a)
         if not own: require(user, ROLE_LEAD)
-        changes = []
-        if "status" in body and body["status"] in SORON_STATES and body["status"] != s["status"]:
-            changes.append(f"状態: {s['status']}→{body['status']}"); s["status"] = body["status"]
-        for k in ("due", "draft_url", "note"):
-            if k in body: s[k] = str(body[k]); changes.append({"due": "期限", "draft_url": "原稿", "note": "備考"}[k])
-        if "author" in body:
-            require(user, ROLE_ADMIN); s["author"] = str(body["author"]); changes.append("担当(企画書の変更は統括委員会の承認が必要)")
-        put("SORON", s["key"], s); audit(user, "総論の更新", f"総論{s['label']}", "、".join(changes)); return resp(200, s)
+        ch = []
+        if "status" in body and body["status"] in SORON_STATES and body["status"] != s["status"]: ch.append(f"状態: {s['status']}→{body['status']}"); s["status"] = body["status"]
+        for k, ja in (("due", "期限"), ("draft_url", "原稿"), ("note", "備考")):
+            if k in body: s[k] = str(body[k]); ch.append(ja)
+        put("SORON", s["key"], s); audit(user, "総論の更新", f"総論{s['label']}", "、".join(ch)); return resp(200, s)
     return resp(405, {"error": "方法が不正です"})
 
 
-def tasks(method, parts, body, user):
-    if method == "GET":
-        return resp(200, sorted(query("TASK"), key=lambda t: (t.get("status") == "完了", t.get("due") or "9999", t["sk"])))
-    if method == "POST":
-        require(user, ROLE_LEAD)
-        t = {"id": new_id(), "title": body["title"], "assignee": body.get("assignee", ""), "ref": body.get("ref", ""), "due": body.get("due", ""), "status": "未着手", "created_by": user["name"] or user["email"], "note": body.get("note", "")}
-        put("TASK", t["id"], t); audit(user, "依頼事項の作成", t["assignee"] or "(未割当)", t["title"]); return resp(200, t)
-    if method == "PUT" and len(parts) > 1:
-        t = get("TASK", parts[1])
-        if not t: return resp(404, {"error": "ありません"})
-        if t.get("assignee") != user["name"]: require(user, ROLE_LEAD)
-        changes = []
-        if "status" in body and body["status"] in TASK_STATES and body["status"] != t["status"]:
-            changes.append(f"状態: {t['status']}→{body['status']}"); t["status"] = body["status"]
-        for k in ("title", "assignee", "due", "note", "ref"):
-            if k in body and set(user["groups"]) & ROLE_LEAD: t[k] = str(body[k]); changes.append(k)
-        put("TASK", t["id"], t); audit(user, "依頼事項の更新", t["title"], "、".join(changes)); return resp(200, t)
-    return resp(405, {"error": "方法が不正です"})
-
-
-def approvals(method, parts, body, user):
-    if method == "GET":
-        return resp(200, sorted(query("APPROVAL"), key=lambda a: a["sk"], reverse=True))
-    if method == "POST":
-        a = {"id": new_id(), "subject": body["subject"], "detail": body.get("detail", ""), "ref": body.get("ref", ""), "requester": user["name"] or user["email"], "status": "申請中", "requested_at": now(), "decided_by": "", "decided_at": "", "comment": ""}
-        put("APPROVAL", a["id"], a); audit(user, "承認リクエスト", a["subject"], a["detail"]); return resp(200, a)
-    if method == "PUT" and len(parts) > 1:
-        require(user, {"統括委員会"})
-        a = get("APPROVAL", parts[1])
-        if not a: return resp(404, {"error": "ありません"})
-        if a["status"] != "申請中": return resp(409, {"error": "既に決定済みです"})
-        if body["status"] not in ("承認", "差戻し"): return resp(400, {"error": "承認 または 差戻し"})
-        a.update({"status": body["status"], "decided_by": user["name"] or user["email"], "decided_at": now(), "comment": body.get("comment", "")})
-        put("APPROVAL", a["id"], a); audit(user, body["status"], a["subject"], a["comment"]); return resp(200, a)
-    return resp(405, {"error": "方法が不正です"})
+# ---------- スクリーニング ----------
+def screening_progress(d):
+    P = d.get("papers", [])
+    s1 = lambda p: (p.get("s1") or {}).get("decision", ""); s2 = lambda p: (p.get("s2") or {}).get("decision", "")
+    need2 = lambda p: (s1(p) in ("採用", "保留") or p.get("direct")) and not s2(p)
+    targ = lambda p: s2(p) == "採用" or need2(p)
+    return {"reviewer": d.get("reviewer", ""), "saved_at": d.get("saved_at", ""), "papers": len(P), "s1_done": sum(1 for p in P if s1(p)), "s1_todo": sum(1 for p in P if not s1(p) and not p.get("direct")),
+            "s2_done": sum(1 for p in P if s2(p)), "s2_todo": sum(1 for p in P if need2(p)), "ft_missing": sum(1 for p in P if targ(p) and (p.get("ft") or "未入手") == "未入手"),
+            "ft_read": sum(1 for p in P if targ(p) and p.get("ft") == "読了"),
+            "no_reason": sum(1 for p in P if (s1(p) == "除外" and not (p.get("s1") or {}).get("reason", "").strip()) or (s2(p) == "除外" and not (p.get("s2") or {}).get("reason", "").strip()))}
 
 
 def screening(method, parts, body, user):
-    """スクリーニング管理シート(render_screening.py)が出力する JSON を受け取り、担当者別の進捗を返す。判定の内容は変えない。"""
     if method == "GET":
-        items = query("SCREEN")
-        if len(parts) > 1 and parts[1] == "raw" and len(parts) > 2:
+        if len(parts) > 2 and parts[1] == "raw":
             it = get("SCREEN", parts[2]); return resp(200, it["data"] if it else {})
         out = {}
-        for it in items:
+        for it in query("SCREEN"):
             out.setdefault(it["cq"], []).append({**screening_progress(it["data"]), "sk": it["sk"], "uploaded_by": it.get("uploaded_by", "")})
         return resp(200, out)
     if method == "POST" and len(parts) > 1:
-        cq_dir = parts[1]
         d = body
-        if not isinstance(d.get("papers"), list) or not d.get("reviewer"):
-            return resp(400, {"error": "スクリーニング管理シートの JSON(reviewer, papers)が必要です"})
-        reviewer = d["reviewer"]
-        if reviewer != user["name"]: require(user, ROLE_LEAD)
-        sk = f"{cq_dir}#{reviewer}"
-        old = get("SCREEN", sk)
-        if old and (old["data"].get("saved_at") or "") > (d.get("saved_at") or ""):
-            return resp(409, {"error": "保存済みの方が新しいため、取り込みません"})
-        put("SCREEN", sk, {"cq": cq_dir, "reviewer": reviewer, "uploaded_by": user["name"] or user["email"], "data": d})
-        pr = screening_progress(d)
-        audit(user, "スクリーニングJSONの取り込み", f"{cq_dir} / {reviewer}", f"文献{pr['papers']}件、一次判定済{pr['s1_done']}、二次判定済{pr['s2_done']}")
-        return resp(200, pr)
+        if not isinstance(d.get("papers"), list) or not d.get("reviewer"): return resp(400, {"error": "スクリーニング管理シートの JSON(reviewer, papers)が必要です"})
+        if d["reviewer"] != user["name"]: require(user, ROLE_LEAD)
+        sk = f"{parts[1]}#{d['reviewer']}"; old = get("SCREEN", sk)
+        if old and (old["data"].get("saved_at") or "") > (d.get("saved_at") or ""): return resp(409, {"error": "保存済みの方が新しいため、取り込みません"})
+        put("SCREEN", sk, {"cq": parts[1], "reviewer": d["reviewer"], "uploaded_by": user["name"] or user["email"], "data": d})
+        pr = screening_progress(d); audit(user, "スクリーニングJSONの取り込み", f"{parts[1]} / {d['reviewer']}", f"文献{pr['papers']}件、一次判定済{pr['s1_done']}、二次判定済{pr['s2_done']}"); return resp(200, pr)
     return resp(405, {"error": "方法が不正です"})

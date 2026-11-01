@@ -39,3 +39,12 @@ select.sm { padding:2px 4px; font-size:12px; }
 .muted { color:var(--mute); }
 ul.plain { padding-left:18px; margin:6px 0; }
 @media (max-width: 800px) { .app { grid-template-columns:1fr; } .side { flex-direction:row; flex-wrap:wrap; } .side .me { margin:0; border:none; } main { padding:14px; } }
+.split { display:grid; grid-template-columns: minmax(320px, 1fr) minmax(420px, 1.3fr); gap:14px; align-items:start; }
+@media (max-width: 1100px) { .split { grid-template-columns: 1fr; } }
+.paras { max-height: 75vh; overflow:auto; border:1px solid var(--line); border-radius:8px; padding:6px; background:#fafbfd; }
+.para { padding:6px 8px; border-bottom:1px solid var(--line); font-size:13px; line-height:1.5; }
+.para .pid { font-family: ui-monospace, Menlo, monospace; font-size:11px; color:var(--accent); }
+.para.hl { background:#fff7d6; }
+.para.flash { outline:2px solid var(--accent); }
+table.f45 td { font-size:12px; } table.f45 input, table.f45 select { font-size:12px; margin-top:2px; }
+textarea { border:1px solid var(--line); border-radius:6px; padding:5px 7px; }

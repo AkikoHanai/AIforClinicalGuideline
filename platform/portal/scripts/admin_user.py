@@ -1,6 +1,7 @@
 """統括委員長の利用者を Cognito に作り、統括委員会のグループに入れる。必要なら初期データ(企画書)を入れる。
   python3 platform/portal/scripts/admin_user.py <メールアドレス> <氏名>           招待メールを送る
   python3 platform/portal/scripts/admin_user.py --seed <メールアドレス>            その利用者として POST /admin/seed を実行(仮パスワードの入力を求める)
+  python3 platform/portal/scripts/admin_user.py --gl2023 <etd_2023.json> <メールアドレス>   2023年版の記述(run_jascc.sh first が作る)を取り込む
 展開の出力(platform/portal/out/outputs.json)から、利用者プールと API の URL を読む。
 """
 import getpass, json, os, sys, urllib.request
@@ -22,21 +23,35 @@ def create(email, name):
     print("統括委員会のグループに入れました")
 
 
-def seed(email):
+def token(email):
     pw = getpass.getpass("パスワード(仮パスワードの場合は初回ログインで変更後のもの): ")
     r = idp.initiate_auth(ClientId=OUT["ClientId"], AuthFlow="USER_PASSWORD_AUTH", AuthParameters={"USERNAME": email, "PASSWORD": pw})
     if r.get("ChallengeName") == "NEW_PASSWORD_REQUIRED":
         new = getpass.getpass("新しいパスワード(12文字以上、大文字・小文字・数字): ")
         r = idp.respond_to_auth_challenge(ClientId=OUT["ClientId"], ChallengeName="NEW_PASSWORD_REQUIRED", Session=r["Session"], ChallengeResponses={"USERNAME": email, "NEW_PASSWORD": new})
-    tok = r["AuthenticationResult"]["IdToken"]
-    req = urllib.request.Request(OUT["ApiUrl"] + "/admin/seed", method="POST", headers={"Authorization": "Bearer " + tok, "Content-Type": "application/json"}, data=b"{}")
+    return r["AuthenticationResult"]["IdToken"]
+
+
+def post(path, tok, data):
+    req = urllib.request.Request(OUT["ApiUrl"] + path, method="POST", headers={"Authorization": "Bearer " + tok, "Content-Type": "application/json"}, data=json.dumps(data, ensure_ascii=False).encode())
     print(urllib.request.urlopen(req).read().decode())
+
+
+def seed(email):
+    post("/admin/seed", token(email), {})
+
+
+def gl2023(path, email):
+    items = json.load(open(path, encoding="utf-8"))
+    post("/gl2023", token(email), {"items": items})
 
 
 if __name__ == "__main__":
     a = sys.argv[1:]
     if a[:1] == ["--seed"]:
         seed(a[1])
+    elif a[:1] == ["--gl2023"]:
+        gl2023(a[1], a[2])
     elif len(a) == 2:
         create(a[0], a[1])
     else:

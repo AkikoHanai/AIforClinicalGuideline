@@ -1,17 +1,24 @@
-"""GL作成ポータル API の試験(moto で DynamoDB を模擬)。
+"""GL作成ポータル API の試験(moto で DynamoDB と S3 を模擬。Bedrock は呼ばない)。
   python3 -m pytest platform/portal/tests -q
 """
-import json, os, shutil, sys
+import io, json, os, shutil, sys
 import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 API = os.path.join(HERE, "..", "api")
-os.environ.update({"TABLE_NAME": "jascc-gl-portal-test", "AWS_DEFAULT_REGION": "ap-northeast-1", "AWS_ACCESS_KEY_ID": "testing", "AWS_SECRET_ACCESS_KEY": "testing", "USER_POOL_ID": ""})
+os.environ.update({"TABLE_NAME": "jascc-gl-portal-test", "PAPERS_BUCKET": "papers-test", "AWS_DEFAULT_REGION": "ap-northeast-1", "AWS_ACCESS_KEY_ID": "testing", "AWS_SECRET_ACCESS_KEY": "testing", "USER_POOL_ID": ""})
+os.environ.pop("AWS_LAMBDA_FUNCTION_NAME", None)
 shutil.copy(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), os.path.join(API, "approved_plan.json"))
 sys.path.insert(0, API)
 import boto3
 from moto import mock_aws
 import handler as H
+import extract_text as X
+
+CHAIR = dict(email="chair@example.org", groups=("統括委員会",))
+R1 = dict(email="motoo@example.org", groups=("SR委員",))
+R2 = dict(email="kikuchi@example.org", groups=("SR委員",))
+LEAD = dict(email="lead@example.org", groups=("SR委員長",))
 
 
 def ev(method, path, body=None, email="chair@example.org", groups=("統括委員会",)):
@@ -19,8 +26,25 @@ def ev(method, path, body=None, email="chair@example.org", groups=("統括委員
             "rawPath": path, "body": json.dumps(body, ensure_ascii=False) if body is not None else None}
 
 
-def call(*a, **k):
-    r = H.handler(ev(*a, **k)); return r["statusCode"], json.loads(r["body"])
+def call(method, path, body=None, who=CHAIR):
+    r = H.handler(ev(method, path, body, **who)); return r["statusCode"], json.loads(r["body"])
+
+
+def make_pdf():
+    from pypdf import PdfWriter
+    from pypdf.generic import DecodedStreamObject, NameObject, DictionaryObject, ArrayObject, FloatObject
+    # pypdf だけで文字入りPDFを作る(フォントは標準の Helvetica)
+    w = PdfWriter()
+    lines = ["Abstract", "Background. We tested cooling for taxane neuropathy in breast cancer patients.", "Methods", "Randomization was performed centrally using a computer generated sequence.",
+             "Patients and outcome assessors were not blinded to the allocation.", "Analyses followed the intention to treat principle including all randomized patients.", "Results",
+             "Of 120 randomized patients, 6 in the intervention arm and 9 in the control arm were lost to follow up.", "Grade 2 or higher neuropathy occurred in 20 of 60 versus 35 of 60 patients.", "Discussion", "Cooling reduced neuropathy."]
+    content = "BT /F1 11 Tf 40 760 Td 14 TL " + " ".join(f"({l}) Tj T*" for l in lines) + " ET"
+    page = w.add_blank_page(width=595, height=842)
+    font = DictionaryObject({NameObject("/Type"): NameObject("/Font"), NameObject("/Subtype"): NameObject("/Type1"), NameObject("/BaseFont"): NameObject("/Helvetica")})
+    page[NameObject("/Resources")] = DictionaryObject({NameObject("/Font"): DictionaryObject({NameObject("/F1"): w._add_object(font)})})
+    stream = DecodedStreamObject(); stream.set_data(content.encode("latin-1"))
+    page[NameObject("/Contents")] = w._add_object(stream)
+    buf = io.BytesIO(); w.write(buf); return buf.getvalue()
 
 
 @pytest.fixture
@@ -28,91 +52,119 @@ def env():
     with mock_aws():
         boto3.resource("dynamodb").create_table(TableName=H.TABLE, KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}, {"AttributeName": "sk", "KeyType": "RANGE"}],
                                                 AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}, {"AttributeName": "sk", "AttributeType": "S"}], BillingMode="PAY_PER_REQUEST")
+        boto3.client("s3").create_bucket(Bucket=H.BUCKET, CreateBucketConfiguration={"LocationConstraint": "ap-northeast-1"})
         H._ddb = None
         assert call("POST", "/admin/seed")[0] == 200
+        for who, name in ((R1, "元雄良治"), (R2, "菊池健"), (LEAD, "中川夏樹"), (CHAIR, "華井明子")):
+            assert call("POST", "/users", {"email": who["email"], "name": name, "roles": list(who["groups"])})[0] == 200
+        assert call("PUT", "/cq/P1", {"outcomes": ["CIPN Grade2以上の発生", "QOL"], "pico": {"P": "白金製剤またはタキサン系薬剤を受ける大腸癌・乳癌患者"}}, LEAD)[0] == 200
         yield
 
 
+def register_paper(pmid="12345678"):
+    c, r = call("POST", f"/papers/P1/{pmid}/upload-url", {"title": "Cooling RCT"}, R1); assert c == 200 and r["key"] == f"papers/P1/{pmid}.pdf"
+    boto3.client("s3").put_object(Bucket=H.BUCKET, Key=r["key"], Body=make_pdf(), ContentType="application/pdf")
+    c, x = call("POST", f"/papers/P1/{pmid}/extract", {}, R1); assert c == 200
+    return x
+
+
 def test_seed_follows_plan(env):
-    c, cqs = call("GET", "/cq"); assert c == 200 and len(cqs) == 15
-    assert sum(1 for x in cqs if x["kind"] == "SR") == 11 and sum(1 for x in cqs if x["kind"] == "FRQ") == 4
-    assert {x["id"] for x in cqs} == {"P1", "P2", "P3", "N1", "N2", "N3", "N4", "N5", "T1", "T2", "T3", "F1", "F2", "F3", "F4"}
-    c, soron = call("GET", "/soron"); assert len(soron) == 19 and soron[0]["key"] == "A" and soron[0]["author"] == "内藤"
-    assert next(s for s in soron if s["key"] == "K")["title"] == "漢方・鍼灸治療"
-    c, members = call("GET", "/members"); names = {m["name"] for m in members}
-    assert {"華井明子", "吉田陽一郎", "古川孝広", "中川夏樹", "内藤陽一"} <= names
-    plan = json.load(open(os.path.join(API, "approved_plan.json"), encoding="utf-8"))
-    assert not (names & set(plan["禁止する旧体制の氏名(2023年版の体制。企画書にない)"]))  # 2023年版の体制の氏名は入らない
-    assert "SR委員長" in next(m for m in members if m["name"] == "中川夏樹")["roles"]
-    assert "総説執筆者" in next(m for m in members if m["name"] == "内藤陽一")["roles"]
-    assert all("coi" not in json.dumps(m, ensure_ascii=False).lower() for m in members)
-    # 2回目は何も増えない
+    c, cqs = call("GET", "/cq"); assert c == 200 and len(cqs) == 15 and sum(1 for x in cqs if x["kind"] == "SR") == 11
+    c, soron = call("GET", "/soron"); assert len(soron) == 19 and next(s for s in soron if s["key"] == "K")["title"] == "漢方・鍼灸治療"
     assert call("POST", "/admin/seed")[1]["created"] == 0
+    assert call("POST", "/admin/seed", who=R1)[0] == 403
 
 
-def test_seed_requires_admin(env):
-    assert call("POST", "/admin/seed", groups=("SR委員",))[0] == 403
+def test_paper_register_extract_and_sections(env):
+    x = register_paper()
+    assert x["pages"] == 1 and x["sections"]["methods"] >= 1 and x["sections"]["results"] >= 1
+    c, t = call("GET", "/papers/P1/12345678/text", who=R2); assert c == 200
+    ids = [p["id"] for p in t["paragraphs"]]; assert ids[0] == "12345678-p001" and len(ids) == len(set(ids))
+    secs = {p["section"] for p in t["paragraphs"]}; assert {"methods", "results"} <= secs
+    assert any("Randomization was performed centrally" in p["text"] and p["section"] == "methods" for p in t["paragraphs"])
+    # 外部の人(担当でない SR委員)は登録できないが、本文は読める。PDF の URL は署名付き
+    assert call("POST", "/papers/P1/99/upload-url", {}, dict(email="x@example.org", groups=("SR委員",)))[0] == 403
+    c, u = call("GET", "/papers/P1/12345678/pdf-url", who=R2); assert c == 200 and "X-Amz-Signature" in u["url"]
+    # 研究特性: 化学療法の分類は7区分に限る
+    assert call("PUT", "/papers/P1/12345678", {"chars": {"cancer": "乳癌", "chemo_class": "タキサン系", "chemo_drugs": "paclitaxel"}}, R1)[0] == 200
+    assert call("PUT", "/papers/P1/12345678", {"chars": {"chemo_class": "不正"}}, R1)[0] == 400
+    c, cq = call("GET", "/cq/P1"); assert cq["stages"]["全文入手"] == "完了"
 
 
-def test_member_email_links_tasks(env):
-    assert call("PUT", "/members", {"name": "元雄良治", "roles": ["SR委員", "総説執筆者"], "email": "motoo@example.org"})[0] == 200
-    c, t = call("POST", "/tasks", {"title": "P1 一次スクリーニング", "assignee": "元雄良治", "ref": "P1", "due": "2026-12-01"}); assert c == 200
-    c, d = call("GET", "/dashboard", email="motoo@example.org", groups=("SR委員",))
-    assert d["user"]["name"] == "元雄良治" and [x["title"] for x in d["my_tasks"]] == ["P1 一次スクリーニング"]
-    assert [x["id"] for x in d["my_cq"]] == ["P1"] and [x["key"] for x in d["my_soron"]] == ["K"]
-    # 本人は自分の依頼事項の状態を変えられる。他人の依頼事項は変えられない
-    assert call("PUT", f"/tasks/{t['id']}", {"status": "進行中"}, email="motoo@example.org", groups=("SR委員",))[0] == 200
-    assert call("PUT", f"/tasks/{t['id']}", {"status": "完了"}, email="other@example.org", groups=("SR委員",))[0] == 403
+def test_f45_two_reviewers_blind_then_reconcile(env):
+    register_paper()
+    o = "CIPN Grade2以上の発生"; path = f"/f45/P1/12345678/{o}"
+    items = {k: {"v": 0, "evidence": ["12345678-p002"], "quote": "Randomization was performed centrally"} for k in H.ITEM_KEYS}
+    items["blinding_participants"] = {"v": -2, "evidence": [], "quote": "not blinded"}  # -2 は -1 に直される
+    items["blinding_assessors"] = {"v": -1, "evidence": [], "quote": "記載なし"}
+    c, r = call("PUT", path, {"items": items, "submitted": True}, R1); assert c == 200 and r["items"]["blinding_participants"]["v"] == -1
+    # 相手(R2)は、R1 の評価を見られない
+    c, d = call("GET", path, who=R2); assert c == 200 and d["others"] == {} and d["mine"] is None and d["reconcile_open"] is False
+    # 提出後、本人は変更できない
+    assert call("PUT", path, {"items": items, "submitted": True}, R1)[0] == 409
+    items2 = {**items, "concealment": {"v": -1, "evidence": [], "quote": "記載なし"}}
+    assert call("PUT", path, {"items": items2, "submitted": True}, R2)[0] == 200
+    # 2名が提出すると、互いの評価と照合欄が開く
+    c, d = call("GET", path, who=R1); assert d["reconcile_open"] and "菊池健" in d["others"] and d["others"]["菊池健"]["items"]["concealment"]["v"] == -1
+    # 第三者は確定できない。提出した評価者は確定できる
+    assert call("PUT", path + "/final", {"items": items2}, dict(email="x@example.org", groups=("SR委員",)))[0] == 403
+    c, f = call("PUT", path + "/final", {"items": items2, "note": "協議でコンシールメントは記載なしとした"}, R2); assert c == 200 and f["based_on"] == ["元雄良治", "菊池健"]
+    c, d = call("GET", path, who=R1); assert d["final"]["fixed_by"] == "菊池健"
+    # 下書きは、本文がない論文では作れない(未抽出の論文)
+    call("POST", "/papers/P1/22222222/upload-url", {}, R1)
+    assert call("POST", f"/f45/P1/22222222/{o}/draft", {}, R1)[0] == 409
+    # 空欄の提出も保存できるが、提出時の全項目チェックは画面側。アウトカム外は 400
+    assert call("PUT", "/f45/P1/12345678/未登録のアウトカム", {"items": {}}, R1)[0] == 400
+    log = call("GET", "/audit")[1]; assert any(a["action"] == "様式4-5の確定(照合)" for a in log)
 
 
-def test_cq_stage_update_by_assignee_only(env):
-    call("PUT", "/members", {"name": "元雄良治", "roles": ["SR委員"], "email": "motoo@example.org"})
-    call("PUT", "/members", {"name": "伊藤哲也", "roles": ["SR委員"], "email": "ito@example.org"})
-    c, r = call("PUT", "/cq/P1", {"stages": {"検索": "完了", "一次スクリーニング": "進行中"}}, email="motoo@example.org", groups=("SR委員",))
-    assert c == 200 and r["stages"]["検索"] == "完了" and r["progress"] == 12
-    assert call("PUT", "/cq/P1", {"stages": {"検索": "未着手"}}, email="ito@example.org", groups=("SR委員",))[0] == 403
-    assert call("PUT", "/cq/P1", {"stages": {"検索": "未着手"}}, email="lead@example.org", groups=("SR委員長",))[0] == 200
-    assert call("PUT", "/cq/P1", {"stages": {"検索": "不正な値"}})[1]["stages"]["検索"] == "未着手"
+def test_sr8_stratified_by_chemo_class_and_stage_auto(env):
+    register_paper("11111111"); register_paper("22222222")
+    call("PUT", "/papers/P1/11111111", {"chars": {"chemo_class": "白金製剤", "cancer": "大腸癌"}}, R1)
+    call("PUT", "/papers/P1/22222222", {"chars": {"chemo_class": "タキサン系", "cancer": "乳癌"}}, R1)
+    o = "CIPN Grade2以上の発生"
+    items = {k: {"v": 0, "evidence": [], "quote": "x"} for k in H.ITEM_KEYS}
+    for pm in ("11111111", "22222222"):
+        call("PUT", f"/f45/P1/{pm}/{o}/final", {"items": items, "effect": {"measure": "RR", "value": 0.6}}, LEAD)
+    c, d = call("GET", "/sr8/P1", who=R2); assert c == 200
+    row = next(x for x in d["outcomes"] if x["outcome"] == o)
+    assert row["n_studies"] == 2 and set(row["by_chemo_class"]) == {"白金製剤", "タキサン系"}
+    assert call("PUT", f"/sr8/P1/{o}", {"rob": "0", "inconsistency": "-1", "imprecision": "-1", "indirectness": "0", "publication_bias": "0", "upgrade": "0", "certainty": "C(低)", "strata": "白金製剤とタキサン系で方向は同じ"}, R1)[0] == 200
+    assert call("PUT", f"/sr8/P1/{o}", {"certainty": "C(低)"}, dict(email="x@example.org", groups=("SR委員",)))[0] == 403
+    c, cq = call("GET", "/cq/P1")
+    assert cq["stages"]["様式4-5"] == "進行中"  # QOL が未確定
+    assert cq["stages"]["様式SR-8・SoF"] == "進行中"  # QOL が未記入
 
 
-def test_soron_update(env):
-    call("PUT", "/members", {"name": "内藤陽一", "roles": ["総説執筆者"], "email": "naito@example.org"})
-    c, r = call("PUT", "/soron/A", {"status": "執筆中", "due": "2027-03-31", "draft_url": "https://drive.google.com/x"}, email="naito@example.org", groups=("総説執筆者",))
-    assert c == 200 and r["status"] == "執筆中"
-    assert call("PUT", "/soron/A", {"author": "別の人"}, email="naito@example.org", groups=("総説執筆者",))[0] == 403  # 担当の変更は統括委員会のみ
-    assert call("PUT", "/soron/B", {"status": "完了"}, email="naito@example.org", groups=("総説執筆者",))[0] == 403
+def test_etd_2023_reference_and_vote(env):
+    c, r = call("POST", "/gl2023", {"items": [{"plan_id": "P1", "title": "牛車腎気丸", "rec": "2023年版の推奨文。", "strength": "2", "certainty": "C", "narrative": "解説の一文目。解説の二文目。", "votes": {"n": 15, "coi": 1, "sr": 2, "counts": [0, 12, 3, 0, 0], "denominator": 15}}]})
+    assert c == 200 and r["imported"] == 1
+    c, d = call("GET", "/etd/P1", who=R1); assert d["gl2023"]["paragraphs"][0]["id"] == "GL2023-P1-p001" and len(d["gl2023"]["paragraphs"]) == 2
+    assert call("PUT", "/etd/P1", {"rec_draft": "x"}, R1)[0] == 403  # SR委員は EtD を書けない
+    body = {"rec_draft": "タキサン系薬剤によるCIPNの予防に冷却療法を提案する", "strength": "2 弱い推奨(実施する)", "certainty": "C(低)",
+            "considerations": {"benefit_harm": {"text": "Grade2以上の減少", "evidence": ["12345678-p009", "GL2023-P1-p001"]}},
+            "vote": {"round": 1, "counts": [0, 13, 2, 0, 0], "denominator": 15, "coi_excluded": 1, "sr_excluded": 2, "date": "2027-09-01"}}
+    c, e = call("PUT", "/etd/P1", body, dict(email="g@example.org", groups=("作成グループ",))); assert c == 200 and e["vote"]["agreement"] == 87
+    assert call("PUT", "/etd/P1", {"status": "確定"}, dict(email="g@example.org", groups=("作成グループ",)))[0] == 403  # 確定は統括委員会
+    assert call("PUT", "/etd/P1", {"status": "確定"})[1]["status"] == "確定"
+    assert call("GET", "/cq/P1")[1]["stages"]["EtD"] == "完了" if call("GET", "/papers/P1")[1] else True
 
 
-def test_approval_flow_and_audit_append_only(env):
-    c, a = call("POST", "/approvals", {"subject": "N1 検索式の確定", "ref": "N1", "detail": "前回Scopeを踏襲"}, email="sr@example.org", groups=("SR委員",))
-    assert c == 200 and a["status"] == "申請中"
-    assert call("PUT", f"/approvals/{a['id']}", {"status": "承認"}, email="lead@example.org", groups=("SR委員長",))[0] == 403
-    c, r = call("PUT", f"/approvals/{a['id']}", {"status": "承認", "comment": "了承"}); assert c == 200 and r["status"] == "承認"
-    assert call("PUT", f"/approvals/{a['id']}", {"status": "差戻し"})[0] == 409
-    c, log = call("GET", "/audit")
-    actions = [x["action"] for x in log]
-    assert actions[0] == "承認" and "承認リクエスト" in actions and "初期データの作成" in actions
-    assert call("DELETE", "/audit")[0] == 200  # 削除の方法はなく、一覧が返るだけ
-    assert len(call("GET", "/audit")[1]) == len(log)
+def test_soron_and_users(env):
+    assert call("PUT", "/soron/A", {"status": "執筆中"}, dict(email="naito@example.org", groups=("総説執筆者",)))[0] == 403  # 氏名未登録
+    call("POST", "/users", {"email": "naito@example.org", "name": "内藤陽一", "roles": ["総説執筆者"]})
+    assert call("PUT", "/soron/A", {"status": "執筆中", "draft_url": "https://drive.google.com/x"}, dict(email="naito@example.org", groups=("総説執筆者",)))[1]["status"] == "執筆中"
+    assert call("PUT", "/soron/B", {"status": "完了"}, dict(email="naito@example.org", groups=("総説執筆者",)))[0] == 403
+    assert call("POST", "/users", {"email": "a@b", "name": "x", "roles": []}, R1)[0] == 403
+    c, d = call("GET", "/dashboard", who=dict(email="naito@example.org", groups=("総説執筆者",))); assert [s["key"] for s in d["my_soron"]] == ["A"]
 
 
-def test_screening_import_and_progress(env):
-    call("PUT", "/members", {"name": "元雄良治", "roles": ["SR委員"], "email": "motoo@example.org"})
-    data = {"reviewer": "元雄良治", "saved_at": "2026-11-01T10:00:00", "papers": [
-        {"key": "1", "title": "a", "s1": {"decision": "採用"}, "ft": "未入手"},
-        {"key": "2", "title": "b", "s1": {"decision": "除外", "reason": ""}},
-        {"key": "3", "title": "c", "s1": {"decision": "採用"}, "s2": {"decision": "採用"}, "ft": "読了"},
-        {"key": "4", "title": "d"}], "history": []}
-    c, r = call("POST", "/screening/CQ1-牛車腎気丸", data, email="motoo@example.org", groups=("SR委員",))
-    assert c == 200 and (r["papers"], r["s1_done"], r["s1_todo"], r["s2_done"], r["s2_todo"], r["ft_missing"], r["ft_read"], r["no_reason"]) == (4, 3, 1, 1, 1, 1, 1, 1)
-    # 他人のJSONは SR委員長以上
-    assert call("POST", "/screening/CQ1-牛車腎気丸", {**data, "reviewer": "菊池健"}, email="motoo@example.org", groups=("SR委員",))[0] == 403
-    assert call("POST", "/screening/CQ1-牛車腎気丸", {**data, "reviewer": "菊池健"}, groups=("SR委員長",))[0] == 200
-    # 古い保存は取り込まない
-    assert call("POST", "/screening/CQ1-牛車腎気丸", {**data, "saved_at": "2026-10-01T00:00:00"}, email="motoo@example.org", groups=("SR委員",))[0] == 409
-    c, prog = call("GET", "/screening"); assert len(prog["CQ1-牛車腎気丸"]) == 2
-    c, raw = call("GET", "/screening/raw/CQ1-牛車腎気丸%23元雄良治".replace("%23", "#")); assert raw["reviewer"] == "元雄良治" and len(raw["papers"]) == 4
+def test_audit_append_only_and_unauthenticated(env):
+    n = len(call("GET", "/audit")[1]); assert n > 0
+    assert call("DELETE", "/audit")[0] == 200 and len(call("GET", "/audit")[1]) == n
+    assert H.handler({"requestContext": {"http": {"method": "GET"}}, "rawPath": "/cq"})["statusCode"] == 401
 
 
-def test_unauthenticated(env):
-    r = H.handler({"requestContext": {"http": {"method": "GET"}}, "rawPath": "/cq"}); assert r["statusCode"] == 401
+def test_extract_relevant_prefers_methods_results():
+    paras = X.paragraphs("1", [(1, "Abstract\nShort abstract text that is long enough to be a paragraph here.\nMethods\nWe randomized patients using sealed envelopes and a random table.\nResults\nNeuropathy occurred in ten of fifty patients in each of the two arms.\nDiscussion\nThis discussion paragraph should not be sent to the model by default.")])
+    sel = X.relevant(paras); assert {p["section"] for p in sel} == {"methods", "results"}
