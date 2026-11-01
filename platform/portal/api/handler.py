@@ -29,20 +29,19 @@ ROLE_ADMIN = {"統括委員会", "事務局"}
 ROLE_LEAD = ROLE_ADMIN | {"SR委員長"}
 ROLE_GROUP = {"統括委員会", "作成グループ"}  # 推奨作成(EtD・投票)
 GROUPS = ["統括委員会", "事務局", "SR委員長", "作成グループ", "SR委員", "総説執筆者", "外部評価委員"]
-CQ_STAGES = ["検索", "一次スクリーニング", "二次スクリーニング", "全文入手", "様式4-5", "様式SR-8・SoF", "EtD", "解説文"]
-STAGE_STATES = ["未着手", "進行中", "完了"]
-SORON_STATES = ["未着手", "執筆中", "査読中", "修正中", "完了"]
+CQ_STAGES = ["CQ確定", "論文登録", "様式4-5", "様式SR-8", "EtD"]  # 表示は記録された件数だけ。推測の状態は出さない
+SORON_STATES = ["原稿未提出", "執筆中", "査読中", "修正中", "完了"]  # 記録に基づく状態だけ
 PHASES = ["STEP 1 Scope・体制", "STEP 2 検索・スクリーニング", "STEP 3 システマティックレビュー実施中", "STEP 4 推奨作成", "STEP 5 解説・総論執筆", "STEP 6 外部評価・パブリックコメント", "STEP 7 公開"]
 ITEM_KEYS = ["randomization", "concealment", "blinding_participants", "blinding_assessors", "itt", "incomplete_outcome", "selective_reporting", "early_stopping", "other_bias", "bias_summary",
              "ind_population", "ind_intervention", "ind_comparator", "ind_outcome", "ind_summary"]
 ITEM_JA = ["ランダム化", "コンシールメント", "盲検化(参加者・医療提供者)", "盲検化(アウトカム評価者)", "ITT", "アウトカム不完全報告", "選択的アウトカム報告", "早期試験中止", "その他のバイアス", "バイアスリスク まとめ",
            "非直接性 対象", "非直接性 介入", "非直接性 対照", "非直接性 アウトカム", "非直接性 まとめ"]
-CHEMO_CLASSES = ["白金製剤", "タキサン系", "ビンカアルカロイド系", "プロテアソーム阻害薬", "複数/混合", "その他", "不明"]
+CHEMO_CLASSES = ["白金製剤", "タキサン系", "ビンカアルカロイド", "ボルテゾミブ等", "混在", "不明"]  # 用語の定義(6区分)
 SR8_KEYS = ["rob", "inconsistency", "imprecision", "indirectness", "publication_bias", "upgrade", "certainty"]
 SR8_JA = ["バイアスリスク", "非一貫性", "不精確性", "非直接性", "その他(出版バイアス)", "上昇要因", "エビデンスの確実性(A〜D)"]
 ETD_CONSIDERATIONS = [("benefit_harm", "益と害のバランス"), ("certainty", "エビデンスの確実性"), ("values", "患者の価値観・希望"), ("cost", "コスト・資源")]
-STRENGTH = ["1 強い推奨(実施する)", "2 弱い推奨(実施する)", "3 推奨なし", "4 弱い推奨(実施しない)", "5 強い推奨(実施しない)"]
-CERT = ["A(高)", "B(中)", "C(低)", "D(非常に低)"]
+STRENGTH = ["1 強く推奨", "2 弱く推奨", "3 推奨なし", "4 行わないことを弱く推奨", "5 行わないことを強く推奨"]  # 用語の定義
+CERT = ["A(強)", "B(中)", "C(弱)", "D(非常に弱い)"]  # 用語の定義
 
 
 def table():
@@ -144,40 +143,41 @@ def seed(user):
     n = 0
     for it in plan["SR項目"] + plan["FRQ項目"]:
         if not get("CQ", it["id"]):
-            put("CQ", it["id"], {"id": it["id"], "kind": "SR" if it["id"][0] != "F" else "FRQ", "category": it.get("区分", "FRQ(将来の研究課題)"), "title": it["名称"], "assignees": it["担当"], "dirs": it["dir"],
-                                 "stages": {s: "未着手" for s in CQ_STAGES}, "pico": {"P": "", "I": it["名称"], "C": "", "O": ""}, "outcomes": [], "note": ""}); n += 1
+            put("CQ", it["id"], {"id": it["id"], "kind": "SR" if it["id"][0] != "F" else "FRQ", "category": it.get("区分", "FRQ"), "title": it["名称"], "assignees": it["担当"], "dirs": it["dir"],
+                                 "approved": "統括委員長承認済み(企画書 Ver1 2026-06-17)", "pico": {"P": "", "I": it["名称"], "C": "", "O": ""}, "outcomes": [], "note": ""}); n += 1
     for k, v in plan["総論"].items():
         if not get("SORON", k):
             title, _, author = v.rpartition(":")
-            put("SORON", k, {"key": k, "label": k.replace("_", "-"), "title": title, "author": author, "status": "未着手", "due": "", "draft_url": "", "note": ""}); n += 1
+            put("SORON", k, {"key": k, "label": k.replace("_", "-"), "title": title, "author": author, "status": "原稿未提出", "due": "", "note": ""}); n += 1
     if not get("PHASE", "current"):
-        put("PHASE", "current", {"phase": PHASES[1]}); n += 1
+        put("PHASE", "current", {"phase": PHASES[2]}); n += 1  # CQ・FRQは承認済み。SRの実施中
     audit(user, "初期データの作成", "企画書 Ver1", f"{n}件")
     return {"created": n}
 
 
 # ---------- 集計 ----------
 def stage_auto(cq):
-    """入力の完了から段階を判定する(委員の操作を要しない)"""
+    """記録された件数から、各段階の状態を文字で返す。推測はしない。"""
     cqid = cq["id"]
     papers = query("PAPER", f"{cqid}#")
-    st = dict(cq.get("stages", {}))
-    if papers:
-        st["全文入手"] = "完了" if all(p.get("status") == "本文抽出済" for p in papers) else "進行中"
-        f45 = query("F45", f"{cqid}#")
-        fixed = {s["sk"].rsplit("#", 1)[0] for s in f45 if s["sk"].endswith("#確定")}
-        need = {f"{cqid}#{p['pmid']}#{o}" for p in papers for o in (cq.get("outcomes") or [])}
-        st["様式4-5"] = "完了" if need and need <= fixed else ("進行中" if f45 else st.get("様式4-5", "未着手"))
-        sr8 = query("SR8", f"{cqid}#")
-        st["様式SR-8・SoF"] = "完了" if cq.get("outcomes") and all(any(s["sk"] == f"{cqid}#{o}" and s.get("certainty") for s in sr8) for o in cq["outcomes"]) else ("進行中" if sr8 else st.get("様式SR-8・SoF", "未着手"))
-        etd = get("ETD", cqid)
-        if etd:
-            st["EtD"] = "完了" if etd.get("status") == "確定" else "進行中"
-    return st
+    outs = cq.get("outcomes") or []
+    f45 = query("F45", f"{cqid}#")
+    fixed = {s["sk"].rsplit("#", 1)[0] for s in f45 if s["sk"].endswith("#確定")}
+    submitted = sum(1 for s in f45 if s.get("submitted"))
+    need = len(papers) * len(outs)
+    sr8 = [s for s in query("SR8", f"{cqid}#") if s.get("certainty")]
+    etd = get("ETD", cqid)
+    return {"CQ確定": "承認済み(統括委員長)",
+            "論文登録": f"{len(papers)}件(本文抽出済 {sum(1 for p in papers if p.get('status') == '本文抽出済')}件)" if papers else "記録なし",
+            "様式4-5": (f"確定 {len(fixed)}/{need}(提出 {submitted})" if need else ("アウトカム未登録" if papers else "記録なし")),
+            "様式SR-8": (f"確実性 記入 {len(sr8)}/{len(outs)}" if outs else "記録なし"),
+            "EtD": (etd.get("status", "下書き") if etd else "記録なし")}
 
 
 def progress(st):
-    return round(100 * sum(1 for s in CQ_STAGES if st.get(s) == "完了") / len(CQ_STAGES))
+    """確定した様式4-5の割合(記録がなければ None)。"""
+    m = re.match(r"確定 (\d+)/(\d+)", st.get("様式4-5", ""))
+    return round(100 * int(m.group(1)) / int(m.group(2))) if m and int(m.group(2)) else None
 
 
 def dashboard(user):
@@ -239,7 +239,7 @@ def route(method, parts, body, user):
     if head == "me":
         return resp(200, user)
     if head == "meta":
-        return resp(200, {"stages": CQ_STAGES, "stage_states": STAGE_STATES, "soron_states": SORON_STATES, "phases": PHASES, "groups": GROUPS, "item_keys": ITEM_KEYS, "item_ja": ITEM_JA,
+        return resp(200, {"stages": CQ_STAGES, "soron_states": SORON_STATES, "phases": PHASES, "groups": GROUPS, "item_keys": ITEM_KEYS, "item_ja": ITEM_JA,
                           "chemo_classes": CHEMO_CLASSES, "sr8_keys": SR8_KEYS, "sr8_ja": SR8_JA, "etd_considerations": ETD_CONSIDERATIONS, "strength": STRENGTH, "cert": CERT})
     if head == "dashboard":
         return resp(200, dashboard(user))
@@ -322,8 +322,6 @@ def cq(method, parts, body, user):
         if "pico" in body: c["pico"] = {k: str(body["pico"].get(k, c["pico"].get(k, ""))) for k in "PICO"}; ch.append("PICO")
         if "outcomes" in body: c["outcomes"] = [str(o).strip() for o in body["outcomes"] if str(o).strip()]; ch.append("アウトカム: " + "、".join(c["outcomes"]))
         if "note" in body: c["note"] = str(body["note"]); ch.append("備考")
-        for s in ("検索", "一次スクリーニング", "二次スクリーニング", "解説文"):  # 入力から自動判定できない段階だけ手で更新する
-            if s in (body.get("stages") or {}) and body["stages"][s] in STAGE_STATES: c["stages"][s] = body["stages"][s]; ch.append(f"{s}: {body['stages'][s]}")
         put("CQ", c["id"], c); audit(user, "CQの更新", c["id"], "、".join(ch)); st = stage_auto(c); return resp(200, {**c, "stages": st, "progress": progress(st)})
     return resp(405, {"error": "方法が不正です"})
 
@@ -427,8 +425,8 @@ def f45(method, parts, body, user):
         put("F45", f45_key(cqid, pmid, outcome, user["name"]), rec)
         audit(user, "様式4-5の" + ("提出" if rec["submitted"] else "保存"), f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); return resp(200, rec)
     if method == "PUT" and sub == "final":
-        if not (lead or (user["name"] in submitted and len(submitted) >= 2)): raise Forbidden("照合の確定は、提出済みの評価者2名、またはSR委員長以上に限ります")
-        if len(submitted) < 2 and not lead: return resp(409, {"error": "2名の提出が必要です"})
+        if not (lead or (user["name"] in submitted and len(submitted) >= 2)): raise Forbidden("照合の確定は、2名独立の評価を提出した評価者、またはSR委員長以上に限ります")
+        if len(submitted) < 2 and not lead: return resp(409, {"error": "2名独立の評価の提出が必要です"})
         items = norm_items(body.get("items") or {})
         rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "確定", "items": items, "counts": body.get("counts") or {}, "effect": body.get("effect") or {}, "instrument": str(body.get("instrument", "")),
                "note": str(body.get("note", "")), "fixed_by": user["name"], "based_on": submitted}
@@ -566,7 +564,7 @@ def gl2023(method, parts, body, user):
 
 
 # ---------- 総説(総論A〜N)。SRの流れとは独立した流れ ----------
-SORON_FLOW = ["未着手", "執筆中", "査読中", "修正中", "完了"]
+SORON_FLOW = SORON_STATES
 
 
 def soron(method, parts, body, user):
@@ -598,7 +596,7 @@ def soron(method, parts, body, user):
         key = f"soron/{s['key']}/{name}"
         url = s3().generate_presigned_url("put_object", Params={"Bucket": BUCKET, "Key": key, "ContentType": body.get("content_type") or "application/octet-stream"}, ExpiresIn=900)
         s["file"] = name; s["file_at"] = now(); s["file_by"] = user["name"] or user["email"]
-        if s.get("status") in ("未着手", "修正中"): s["status"] = "執筆中"
+        if s.get("status") in ("原稿未提出", "修正中"): s["status"] = "執筆中"
         put("SORON", s["key"], s); audit(user, "総論の原稿の提出", f"総論{s['label']}", name); return resp(200, {"url": url, "key": key})
     if method == "PUT" and not sub:
         ch = []

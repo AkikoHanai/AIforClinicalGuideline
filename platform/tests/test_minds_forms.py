@@ -39,7 +39,7 @@ def test_score_normalization():
 
 def test_chemo_classification():
     assert mf.classify_chemo("oxaliplatin") == "白金製剤"
-    assert mf.classify_chemo("L-OHP, PTX") == "複数/混合"
+    assert mf.classify_chemo("L-OHP, PTX") == "混在"
     assert mf.classify_chemo("パクリタキセル") == "タキサン系"
     assert mf.classify_chemo("") == "不明"
 

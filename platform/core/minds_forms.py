@@ -58,12 +58,12 @@ SCALE_NOTE = ('* 各項目の評価は"高(-2)"、"中/疑い(-1)"、"低(0)"の
               "化学療法の種類(白金製剤/タキサン系 など)の違いは「非直接性 対象」で評価する(研究特性シート参照)。")
 
 # 化学療法の分類(研究特性シート)。CIPNは薬剤クラスで病態・経過・介入効果が大きく異なる
-CHEMO_CLASSES = ["白金製剤", "タキサン系", "ビンカアルカロイド系", "プロテアソーム阻害薬", "複数/混合", "その他", "不明"]
+CHEMO_CLASSES = ["白金製剤", "タキサン系", "ビンカアルカロイド", "ボルテゾミブ等", "混在", "不明"]  # 用語の定義(6区分)
 CHEMO_KEYWORDS = [
     ("白金製剤", ["oxaliplatin", "cisplatin", "carboplatin", "platin", "オキサリプラチン", "シスプラチン", "カルボプラチン", "l-ohp", "cddp", "cbdca", "folfox", "xelox", "capox"]),
     ("タキサン系", ["paclitaxel", "docetaxel", "taxane", "taxol", "nab-pac", "abraxane", "パクリタキセル", "ドセタキセル", "タキサン", "ptx", "dtx"]),
-    ("ビンカアルカロイド系", ["vincristine", "vinblastine", "vinorelbine", "vinca", "ビンクリスチン", "ビンブラスチン", "ビノレルビン", "vcr", "vbl", "vnr"]),
-    ("プロテアソーム阻害薬", ["bortezomib", "carfilzomib", "ボルテゾミブ", "proteasome"]),
+    ("ビンカアルカロイド", ["vincristine", "vinblastine", "vinorelbine", "vinca", "ビンクリスチン", "ビンブラスチン", "ビノレルビン", "vcr", "vbl", "vnr"]),
+    ("ボルテゾミブ等", ["bortezomib", "carfilzomib", "ボルテゾミブ", "proteasome"]),
 ]
 
 
@@ -76,8 +76,8 @@ def classify_chemo(text):
     if len(hit) == 1:
         return hit[0]
     if len(hit) > 1:
-        return "複数/混合"
-    return "その他"
+        return "混在"
+    return "不明"
 
 
 def to_score(v):

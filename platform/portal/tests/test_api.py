@@ -88,7 +88,7 @@ def test_paper_register_extract_and_sections(env):
     # 研究特性: 化学療法の分類は7区分に限る
     assert call("PUT", "/papers/P1/12345678", {"chars": {"cancer": "乳癌", "chemo_class": "タキサン系", "chemo_drugs": "paclitaxel"}}, R1)[0] == 200
     assert call("PUT", "/papers/P1/12345678", {"chars": {"chemo_class": "不正"}}, R1)[0] == 400
-    c, cq = call("GET", "/cq/P1"); assert cq["stages"]["全文入手"] == "完了"
+    c, cq = call("GET", "/cq/P1"); assert cq["stages"]["論文登録"] == "1件(本文抽出済 1件)" and cq["stages"]["CQ確定"] == "承認済み(統括委員長)"
 
 
 def test_f45_two_reviewers_blind_then_reconcile(env):
@@ -129,11 +129,12 @@ def test_sr8_stratified_by_chemo_class_and_stage_auto(env):
     c, d = call("GET", "/sr8/P1", who=R2); assert c == 200
     row = next(x for x in d["outcomes"] if x["outcome"] == o)
     assert row["n_studies"] == 2 and set(row["by_chemo_class"]) == {"白金製剤", "タキサン系"}
-    assert call("PUT", f"/sr8/P1/{o}", {"rob": "0", "inconsistency": "-1", "imprecision": "-1", "indirectness": "0", "publication_bias": "0", "upgrade": "0", "certainty": "C(低)", "strata": "白金製剤とタキサン系で方向は同じ"}, R1)[0] == 200
-    assert call("PUT", f"/sr8/P1/{o}", {"certainty": "C(低)"}, dict(email="x@example.org", groups=("SR委員",)))[0] == 403
+    assert call("PUT", f"/sr8/P1/{o}", {"rob": "0", "inconsistency": "-1", "imprecision": "-1", "indirectness": "0", "publication_bias": "0", "upgrade": "0", "certainty": "C(弱)", "strata": "白金製剤とタキサン系で方向は同じ"}, R1)[0] == 200
+    assert call("PUT", f"/sr8/P1/{o}", {"certainty": "C(弱)"}, dict(email="x@example.org", groups=("SR委員",)))[0] == 403
     c, cq = call("GET", "/cq/P1")
-    assert cq["stages"]["様式4-5"] == "進行中"  # QOL が未確定
-    assert cq["stages"]["様式SR-8・SoF"] == "進行中"  # QOL が未記入
+    assert cq["stages"]["様式4-5"] == "確定 2/4(提出 0)"  # 2論文×2アウトカム。QOL が未確定
+    assert cq["stages"]["様式SR-8"] == "確実性 記入 1/2"  # QOL が未記入
+    assert cq["progress"] == 50
 
 
 def test_etd_2023_reference_and_vote(env):
@@ -141,13 +142,13 @@ def test_etd_2023_reference_and_vote(env):
     assert c == 200 and r["imported"] == 1
     c, d = call("GET", "/etd/P1", who=R1); assert d["gl2023"]["paragraphs"][0]["id"] == "GL2023-P1-p001" and len(d["gl2023"]["paragraphs"]) == 2
     assert call("PUT", "/etd/P1", {"rec_draft": "x"}, R1)[0] == 403  # SR委員は EtD を書けない
-    body = {"rec_draft": "タキサン系薬剤によるCIPNの予防に冷却療法を提案する", "strength": "2 弱い推奨(実施する)", "certainty": "C(低)",
+    body = {"rec_draft": "タキサン系薬剤によるCIPNの予防に冷却療法を提案する", "strength": "2 弱く推奨", "certainty": "C(弱)",
             "considerations": {"benefit_harm": {"text": "Grade2以上の減少", "evidence": ["12345678-p009", "GL2023-P1-p001"]}},
             "vote": {"round": 1, "counts": [0, 13, 2, 0, 0], "denominator": 15, "coi_excluded": 1, "sr_excluded": 2, "date": "2027-09-01"}}
     c, e = call("PUT", "/etd/P1", body, dict(email="g@example.org", groups=("作成グループ",))); assert c == 200 and e["vote"]["agreement"] == 87
     assert call("PUT", "/etd/P1", {"status": "確定"}, dict(email="g@example.org", groups=("作成グループ",)))[0] == 403  # 確定は統括委員会
     assert call("PUT", "/etd/P1", {"status": "確定"})[1]["status"] == "確定"
-    assert call("GET", "/cq/P1")[1]["stages"]["EtD"] == "完了" if call("GET", "/papers/P1")[1] else True
+    assert call("GET", "/cq/P1")[1]["stages"]["EtD"] == "確定"
 
 
 def test_soron_flow_separated_from_sr(env):
