@@ -31,7 +31,7 @@ ROLE_GROUP = {"統括委員会", "作成グループ"}  # 推奨作成(EtD・投
 GROUPS = ["統括委員会", "事務局", "SR委員長", "作成グループ", "SR委員", "総説執筆者", "外部評価委員"]
 CQ_STAGES = ["検索", "一次スクリーニング", "二次スクリーニング", "全文入手", "様式4-5", "様式SR-8・SoF", "EtD", "解説文"]
 STAGE_STATES = ["未着手", "進行中", "完了"]
-SORON_STATES = ["未着手", "執筆中", "査読中", "完了"]
+SORON_STATES = ["未着手", "執筆中", "査読中", "修正中", "完了"]
 PHASES = ["STEP 1 Scope・体制", "STEP 2 検索・スクリーニング", "STEP 3 システマティックレビュー実施中", "STEP 4 推奨作成", "STEP 5 解説・総論執筆", "STEP 6 外部評価・パブリックコメント", "STEP 7 公開"]
 ITEM_KEYS = ["randomization", "concealment", "blinding_participants", "blinding_assessors", "itt", "incomplete_outcome", "selective_reporting", "early_stopping", "other_bias", "bias_summary",
              "ind_population", "ind_intervention", "ind_comparator", "ind_outcome", "ind_summary"]
@@ -225,8 +225,17 @@ def handler(event, context=None):
         return resp(400, {"error": f"項目がありません: {e}"})
 
 
+SORON_ONLY = {"me", "meta", "dashboard", "soron", "audit"}  # 総説執筆者だけの利用者が使える範囲(SRの流れとは分離)
+SR_ONLY = {"me", "meta", "dashboard", "cq", "papers", "f45", "sr8", "etd", "gl2023", "screening", "audit"}
+
+
 def route(method, parts, body, user):
     head = parts[0] if parts else ""
+    g = set(user["groups"])
+    if g and g <= {"総説執筆者", "外部評価委員"} and head not in SORON_ONLY:
+        raise Forbidden("総説の流れの画面だけを利用できます")
+    if g and g <= {"SR委員"} and head not in SR_ONLY:
+        raise Forbidden("SRの流れの画面だけを利用できます")
     if head == "me":
         return resp(200, user)
     if head == "meta":
@@ -556,22 +565,53 @@ def gl2023(method, parts, body, user):
     return resp(405, {"error": "方法が不正です"})
 
 
-# ---------- 総論 ----------
+# ---------- 総説(総論A〜N)。SRの流れとは独立した流れ ----------
+SORON_FLOW = ["未着手", "執筆中", "査読中", "修正中", "完了"]
+
+
 def soron(method, parts, body, user):
-    if method == "GET":
+    # GET  /soron                           一覧(状態、期限、最新原稿、査読)
+    # PUT  /soron/<key>                     執筆者: 状態・期限・備考。統括委員会: 査読コメント、確定
+    # POST /soron/<key>/upload-url          原稿(docx/pdf)の置き場。版を重ねる(S3 の版管理)
+    # GET  /soron/<key>/files               原稿の版一覧
+    # GET  /soron/<key>/download-url?v=     原稿の取得
+    if method == "GET" and len(parts) == 1:
         return resp(200, sorted(query("SORON"), key=lambda s: s["key"]))
-    if method == "PUT" and len(parts) > 1:
-        s = get("SORON", parts[1])
-        if not s: return resp(404, {"error": "ありません"})
-        own = user["name"] and any(user["name"].startswith(a) for a in re.split("[・]", s.get("author", "")) if a)
-        if not own: require(user, ROLE_LEAD)
+    if len(parts) < 2: return resp(400, {"error": "項目が必要です"})
+    s = get("SORON", parts[1])
+    if not s: return resp(404, {"error": "ありません"})
+    sub = parts[2] if len(parts) > 2 else ""
+    own = bool(user["name"]) and any(user["name"].startswith(a) for a in re.split("[・]", s.get("author", "")) if a)
+    admin = bool(set(user["groups"]) & ROLE_ADMIN)
+    if not (own or admin): raise Forbidden("この総論の執筆者、統括委員会、事務局に限ります")
+    if method == "GET" and sub == "files":
+        if not BUCKET: return resp(200, [])
+        vs = s3().list_object_versions(Bucket=BUCKET, Prefix=f"soron/{s['key']}/").get("Versions", [])
+        return resp(200, sorted([{"key": v["Key"].split("/")[-1], "version": v["VersionId"], "at": v["LastModified"].isoformat(), "size": v["Size"], "latest": v["IsLatest"]} for v in vs], key=lambda x: x["at"], reverse=True))
+    if method == "GET" and sub == "download-url":
+        name = s.get("file") or ""
+        if not name: return resp(404, {"error": "原稿がありません"})
+        url = s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": f"soron/{s['key']}/{name}"}, ExpiresIn=900)
+        audit(user, "総論の原稿の取得", f"総論{s['label']}", name); return resp(200, {"url": url})
+    if method == "POST" and sub == "upload-url":
+        name = re.sub(r"[^\w.\-一-龥ぁ-んァ-ン]", "_", body.get("filename") or "原稿.docx")[:80]
+        key = f"soron/{s['key']}/{name}"
+        url = s3().generate_presigned_url("put_object", Params={"Bucket": BUCKET, "Key": key, "ContentType": body.get("content_type") or "application/octet-stream"}, ExpiresIn=900)
+        s["file"] = name; s["file_at"] = now(); s["file_by"] = user["name"] or user["email"]
+        if s.get("status") in ("未着手", "修正中"): s["status"] = "執筆中"
+        put("SORON", s["key"], s); audit(user, "総論の原稿の提出", f"総論{s['label']}", name); return resp(200, {"url": url, "key": key})
+    if method == "PUT" and not sub:
         ch = []
-        if "status" in body and body["status"] in SORON_STATES and body["status"] != s["status"]: ch.append(f"状態: {s['status']}→{body['status']}"); s["status"] = body["status"]
-        for k, ja in (("due", "期限"), ("draft_url", "原稿"), ("note", "備考")):
+        if "status" in body and body["status"] in SORON_FLOW and body["status"] != s.get("status"):
+            if body["status"] == "完了": require(user, {"統括委員会"})
+            ch.append(f"状態: {s.get('status')}→{body['status']}"); s["status"] = body["status"]
+        for k, ja in (("due", "期限"), ("note", "備考")):
             if k in body: s[k] = str(body[k]); ch.append(ja)
+        if "review" in body:
+            require(user, ROLE_ADMIN); s["review"] = str(body["review"]); s["review_by"] = user["name"]; s["review_at"] = now(); ch.append("査読コメント")
+            if s.get("status") == "査読中": s["status"] = "修正中"
         put("SORON", s["key"], s); audit(user, "総論の更新", f"総論{s['label']}", "、".join(ch)); return resp(200, s)
     return resp(405, {"error": "方法が不正です"})
-
 
 # ---------- スクリーニング ----------
 def screening_progress(d):

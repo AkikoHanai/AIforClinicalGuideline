@@ -65,19 +65,21 @@
   // ---------- 画面 ----------
   const pages = {
     async dashboard(m) {
-      const d = await api("/dashboard");
+      const d = await api("/dashboard"); const showSr = can("統括委員会", "事務局", "SR委員長", "SR委員", "作成グループ"), showSoron = can("統括委員会", "事務局", "総説執筆者");
       m.innerHTML = `<h2>ダッシュボード</h2>
         <div class="card phase">現在の段階: <b>${esc(d.phase)}</b> ${isAdmin() ? `<span class="row">${sel(S.meta.phases, d.phase, 'id="phaseSel"')}<button id="phaseBtn">変更</button></span>` : ""}</div>
         <div class="grid">
-          <div class="card"><h3>自分の作業</h3>${d.user.name ? "" : '<p class="small">利用者の氏名が未登録のため、担当の抽出ができません(事務局に依頼)。</p>'}
+          ${showSr ? `<div class="card"><h3>SRの流れ: 自分の作業</h3>${d.user.name ? "" : '<p class="small">利用者の氏名が未登録のため、担当の抽出ができません(事務局に依頼)。</p>'}
+            <p class="small">手順: 論文(PDF登録・本文) → 様式4-5(2名が独立に判定し、照合) → 様式SR-8 → EtD・推奨(投票)</p>
             <p>様式4-5 の未提出: <b>${d.my_f45_todo_count}</b> 件</p>
             <ul class="plain">${d.my_f45_todo.slice(0, 8).map((t) => `<li><a href="#f45?cq=${esc(t.cq)}&pmid=${esc(t.pmid)}&outcome=${encodeURIComponent(t.outcome)}">${esc(t.cq)} PMID ${esc(t.pmid)} / ${esc(t.outcome)}</a></li>`).join("")}</ul>
-            ${d.my_cq.length ? `<h3>担当CQ</h3><ul class="plain">${d.my_cq.map((c) => `<li><a href="#papers?cq=${esc(c.id)}">${esc(c.id)} ${esc(c.title)}</a> <span class="small">${c.progress}%</span></li>`).join("")}</ul>` : ""}
-            ${d.my_soron.length ? `<h3>担当の総論</h3><ul class="plain">${d.my_soron.map((s) => `<li>${esc(s.label)} ${esc(s.title)} ${tag(s.status)}</li>`).join("")}</ul>` : ""}</div>
-          <div class="card"><h3>総論の執筆状況</h3>${Object.entries(d.soron_summary).map(([k, v]) => `${tag(k)} ${v}件 `).join("")}</div>
+            ${d.my_cq.length ? `<h3>担当CQ</h3><ul class="plain">${d.my_cq.map((c) => `<li><a href="#papers?cq=${esc(c.id)}">${esc(c.id)} ${esc(c.title)}</a> <span class="small">${c.progress}%</span></li>`).join("")}</ul>` : ""}</div>` : ""}
+          ${showSoron ? `<div class="card"><h3>総説の流れ: 自分の作業</h3><p class="small">手順: 原稿(Word)を提出 → 統括委員会の査読 → 修正 → 完了。原稿はこの画面で提出し、ドライブの共有は不要。</p>
+            ${d.my_soron.length ? `<ul class="plain">${d.my_soron.map((s) => `<li><a href="#soron">${esc(s.label)} ${esc(s.title)}</a> ${tag(s.status)}</li>`).join("")}</ul>` : '<p class="muted">担当の総論はありません</p>'}
+            <p>全体: ${Object.entries(d.soron_summary).map(([k, v]) => `${tag(k)} ${v}件 `).join("")}</p></div>` : ""}
         </div>
-        <div class="card"><h3>CQごとの進捗(入力の完了から自動判定)</h3><table><tr><th>ID</th><th>名称</th><th>担当</th><th>進捗</th>${S.meta.stages.map((s) => `<th class="small">${esc(s)}</th>`).join("")}</tr>
-          ${d.cq.map((c) => `<tr><td>${esc(c.id)}</td><td><a href="#papers?cq=${esc(c.id)}">${esc(c.title)}</a></td><td>${esc(c.assignees.join("・"))}</td><td><span class="bar"><i style="width:${c.progress}%"></i></span> ${c.progress}%</td>${S.meta.stages.map((s) => `<td>${tag(c.stages[s])}</td>`).join("")}</tr>`).join("")}</table></div>
+        ${showSr ? `<div class="card"><h3>CQごとの進捗(入力の完了から自動判定)</h3><table><tr><th>ID</th><th>名称</th><th>担当</th><th>進捗</th>${S.meta.stages.map((s) => `<th class="small">${esc(s)}</th>`).join("")}</tr>
+          ${d.cq.map((c) => `<tr><td>${esc(c.id)}</td><td><a href="#papers?cq=${esc(c.id)}">${esc(c.title)}</a></td><td>${esc(c.assignees.join("・"))}</td><td><span class="bar"><i style="width:${c.progress}%"></i></span> ${c.progress}%</td>${S.meta.stages.map((s) => `<td>${tag(c.stages[s])}</td>`).join("")}</tr>`).join("")}</table></div>` : ""}
         <div class="card" style="margin-top:14px"><h3>作成経過の記録(最新20件)</h3>${auditTable(d.audit)}</div>`;
       $("#phaseBtn")?.addEventListener("click", async () => { await api("/phase", "PUT", { phase: $("#phaseSel").value }); toast("段階を変更しました"); render(); });
     },
@@ -238,15 +240,27 @@
     },
 
     async soron(m) {
-      const list = await api("/soron");
-      m.innerHTML = `<h2>総論(A〜N)</h2><p class="small">企画書の総論18項目と担当。執筆者本人・SR委員長・統括委員会・事務局が状態を更新できる。原稿は Google ドライブ JASCC_GL に置き、その URL を記録する。</p>
-        <table><tr><th>項目</th><th>題名</th><th>担当</th><th>状態</th><th>期限</th><th>原稿(URL)</th><th>備考</th><th></th></tr>
-        ${list.map((s) => { const o = S.me.name && s.author.split("・").some((a) => a && S.me.name.startsWith(a)); const ed = o || isLead();
-          return `<tr data-key="${esc(s.key)}"><td>${esc(s.label)}</td><td>${esc(s.title)}</td><td>${esc(s.author)}</td><td>${ed ? sel(S.meta.soron_states, s.status, "data-status") : tag(s.status)}</td>
-            <td>${ed ? `<input type="date" data-due value="${esc(s.due)}">` : esc(s.due)}</td><td>${ed ? `<input data-url value="${esc(s.draft_url)}" size="24">` : s.draft_url ? `<a href="${esc(s.draft_url)}" target="_blank" rel="noopener">原稿</a>` : ""}</td>
-            <td>${ed ? `<input data-note value="${esc(s.note)}" size="18">` : esc(s.note)}</td><td>${ed ? '<button data-act="save">保存</button>' : ""}</td></tr>`; }).join("")}</table>`;
-      m.querySelectorAll("button[data-act=save]").forEach((b) => b.addEventListener("click", async () => { const tr = b.closest("tr");
-        try { await api("/soron/" + tr.dataset.key, "PUT", { status: tr.querySelector("[data-status]").value, due: tr.querySelector("[data-due]").value, draft_url: tr.querySelector("[data-url]").value, note: tr.querySelector("[data-note]").value }); toast("保存しました"); } catch (e) { toast(e.message, true); } }));
+      const list = await api("/soron"); const admin = isAdmin();
+      const mineOnly = !admin && !isLead();
+      const rows = list.filter((s) => !mineOnly || (S.me.name && s.author.split("・").some((a) => a && S.me.name.startsWith(a))));
+      m.innerHTML = `<h2>総説の流れ: 総論(A〜N)の執筆・査読</h2>
+        <p class="small">企画書の総論18項目と担当。執筆者は原稿(Word)をこの画面で提出し、状態を「査読中」にする。統括委員会が査読コメントを書くと「修正中」になり、執筆者が修正版を提出する。完了は統括委員会が決める。原稿は版ごとに保存される。SRの流れ(CQ)とは独立している。</p>
+        <table><tr><th>項目</th><th>題名</th><th>担当</th><th>状態</th><th>期限</th><th>最新の原稿</th><th>査読コメント(統括委員会)</th><th>備考</th><th></th></tr>
+        ${rows.map((s) => { const o = S.me.name && s.author.split("・").some((a) => a && S.me.name.startsWith(a)); const ed = o || admin;
+          return `<tr data-key="${esc(s.key)}"><td>${esc(s.label)}</td><td>${esc(s.title)}</td><td>${esc(s.author)}</td>
+            <td>${ed ? sel(S.meta.soron_states.filter((x) => admin || x !== "完了"), s.status, "data-status") : tag(s.status)}</td>
+            <td>${ed ? `<input type="date" data-due value="${esc(s.due || "")}">` : esc(s.due || "")}</td>
+            <td class="small">${s.file ? `<a href="#" data-dl="${esc(s.key)}">${esc(s.file)}</a><br>${esc((s.file_at || "").slice(0, 16))} ${esc(s.file_by || "")}` : "—"}${ed ? `<br><input type="file" data-up accept=".docx,.doc,.pdf"> <button data-act="upload">提出</button>` : ""}</td>
+            <td>${admin ? `<textarea data-review rows="2" cols="24">${esc(s.review || "")}</textarea>` : esc(s.review || "")}${s.review_by ? `<div class="small">${esc(s.review_by)} ${esc((s.review_at || "").slice(0, 16))}</div>` : ""}</td>
+            <td>${ed ? `<input data-note value="${esc(s.note || "")}" size="14">` : esc(s.note || "")}</td><td>${ed ? '<button data-act="save">保存</button>' : ""}</td></tr>`; }).join("") || "<tr><td colspan=9 class='muted'>担当の総論はありません</td></tr>"}</table>`;
+      m.querySelectorAll("button[data-act=save]").forEach((b) => b.addEventListener("click", async () => { const tr = b.closest("tr"); const body = { status: tr.querySelector("[data-status]").value, due: tr.querySelector("[data-due]").value, note: tr.querySelector("[data-note]").value };
+        const rv = tr.querySelector("[data-review]"); if (rv) body.review = rv.value;
+        try { await api("/soron/" + tr.dataset.key, "PUT", body); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } }));
+      m.querySelectorAll("button[data-act=upload]").forEach((b) => b.addEventListener("click", async () => { const tr = b.closest("tr"); const f = tr.querySelector("[data-up]").files[0]; if (!f) return toast("原稿のファイルを選んでください", true);
+        try { const r = await api("/soron/" + tr.dataset.key + "/upload-url", "POST", { filename: f.name, content_type: f.type || "application/octet-stream" });
+          const u = await fetch(r.url, { method: "PUT", headers: { "Content-Type": f.type || "application/octet-stream" }, body: f }); if (!u.ok) throw new Error("原稿の送信に失敗しました");
+          toast("原稿を提出しました"); render(); } catch (e) { toast(e.message, true); } }));
+      m.querySelectorAll("a[data-dl]").forEach((a) => a.addEventListener("click", async (ev) => { ev.preventDefault(); try { const r = await api("/soron/" + a.dataset.dl + "/download-url"); window.open(r.url, "_blank"); } catch (e) { toast(e.message, true); } }));
     },
 
     async screening(m) {
@@ -291,6 +305,11 @@
     try { S.me = await api("/me"); S.meta = await api("/meta"); } catch (e) { $("#login").classList.remove("hidden"); $("#loginBtn").addEventListener("click", login); return toast(e.message, true); }
     $("#meName").textContent = S.me.name || S.me.email; $("#meGroups").textContent = S.me.groups.join("・") || "(グループ未設定)";
     $("#logoutBtn").addEventListener("click", logout);
+    // 表示する流れ: SR(担当委員・SR委員長・作成グループ・統括・事務局)、総説(総説執筆者・統括・事務局)、事務局(統括・事務局)
+    const showSr = can("統括委員会", "事務局", "SR委員長", "SR委員", "作成グループ"), showSoron = can("統括委員会", "事務局", "総説執筆者"), showAdmin = isAdmin();
+    document.querySelector('.navsec[data-flow="sr"]').classList.toggle("hidden", !showSr);
+    document.querySelector('.navsec[data-flow="soron"]').classList.toggle("hidden", !showSoron);
+    document.querySelector('.navsec[data-flow="admin"]').classList.toggle("hidden", !showAdmin);
     $("#app").classList.remove("hidden");
     window.addEventListener("hashchange", render); render();
   }

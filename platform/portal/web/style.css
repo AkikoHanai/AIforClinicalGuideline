@@ -48,3 +48,5 @@ ul.plain { padding-left:18px; margin:6px 0; }
 .para.flash { outline:2px solid var(--accent); }
 table.f45 td { font-size:12px; } table.f45 input, table.f45 select { font-size:12px; margin-top:2px; }
 textarea { border:1px solid var(--line); border-radius:6px; padding:5px 7px; }
+.navsec { margin:6px 0; } .navh { font-size:11px; color:#9fb0cf; padding:6px 10px 2px; letter-spacing:.04em; }
+.navsec a { display:block; }

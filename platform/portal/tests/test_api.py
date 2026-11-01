@@ -150,11 +150,25 @@ def test_etd_2023_reference_and_vote(env):
     assert call("GET", "/cq/P1")[1]["stages"]["EtD"] == "完了" if call("GET", "/papers/P1")[1] else True
 
 
-def test_soron_and_users(env):
-    assert call("PUT", "/soron/A", {"status": "執筆中"}, dict(email="naito@example.org", groups=("総説執筆者",)))[0] == 403  # 氏名未登録
+def test_soron_flow_separated_from_sr(env):
+    W = dict(email="naito@example.org", groups=("総説執筆者",))
+    assert call("PUT", "/soron/A", {"status": "執筆中"}, W)[0] == 403  # 氏名未登録
     call("POST", "/users", {"email": "naito@example.org", "name": "内藤陽一", "roles": ["総説執筆者"]})
-    assert call("PUT", "/soron/A", {"status": "執筆中", "draft_url": "https://drive.google.com/x"}, dict(email="naito@example.org", groups=("総説執筆者",)))[1]["status"] == "執筆中"
-    assert call("PUT", "/soron/B", {"status": "完了"}, dict(email="naito@example.org", groups=("総説執筆者",)))[0] == 403
+    # 総説執筆者は SR の流れの画面に入れない
+    assert call("GET", "/cq", who=W)[0] == 403 and call("GET", "/papers/P1", who=W)[0] == 403
+    # 原稿の提出 → 査読中 → 統括委員会の査読コメントで修正中 → 完了は統括委員会だけ
+    c, r = call("POST", "/soron/A/upload-url", {"filename": "総論A_内藤.docx", "content_type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}, W); assert c == 200 and r["key"].startswith("soron/A/")
+    boto3.client("s3").put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"docx")
+    assert call("GET", "/soron", who=W)[1][0]["file"] == "総論A_内藤.docx"
+    assert call("PUT", "/soron/A", {"status": "査読中"}, W)[1]["status"] == "査読中"
+    assert call("PUT", "/soron/A", {"review": "表1の出典を追記"}, W)[0] == 403
+    assert call("PUT", "/soron/A", {"review": "表1の出典を追記"})[1]["status"] == "修正中"
+    assert call("PUT", "/soron/A", {"status": "完了"}, W)[0] == 403
+    assert call("PUT", "/soron/A", {"status": "完了"})[1]["status"] == "完了"
+    assert call("PUT", "/soron/B", {"status": "執筆中"}, W)[0] == 403  # 他人の総論
+    c, files = call("GET", "/soron/A/files", who=W); assert c == 200 and files[0]["key"] == "総論A_内藤.docx"
+    # SR委員は総説の画面に入れない
+    assert call("GET", "/soron", who=R1)[0] == 403
     assert call("POST", "/users", {"email": "a@b", "name": "x", "roles": []}, R1)[0] == 403
     c, d = call("GET", "/dashboard", who=dict(email="naito@example.org", groups=("総説執筆者",))); assert [s["key"] for s in d["my_soron"]] == ["A"]
 

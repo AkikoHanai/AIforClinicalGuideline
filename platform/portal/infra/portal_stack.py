@@ -26,22 +26,6 @@ class PortalStack(Stack):
                           point_in_time_recovery_specification=ddb.PointInTimeRecoverySpecification(point_in_time_recovery_enabled=True),
                           removal_policy=RemovalPolicy.RETAIN)
 
-        pool = cognito.UserPool(self, "Users", user_pool_name=name, self_sign_up_enabled=False, sign_in_aliases=cognito.SignInAliases(email=True),
-                                auto_verify=cognito.AutoVerifiedAttrs(email=True), standard_attributes=cognito.StandardAttributes(email=cognito.StandardAttribute(required=True, mutable=True)),
-                                mfa=cognito.Mfa.OPTIONAL, mfa_second_factor=cognito.MfaSecondFactor(sms=False, otp=True),
-                                password_policy=cognito.PasswordPolicy(min_length=12, require_lowercase=True, require_uppercase=True, require_digits=True, require_symbols=False),
-                                account_recovery=cognito.AccountRecovery.EMAIL_ONLY, removal_policy=RemovalPolicy.RETAIN,
-                                user_invitation=cognito.UserInvitationConfig(
-                                    email_subject="がん薬物療法に伴う末梢神経障害診療ガイドライン2028年版 作成ポータルへの招待",
-                                    email_body="GL作成ポータルの利用者として登録されました。ユーザー名(メールアドレス): {username}  仮パスワード: {####}  初回ログイン後にパスワードを変更してください。"))
-        for g in GROUPS:
-            cognito.CfnUserPoolGroup(self, f"Group{GROUPS.index(g)}", user_pool_id=pool.user_pool_id, group_name=g)
-        domain = pool.add_domain("Domain", cognito_domain=cognito.CognitoDomainOptions(domain_prefix=f"{name}-{cdk.Fn.select(0, cdk.Fn.split('-', cdk.Fn.select(2, cdk.Fn.split('/', self.stack_id))))}"))
-
-        papers = s3.Bucket(self, "Papers", bucket_name=f"{name}-papers-{self.account}", block_public_access=s3.BlockPublicAccess.BLOCK_ALL, encryption=s3.BucketEncryption.S3_MANAGED,
-                           versioned=True, enforce_ssl=True, removal_policy=RemovalPolicy.RETAIN,
-                           cors=[s3.CorsRule(allowed_methods=[s3.HttpMethods.PUT, s3.HttpMethods.GET], allowed_origins=["*"], allowed_headers=["*"], max_age=3600)])
-
         bucket = s3.Bucket(self, "Web", block_public_access=s3.BlockPublicAccess.BLOCK_ALL, encryption=s3.BucketEncryption.S3_MANAGED,
                            removal_policy=RemovalPolicy.DESTROY, auto_delete_objects=True)
         dist = cf.Distribution(self, "Cdn", default_behavior=cf.BehaviorOptions(origin=origins.S3BucketOrigin.with_origin_access_control(bucket),
@@ -51,6 +35,28 @@ class PortalStack(Stack):
                                                 cf.ErrorResponse(http_status=404, response_http_status=200, response_page_path="/index.html", ttl=Duration.seconds(0))])
         site = f"https://{dist.distribution_domain_name}"
         local = "http://localhost:8000"
+
+        pool = cognito.UserPool(self, "Users", user_pool_name=name, self_sign_up_enabled=False, sign_in_aliases=cognito.SignInAliases(email=True),
+                                auto_verify=cognito.AutoVerifiedAttrs(email=True), standard_attributes=cognito.StandardAttributes(email=cognito.StandardAttribute(required=True, mutable=True)),
+                                mfa=cognito.Mfa.OPTIONAL, mfa_second_factor=cognito.MfaSecondFactor(sms=False, otp=True),
+                                password_policy=cognito.PasswordPolicy(min_length=12, require_lowercase=True, require_uppercase=True, require_digits=True, require_symbols=False),
+                                account_recovery=cognito.AccountRecovery.EMAIL_ONLY, removal_policy=RemovalPolicy.RETAIN,
+                                user_invitation=cognito.UserInvitationConfig(
+                                    email_subject="【JASCC】がん薬物療法に伴う末梢神経障害診療ガイドライン2028年版 作成ポータルのご案内",
+                                    email_body=("委員各位<br><br>日本がんサポーティブケア学会 がん薬物療法に伴う末梢神経障害診療ガイドライン2028年版の作成にあたり、"
+                                                "作業用のポータル(ウェブサイト)をご用意しました。下記の情報でログインしてください。<br><br>"
+                                                "ポータル: " + site + "<br>ユーザー名: {username}<br>仮パスワード: {####}<br><br>"
+                                                "初回ログイン時に、パスワードの変更を求められます。操作の手順は、ログイン後の画面に表示されます。"
+                                                "ご不明な点は、本メールへの返信ではなく、事務局までご連絡ください。<br><br>"
+                                                "がん薬物療法に伴う末梢神経障害診療ガイドライン2028年版 統括委員会<br>委員長 華井明子(千葉大学)")))
+        for g in GROUPS:
+            cognito.CfnUserPoolGroup(self, f"Group{GROUPS.index(g)}", user_pool_id=pool.user_pool_id, group_name=g)
+        domain = pool.add_domain("Domain", cognito_domain=cognito.CognitoDomainOptions(domain_prefix=f"{name}-{cdk.Fn.select(0, cdk.Fn.split('-', cdk.Fn.select(2, cdk.Fn.split('/', self.stack_id))))}"))
+
+        papers = s3.Bucket(self, "Papers", bucket_name=f"{name}-papers-{self.account}", block_public_access=s3.BlockPublicAccess.BLOCK_ALL, encryption=s3.BucketEncryption.S3_MANAGED,
+                           versioned=True, enforce_ssl=True, removal_policy=RemovalPolicy.RETAIN,
+                           cors=[s3.CorsRule(allowed_methods=[s3.HttpMethods.PUT, s3.HttpMethods.GET], allowed_origins=["*"], allowed_headers=["*"], max_age=3600)])
+
 
         client = pool.add_client("WebClient", generate_secret=False, auth_flows=cognito.AuthFlow(user_password=True, user_srp=True),
                                  o_auth=cognito.OAuthSettings(flows=cognito.OAuthFlows(authorization_code_grant=True),
