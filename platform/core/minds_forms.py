@@ -317,3 +317,23 @@ def read_sr8(ws):
 
 
 STRENGTH_ORDER = ["A", "B", "C", "D"]
+
+
+def load_ai_reliability():
+    """AI(Claude)による様式4-5判定の検証結果(review/validation/ai_item_reliability.json)。項目名 → {kappa, label, ...}。なければ空。
+    判定の基準ではない。Claude下書きに一致度を併記するために使う。"""
+    import json as _json, os as _os
+    f = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "review", "validation", "ai_item_reliability.json")
+    try:
+        return _json.load(open(f, encoding="utf-8")).get("items", {})
+    except Exception:
+        return {}
+
+
+def ai_reliability_note(items=None):
+    rel = load_ai_reliability()
+    if not rel:
+        return ""
+    names = items or ["バイアスリスク まとめ", "非直接性 まとめ"]
+    parts = [f"{n} κ={rel[n]['kappa']}({rel[n]['label']})" for n in names if n in rel]
+    return "検証(20研究)の一致度: " + "、".join(parts) if parts else ""

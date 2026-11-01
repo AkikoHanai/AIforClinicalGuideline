@@ -36,7 +36,7 @@ import xml.etree.ElementTree as ET
 from openpyxl import load_workbook
 
 from minds_forms import (C_CODE, C_COMMENT, C_CTRL_DEN, C_CTRL_NUM, C_DESIGN, C_EFF_CI, C_EFF_TYPE, C_EFF_VAL, C_INSTR,
-                         C_INT_DEN, C_INT_NUM, C_ITEM0, CHEMO_CLASSES, ITEM_KEYS, add_study_all_blocks, classify_chemo, find_row, read_45)
+                         C_INT_DEN, C_INT_NUM, C_ITEM0, CHEMO_CLASSES, ITEM_KEYS, add_study_all_blocks, ai_reliability_note, classify_chemo, find_row, read_45)
 
 DEFAULT_MODEL = os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5")
 DRAFT_SHEET = "4-5_Claude下書き"
@@ -287,7 +287,7 @@ def write_45_results(ws, key, res, kind, overwrite=True):
             ws.cell(row=row, column=C_INSTR, value=rr["instrument"])
         if res.get("design"):
             ws.cell(row=row, column=C_DESIGN, value=res["design"])
-        ws.cell(row=row, column=C_COMMENT, value=f"[Claude下書き/本文:{KIND_JA.get(kind, kind)}] {rr.get('rationale') or ''}"[:1000])
+        ws.cell(row=row, column=C_COMMENT, value=f"[Claude下書き/本文:{KIND_JA.get(kind, kind)}] {rr.get('rationale') or ''} ［{ai_reliability_note()}］"[:1000])
         n += 1
     return n
 
@@ -497,6 +497,10 @@ def process_cq(cq_dir, model_id, dry_run, no_fetch):
         if dry_run and draft_has_data(draft, key):
             continue  # sync-only/dry-run では、前回(Bedrock)の下書きを仮値で上書きしない
         res = extract_one(text, kind, ctx, outcomes, model_id, dry_run)
+        if kind == "abstract":  # 抄録のみでは15項目の判定を作らない(検証で一致率が低い。統括委員長の決定 2026-11-01)。研究特性だけを使う
+            for rr in res.get("results") or []:
+                rr["items"] = {k: None for k in (rr.get("items") or {})}
+                rr["rationale"] = "抄録のみのため判定せず(PDFを配置して再実行)。" + (rr.get("rationale") or "")
         write_chars(chars, r, res, kind)
         n = write_45_results(draft, key, res, kind)
         write_rob2_ref(wb, key, res)

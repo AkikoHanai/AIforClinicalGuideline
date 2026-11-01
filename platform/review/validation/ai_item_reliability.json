@@ -1,0 +1,112 @@
+{
+ "source": "RoBBR_result_2026-10-28.xlsx",
+ "updated": "更新: 2026-10-28 12:52　／　実験数: 10",
+ "note": "20研究・1アウトカムの検証(他領域のRCT)。CIPNの論文での検証は未実施",
+ "items": {
+  "コンシールメント": {
+   "kappa": 0.216,
+   "accuracy": 0.5,
+   "n": 20,
+   "label": "やや",
+   "experiment": "16_pdf_endurance"
+  },
+  "盲検化(アウトカム評価者)": {
+   "kappa": -0.111,
+   "accuracy": 0.25,
+   "n": 20,
+   "label": "偶然以下",
+   "experiment": "16_pdf_endurance"
+  },
+  "アウトカム不完全報告": {
+   "kappa": 0.262,
+   "accuracy": 0.5,
+   "n": 20,
+   "label": "やや",
+   "experiment": "16_pdf_endurance"
+  },
+  "非直接性 アウトカム": {
+   "kappa": 0,
+   "accuracy": 0.8,
+   "n": 20,
+   "label": "わずか",
+   "experiment": "16_pdf_endurance"
+  },
+  "非直接性 対象": {
+   "kappa": 0.107,
+   "accuracy": 0.5,
+   "n": 20,
+   "label": "わずか",
+   "experiment": "16_pdf_endurance"
+  },
+  "非直接性 まとめ": {
+   "kappa": -0.1,
+   "accuracy": 0.45,
+   "n": 20,
+   "label": "偶然以下",
+   "experiment": "16_pdf_endurance"
+  },
+  "ITT": {
+   "kappa": 0.104,
+   "accuracy": 0.4,
+   "n": 20,
+   "label": "わずか",
+   "experiment": "16_pdf_endurance"
+  },
+  "ランダム化": {
+   "kappa": 0.645,
+   "accuracy": 0.85,
+   "n": 20,
+   "label": "かなり",
+   "experiment": "16_pdf_endurance"
+  },
+  "バイアスリスク まとめ": {
+   "kappa": 0.348,
+   "accuracy": 0.85,
+   "n": 20,
+   "label": "やや",
+   "experiment": "11_minds2017_v8_endurance"
+  },
+  "盲検化(参加者・医療提供者)": {
+   "kappa": 0,
+   "accuracy": 0.95,
+   "n": 20,
+   "label": "わずか",
+   "experiment": "11_minds2017_v8_endurance"
+  },
+  "早期試験中止": {
+   "kappa": -0.104,
+   "accuracy": 0.15,
+   "n": 20,
+   "label": "偶然以下",
+   "experiment": "11_minds2017_v8_endurance"
+  },
+  "非直接性 対照": {
+   "kappa": 0.39,
+   "accuracy": 0.75,
+   "n": 20,
+   "label": "やや",
+   "experiment": "11_minds2017_v8_endurance"
+  },
+  "非直接性 介入": {
+   "kappa": -0.087,
+   "accuracy": 0.75,
+   "n": 20,
+   "label": "偶然以下",
+   "experiment": "11_minds2017_v8_endurance"
+  },
+  "その他のバイアス": {
+   "kappa": 0,
+   "accuracy": 0,
+   "n": 20,
+   "label": "わずか",
+   "experiment": "11_minds2017_v8_endurance"
+  },
+  "選択的アウトカム報告": {
+   "kappa": -0.079,
+   "accuracy": 0.15,
+   "n": 20,
+   "label": "偶然以下",
+   "experiment": "11_minds2017_v8_endurance"
+  }
+ }
+}

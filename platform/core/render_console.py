@@ -296,6 +296,13 @@ def _ref_no(s):
     return (1 if s.get("newly_added") else 0, int(y.group(0)) if y else 9999, t)
 
 
+try:
+    from minds_forms import ai_reliability_note as _arn
+    _AI_NOTE = _arn()
+except Exception:
+    _AI_NOTE = ""
+
+
 def _studies_html(b):
     out = []
     for s in sorted(b["studies"], key=_ref_no):
@@ -318,7 +325,7 @@ def _studies_html(b):
             comp = COMPARATOR_JA.get(r["comparator"], r["comparator"] or "—")
             bias_txt, ind_txt = _rob_text(r.get("rob"))
             if r.get("provisional"):
-                bias_txt += "　[下書き・未確定]"
+                bias_txt += "　[Claude下書き・未確定。" + (_AI_NOTE or "検証未実施") + "]"
             res.append(f"<tr><td>{esc(r['outcome_label'] or '（未割当）')}</td>"
                        f"<td>{esc(r.get('instrument') or '—')}</td><td>{esc(comp)}</td>"
                        f"<td>{esc(_effect(r['effect']))}</td><td>{esc(bias_txt)}</td><td>{esc(ind_txt)}</td></tr>")
