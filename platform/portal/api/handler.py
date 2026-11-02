@@ -206,6 +206,8 @@ def dashboard(user):
 def handler(event, context=None):
     if event.get("task") == "draft45":  # 非同期の下書き(自分自身を invoke)
         return run_draft45(event)
+    if event.get("task") == "draft_etd":
+        return run_draft_etd(event)
     method = (event.get("requestContext") or {}).get("http", {}).get("method") or event.get("httpMethod", "GET")
     path = event.get("rawPath") or event.get("path") or "/"
     body = {}
@@ -226,7 +228,7 @@ def handler(event, context=None):
 
 
 SORON_ONLY = {"me", "meta", "dashboard", "soron", "audit"}  # 総説執筆者だけの利用者が使える範囲(SRの流れとは分離)
-SR_ONLY = {"me", "meta", "dashboard", "cq", "papers", "f45", "sr8", "etd", "gl2023", "screening", "audit"}
+SR_ONLY = {"me", "meta", "dashboard", "cq", "papers", "f45", "sr8", "etd", "gl2023", "screening", "audit", "export"}
 
 
 def route(method, parts, body, user):
@@ -263,8 +265,12 @@ def route(method, parts, body, user):
         return sr8(method, parts, body, user)
     if head == "etd":
         return etd(method, parts, body, user)
+    if head == "gl2023" and parts[1:2] == ["soron"]:
+        return gl2023_soron(method, parts, body, user)
     if head == "gl2023":
         return gl2023(method, parts, body, user)
+    if head == "export":
+        return export(method, parts, body, user)
     if head == "soron":
         return soron(method, parts, body, user)
     if head == "screening":
@@ -522,6 +528,15 @@ def etd(method, parts, body, user):
         e = get("ETD", cqid) or {"cq": cqid, "rec_draft": "", "strength": "", "certainty": "", "scope_note": "", "considerations": {k: {"text": "", "evidence": []} for k, _ in ETD_CONSIDERATIONS}, "vote": {}, "status": "下書き"}
         sr = {r["outcome"]: r for r in query("SR8", f"{cqid}#")}
         return resp(200, {"etd": e, "gl2023": get("GL2023", cqid), "sr8": sr, "considerations": ETD_CONSIDERATIONS, "strength": STRENGTH, "cert": CERT})
+    if method == "POST" and parts[2:3] == ["draft"]:
+        require(user, ROLE_GROUP | ROLE_LEAD)
+        if not query("SR8", f"{cqid}#"): return resp(409, {"error": "様式SR-8 が未記入です。SR-8 の記入後に下書きを作ります"})
+        e = get("ETD", cqid) or {"cq": cqid, "considerations": {}, "vote": {}, "status": "下書き"}
+        e["ai_draft"] = {"status": "作成中", "requested_by": user["name"], "at": now()}; put("ETD", cqid, e)
+        ev = {"task": "draft_etd", "cq": cqid, "user": user}
+        if FUNCTION: boto3.client("lambda").invoke(FunctionName=FUNCTION, InvocationType="Event", Payload=json.dumps(ev, ensure_ascii=False).encode())
+        else: run_draft_etd(ev)
+        audit(user, "EtD下書きを依頼", cqid); return resp(202, {"status": "作成中"})
     if method == "PUT":
         require(user, ROLE_GROUP | ROLE_LEAD)
         e = get("ETD", cqid) or {"cq": cqid, "considerations": {}, "vote": {}}
@@ -563,6 +578,63 @@ def gl2023(method, parts, body, user):
     return resp(405, {"error": "方法が不正です"})
 
 
+def gl2023_soron(method, parts, body, user):
+    """2023年版の総論の本文(段落ID付き)。統括委員会・事務局が取り込む(scripts/import_soron2023.py)。docx の置き場(署名付きURL)も返す"""
+    if method == "GET":
+        return resp(200, sorted(query("GL2023S"), key=lambda g: g["sk"]))
+    if method == "POST":
+        require(user, ROLE_ADMIN)
+        items = body.get("items") or []
+        urls = []
+        for it in items:
+            key = str(it.get("key", "")).strip()
+            if not key or not isinstance(it.get("paragraphs"), list): urls.append(None); continue
+            paras = [{"id": str(p.get("id")), "text": str(p.get("text", ""))[:4000]} for p in it["paragraphs"] if p.get("id")]
+            rec = {"key": key, "title": str(it.get("title", "")), "paragraphs": paras}
+            if it.get("filename") and BUCKET:
+                safe = re.sub(r"[^\w.\-一-龥ぁ-んァ-ン（）()．.]", "_", it["filename"])[:80]
+                rec["docx_key"] = f"soron2023/{key}/{safe}"
+                urls.append(s3().generate_presigned_url("put_object", Params={"Bucket": BUCKET, "Key": rec["docx_key"]}, ExpiresIn=900))
+            else:
+                urls.append(None)
+            put("GL2023S", key, rec)
+        audit(user, "2023年版総論の取り込み", "総論", f"{sum(1 for u in urls if u is not None or True)}件"); return resp(200, {"imported": len(items), "upload_urls": urls})
+    return resp(405, {"error": "方法が不正です"})
+
+
+def run_draft_etd(ev):
+    cqid, user = ev["cq"], ev.get("user") or {"name": "system", "email": ""}
+    e = get("ETD", cqid) or {"cq": cqid, "considerations": {}, "vote": {}, "status": "下書き"}
+    try:
+        import draft45
+        c = get("CQ", cqid); papers = query("PAPER", f"{cqid}#")
+        finals = [r for r in query("F45", f"{cqid}#") if r["sk"].endswith("#確定")]
+        out = draft45.draft_etd(c, query("SR8", f"{cqid}#"), finals, papers, get("GL2023", cqid))
+        e["ai_draft"] = {**out, "status": "下書き", "model": draft45.MODEL_ID, "at": now(), "based_on": {"sr8": len(query("SR8", f"{cqid}#")), "f45_final": len(finals)}}
+        put("ETD", cqid, e); audit(user, "EtD下書きを作成", cqid, f"SR-8 {e['ai_draft']['based_on']['sr8']}件、様式4-5確定 {len(finals)}件を根拠に"); return {"ok": True}
+    except Exception as ex:
+        e["ai_draft"] = {"status": "失敗", "error": str(ex)[:500], "at": now()}; put("ETD", cqid, e)
+        audit(user, "EtD下書きに失敗", cqid, str(ex)[:300]); return {"ok": False}
+
+
+def export(method, parts, body, user):
+    """GET /export/<cq> : ポータルの記録から Minds 書類(xlsx)を作り、S3 に置いて署名付きURLを返す"""
+    if method != "GET" or len(parts) < 2: return resp(405, {"error": "方法が不正です"})
+    cqid = parts[1]; c = get("CQ", cqid)
+    if not c: return resp(404, {"error": "ありません"})
+    import export_minds
+    papers = query("PAPER", f"{cqid}#"); finals = [r for r in query("F45", f"{cqid}#") if r["sk"].endswith("#確定")]
+    aud = [a for a in sorted(query("AUDIT"), key=lambda a: a["sk"]) if cqid in str(a.get("target", ""))]
+    data = export_minds.build(c, papers, finals, query("SR8", f"{cqid}#"), get("ETD", cqid), get("GL2023", cqid), aud)
+    key = f"exports/{cqid}/Minds書類_{cqid}_{now()[:19].replace(':', '')}.xlsx"
+    if BUCKET:
+        s3().put_object(Bucket=BUCKET, Key=key, Body=data, ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        url = s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": key, "ResponseContentDisposition": f"attachment; filename*=UTF-8''Minds_{cqid}.xlsx"}, ExpiresIn=900)
+    else:
+        url = ""
+    audit(user, "Minds書類の出力", cqid, key); return resp(200, {"url": url, "key": key, "sheets": ["CQ", "研究特性", "様式4-5", "様式SR-8", "SoF表", "EtD・推奨", "作成経過"], "bytes": len(data)})
+
+
 # ---------- 総説(総論A〜N)。SRの流れとは独立した流れ ----------
 SORON_FLOW = SORON_STATES
 
@@ -582,6 +654,12 @@ def soron(method, parts, body, user):
     own = bool(user["name"]) and any(user["name"].startswith(a) for a in re.split("[・]", s.get("author", "")) if a)
     admin = bool(set(user["groups"]) & ROLE_ADMIN)
     if not (own or admin): raise Forbidden("この総論の執筆者、統括委員会、事務局に限ります")
+    if method == "GET" and sub == "gl2023":
+        g = get("GL2023S", s["key"])
+        if not g: return resp(200, {})
+        if g.get("docx_key") and BUCKET:
+            g["docx_url"] = s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": g["docx_key"]}, ExpiresIn=900)
+        return resp(200, g)
     if method == "GET" and sub == "files":
         if not BUCKET: return resp(200, [])
         vs = s3().list_object_versions(Bucket=BUCKET, Prefix=f"soron/{s['key']}/").get("Versions", [])

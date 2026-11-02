@@ -73,3 +73,51 @@ def draft(cq_title, population, intervention, outcome, paras, model_id=None):
         items[k] = {"v": v, "evidence": ev, "quote": str(it.get("quote") or "")[:400]}
     out["items"] = items
     return out
+
+
+# ---------- EtD(推奨文・考慮事項・解説文)の下書き ----------
+ETD_SYSTEM = ("あなたは診療ガイドライン(Minds診療ガイドライン作成マニュアル2020)の推奨作成の補助です。"
+              "渡された資料(様式SR-8、確定した様式4-5の要約、2023年版の記述。各段落・記録にIDがある)だけを根拠に、2023年版の体裁の EtD(推奨文案、4つの考慮事項、解説文案)の下書きを作り、指定のJSONのみを返してください。"
+              "根拠のない記述は書きません。推奨の強さと確実性は決めません(推奨作成会議の投票と様式SR-8の判定による)。")
+ETD_PROMPT = """CQ: {cq_title}
+P: {P}
+I: {I}
+C: {C}
+O: {O}
+
+規則:
+- 推奨文案には、適用するがん腫と化学療法の分類(白金製剤/タキサン系など)を明記する。予防か治療かを明記する。
+- 4つの考慮事項(益と害のバランス、エビデンスの確実性、患者の価値観・希望、コスト・資源)は、各文の末尾に根拠のIDを [ID] で付ける。根拠は、様式SR-8(ID: SR8-<アウトカム>)、様式4-5の確定記録(ID: F45-<PMID>-<アウトカム>)、2023年版の段落(ID: GL2023-...)に限る。
+- 解説文案は、2023年版の解説の構成に合わせ、変更点(新しい研究、確実性の変化)を本文で示す。各文の末尾に根拠のIDを付ける。根拠のない一般論は書かない。
+- 推奨の強さ、確実性(A〜D)は書かない。
+
+JSONを1つだけ返す:
+{{"rec_draft": "推奨文案", "considerations": {{"benefit_harm": {{"text": "", "evidence": []}}, "certainty": {{"text": "", "evidence": []}}, "values": {{"text": "", "evidence": []}}, "cost": {{"text": "", "evidence": []}}}}, "narrative": "解説文案", "changes_from_2023": "2023年版からの変更点"}}
+
+--- 様式SR-8 ---
+{sr8}
+--- 様式4-5(確定)の要約 ---
+{f45}
+--- 2023年版の記述 ---
+{gl}
+"""
+
+
+def draft_etd(cq, sr8_rows, finals, papers, gl2023, model_id=None):
+    pm = {p["pmid"]: p for p in papers}
+    sr8 = "\n".join(f"[SR8-{r['outcome']}] 研究数 {sum(1 for f in finals if f['outcome'] == r['outcome'])}、バイアスリスク {r.get('rob')}、非一貫性 {r.get('inconsistency')}、不精確性 {r.get('imprecision')}、非直接性 {r.get('indirectness')}、その他 {r.get('publication_bias')}、上昇要因 {r.get('upgrade')}、確実性 {r.get('certainty')}。層別: {r.get('strata', '')}。効果の要約: {r.get('effect_summary', '')}" for r in sr8_rows) or "(記入なし)"
+    f45 = "\n".join(f"[F45-{f['pmid']}-{f['outcome']}] {pm.get(f['pmid'], {}).get('title', '')} / がん腫 {(pm.get(f['pmid'], {}).get('chars') or {}).get('cancer', '')} / 分類 {(pm.get(f['pmid'], {}).get('chars') or {}).get('chemo_class', '')} / バイアスリスクまとめ {f['items']['bias_summary']['v']} 非直接性まとめ {f['items']['ind_summary']['v']} / 対照 {(f.get('counts') or {}).get('ctrl_num')}/{(f.get('counts') or {}).get('ctrl_den')} 介入 {(f.get('counts') or {}).get('int_num')}/{(f.get('counts') or {}).get('int_den')} / 効果 {(f.get('effect') or {}).get('measure')} {(f.get('effect') or {}).get('value')} [{(f.get('effect') or {}).get('ci_low')}, {(f.get('effect') or {}).get('ci_high')}]" for f in finals) or "(確定なし)"
+    g = gl2023 or {}
+    gl = (f"推奨文: {g.get('rec', '')} / 推奨の強さ {g.get('strength', '')} / 確実性 {g.get('certainty', '')}\n" + "\n".join(f"[{p['id']}] {p['text']}" for p in g.get("paragraphs", []))) if g else "(未取り込み)"
+    prompt = ETD_PROMPT.format(cq_title=cq["title"], P=cq["pico"].get("P", ""), I=cq["pico"].get("I", ""), C=cq["pico"].get("C", ""), O=cq["pico"].get("O", ""), sr8=sr8, f45=f45, gl=gl)
+    client = boto3.client("bedrock-runtime")
+    resp = client.converse(modelId=model_id or MODEL_ID, system=[{"text": ETD_SYSTEM}], messages=[{"role": "user", "content": [{"text": prompt}]}], inferenceConfig={"maxTokens": 6000, "temperature": 0})
+    text = resp["output"]["message"]["content"][0]["text"]
+    m = re.search(r"\{.*\}", text, re.S)
+    out = json.loads(m.group(0) if m else text)
+    valid = {f"SR8-{r['outcome']}" for r in sr8_rows} | {f"F45-{f['pmid']}-{f['outcome']}" for f in finals} | {p["id"] for p in g.get("paragraphs", [])}
+    cons = {}
+    for k in ("benefit_harm", "certainty", "values", "cost"):
+        c = (out.get("considerations") or {}).get(k) or {}
+        cons[k] = {"text": str(c.get("text") or "")[:3000], "evidence": [e for e in (c.get("evidence") or []) if e in valid]}
+    return {"rec_draft": str(out.get("rec_draft") or "")[:1000], "considerations": cons, "narrative": str(out.get("narrative") or "")[:12000], "changes_from_2023": str(out.get("changes_from_2023") or "")[:3000]}

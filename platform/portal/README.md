@@ -23,6 +23,9 @@ Google ドライブとの受け渡しは統括委員長の Mac を経由する�
 | 総論(A〜N) | 企画書の 18 項目。原稿の提出(版ごとに保存)、状態、期限、査読コメント | 執筆者(提出)、統括委員会(査読・完了) |
 | スクリーニングの進捗 | スクリーニング管理シートの JSON の取り込みと担当者別の進捗 | — |
 | 利用者 | ログイン用の登録と招待(氏名は企画書の表記) | 事務局 |
+| Minds書類の出力 | CQ ごとに、記録から xlsx(CQ、研究特性、様式4-5、様式SR-8、SoF表、EtD・推奨、作成経過)を出力。EtD・推奨と様式SR-8 の画面のボタン | — |
+| EtD の Claude 下書き | 様式SR-8・確定した様式4-5・2023年版の記述だけを根拠に、推奨文案・4つの考慮事項・解説文案を作る(根拠 ID 付き。強さと確実性は含めない)。作成グループが取り込み、修正・保存 | 作成グループ |
+| 総論の 2023年版参照 | 総論の画面で、2023年版の本文(段落 ID 付き)と Word 原文を参照 | — |
 | 作成経過の記録 | 全操作の追記。更新・削除の操作はない | — |
 
 規則: 盲検化の2項目は -2 を使わない(統括委員長の決定)。抄録のみの論文では下書きを作らない。判断は委員が行い、AI は本文の段落を根拠とする下書きに限る。
@@ -44,7 +47,7 @@ python3 platform/portal/scripts/admin_user.py <メールアドレス> 華井明�
 python3 platform/portal/scripts/admin_user.py --seed <メールアドレス>       # 企画書の CQ・総論を入れる
 ```
 Bedrock のモデルは環境変数 `BEDROCK_MODEL_ID`(省略時 `anthropic.claude-sonnet-4-5`)で指定し、`cdk deploy` の前に設定する。
-2023年版の記述は、`run_jascc.sh first` が作る `etd_2023.json` を、`POST /gl2023` で取り込む(事務局。`scripts/admin_user.py --gl2023 <json> <メールアドレス>`)。
+2023年版の記述(CQ)は、`run_jascc.sh first` が作る `etd_2023.json` を `scripts/admin_user.py --gl2023 <json> <メールアドレス>` で取り込む。2023年版の総論は `scripts/import_soron2023.py <メールアドレス>` で取り込む(platform/soron/out の docx から)。
 
 ## 試験
 ```bash

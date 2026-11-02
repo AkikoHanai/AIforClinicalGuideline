@@ -73,3 +73,7 @@ platform/portal/out/
 platform/node_modules/
 platform/portal/api/pypdf/
 platform/portal/api/pypdf-*.dist-info/
+platform/portal/api/openpyxl/
+platform/portal/api/openpyxl-*.dist-info/
+platform/portal/api/et_xmlfile/
+platform/portal/api/et_xmlfile-*.dist-info/

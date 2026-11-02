@@ -204,7 +204,7 @@
             <label class="small">上昇要因 ${ed ? sel([0, 1, 2], r.upgrade ?? "", 'data-k="upgrade"', true) : `<b>${r.upgrade ?? "—"}</b>`}</label>
             <label class="small">確実性 ${ed ? sel(S.meta.cert, r.certainty, 'data-k="certainty"', true) : `<b>${esc(r.certainty || "—")}</b>`}</label></div>
           <div class="row"><label class="small">層別(分類ごとの結論) <input data-k="strata" value="${esc(r.strata || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">効果の要約 <input data-k="effect_summary" value="${esc(r.effect_summary || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">備考 <input data-k="note" value="${esc(r.note || "")}" size="30" ${ed ? "" : "readonly"}></label>${ed ? '<button data-act="save">保存</button>' : ""}</div></div>`; }).join("") || '<p class="muted">アウトカムが未登録です。</p>'}`;
-      $("#cqSel").addEventListener("click", () => {}); $("#cqSel").addEventListener("change", () => go("sr8", { cq: $("#cqSel").value }));
+      $("#cqSel").addEventListener("change", () => go("sr8", { cq: $("#cqSel").value }));
       m.querySelectorAll("button[data-act=save]").forEach((b) => b.addEventListener("click", async () => { const d2 = b.closest(".card"); const body = {}; d2.querySelectorAll("[data-k]").forEach((i) => (body[i.dataset.k] = i.value));
         try { await api(`/sr8/${cqid}/${encodeURIComponent(d2.dataset.o)}`, "PUT", body); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } }));
     },
@@ -230,8 +230,14 @@
               <label class="small">分母 <input id="vden" value="${esc(e.vote?.denominator ?? "")}" size="3"></label><label class="small">投票除外(筆頭著者) <input id="vcoi" value="${esc(e.vote?.coi_excluded ?? "")}" size="2"></label><label class="small">投票除外(SR担当) <input id="vsr" value="${esc(e.vote?.sr_excluded ?? "")}" size="2"></label>
               ${e.vote?.agreement !== undefined && e.vote?.agreement !== null ? `<b>合意率 ${e.vote.agreement}%</b>` : ""}</div>
             <label class="small">解説(推奨の理由。根拠の段落ID付き)<br><textarea id="narr" rows="6" cols="60" ${ed ? "" : "readonly"}>${esc(e.narrative || "")}</textarea></label>
-            <div class="row">${ed ? `<button id="etdSave" class="primary">保存</button> ${sel(["下書き", "協議中", "確定"], e.status, 'id="etdStatus"')}` : ""}</div></div></div>`;
+            <div class="row">${ed ? `<button id="etdSave" class="primary">保存</button> ${sel(["下書き", "協議中", "確定"], e.status, 'id="etdStatus"')} <button id="etdDraft">Claude下書きを作る(SR-8・様式4-5・2023年版を根拠に)</button>` : ""} <button id="exportBtn">Minds書類(xlsx)を出力</button></div>
+            ${e.ai_draft ? `<div class="card" style="margin-top:10px"><h3>Claude下書き <span class="small">${esc(e.ai_draft.status || "")} ${esc((e.ai_draft.at || "").slice(0, 16))} ${e.ai_draft.error ? esc(e.ai_draft.error) : ""}</span></h3>
+              ${e.ai_draft.rec_draft ? `<p><b>推奨文案</b> ${esc(e.ai_draft.rec_draft)}</p>${cons.map(([k, ja]) => `<p><b>${esc(ja)}</b> ${esc(e.ai_draft.considerations?.[k]?.text || "")} <span class="small">${esc((e.ai_draft.considerations?.[k]?.evidence || []).join(", "))}</span></p>`).join("")}<p><b>解説文案</b><br>${esc(e.ai_draft.narrative || "").replace(/\n/g, "<br>")}</p><p class="small">2023年版からの変更点: ${esc(e.ai_draft.changes_from_2023 || "")}</p>
+              ${ed ? '<button id="etdCopy">下書きを右の欄に取り込んで修正する</button>' : ""}<p class="small">根拠のIDは、SR8-アウトカム、F45-PMID-アウトカム、GL2023-段落。推奨の強さと確実性は、下書きに含めない(投票と様式SR-8で決める)。</p>` : ""}</div>` : ""}</div></div>`;
       $("#cqSel").addEventListener("change", () => go("etd", { cq: $("#cqSel").value }));
+      $("#etdDraft")?.addEventListener("click", async () => { try { await api("/etd/" + cqid + "/draft", "POST", {}); toast("下書きを作成中です(1〜2分後に再読み込み)"); setTimeout(render, 60000); } catch (e2) { toast(e2.message, true); } });
+      $("#exportBtn")?.addEventListener("click", async () => { try { const r = await api("/export/" + cqid); toast(`出力しました(${r.sheets.join("・")})`); if (r.url) window.open(r.url, "_blank"); } catch (e2) { toast(e2.message, true); } });
+      $("#etdCopy")?.addEventListener("click", () => { const a = e.ai_draft; $("#rec").value = a.rec_draft || ""; cons.forEach(([k]) => { m.querySelector(`[data-ck="${k}"][data-f="text"]`).value = a.considerations?.[k]?.text || ""; m.querySelector(`[data-ck="${k}"][data-f="evidence"]`).value = (a.considerations?.[k]?.evidence || []).join(","); }); $("#narr").value = a.narrative || ""; toast("取り込みました。確認・修正して保存してください"); });
       $("#etdSave")?.addEventListener("click", async () => { const considerations = {}; cons.forEach(([k]) => (considerations[k] = { text: m.querySelector(`[data-ck="${k}"][data-f="text"]`).value, evidence: m.querySelector(`[data-ck="${k}"][data-f="evidence"]`).value.split(/[,\s]+/).filter(Boolean) }));
         const counts = [0, 1, 2, 3, 4].map((i) => m.querySelector(`[data-v="${i}"]`).value);
         try { await api("/etd/" + cqid, "PUT", { rec_draft: $("#rec").value, strength: $("#strength")?.value, certainty: $("#cert")?.value, scope_note: $("#scope").value, considerations, narrative: $("#narr").value, status: $("#etdStatus").value,
@@ -251,7 +257,7 @@
             <td>${ed ? `<input type="date" data-due value="${esc(s.due || "")}">` : esc(s.due || "")}</td>
             <td class="small">${s.file ? `<a href="#" data-dl="${esc(s.key)}">${esc(s.file)}</a><br>${esc((s.file_at || "").slice(0, 16))} ${esc(s.file_by || "")}` : "—"}${ed ? `<br><input type="file" data-up accept=".docx,.doc,.pdf"> <button data-act="upload">提出</button>` : ""}</td>
             <td>${admin ? `<textarea data-review rows="2" cols="24">${esc(s.review || "")}</textarea>` : esc(s.review || "")}${s.review_by ? `<div class="small">${esc(s.review_by)} ${esc((s.review_at || "").slice(0, 16))}</div>` : ""}</td>
-            <td>${ed ? `<input data-note value="${esc(s.note || "")}" size="14">` : esc(s.note || "")}</td><td>${ed ? '<button data-act="save">保存</button>' : ""}</td></tr>`; }).join("") || "<tr><td colspan=9 class='muted'>担当の総論はありません</td></tr>"}</table>`;
+            <td>${ed ? `<input data-note value="${esc(s.note || "")}" size="14">` : esc(s.note || "")}</td><td>${ed ? '<button data-act="save">保存</button> ' : ""}<button data-gl="${esc(s.key)}">2023年版</button></td></tr>`; }).join("") || "<tr><td colspan=9 class='muted'>担当の総論はありません</td></tr>"}</table><div id="gl2023Box"></div>`;
       m.querySelectorAll("button[data-act=save]").forEach((b) => b.addEventListener("click", async () => { const tr = b.closest("tr"); const body = { status: tr.querySelector("[data-status]").value, due: tr.querySelector("[data-due]").value, note: tr.querySelector("[data-note]").value };
         const rv = tr.querySelector("[data-review]"); if (rv) body.review = rv.value;
         try { await api("/soron/" + tr.dataset.key, "PUT", body); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } }));
@@ -260,6 +266,12 @@
           const u = await fetch(r.url, { method: "PUT", headers: { "Content-Type": f.type || "application/octet-stream" }, body: f }); if (!u.ok) throw new Error("原稿の送信に失敗しました");
           toast("原稿を提出しました"); render(); } catch (e) { toast(e.message, true); } }));
       m.querySelectorAll("a[data-dl]").forEach((a) => a.addEventListener("click", async (ev) => { ev.preventDefault(); try { const r = await api("/soron/" + a.dataset.dl + "/download-url"); window.open(r.url, "_blank"); } catch (e) { toast(e.message, true); } }));
+      m.querySelectorAll("button[data-gl]").forEach((b) => b.addEventListener("click", async () => {
+        try { const g = await api("/soron/" + b.dataset.gl + "/gl2023"); const box = $("#gl2023Box");
+          if (!g.paragraphs) { box.innerHTML = '<p class="muted">この総論の 2023年版の本文は未取り込みです(新設の節、または事務局の取り込み待ち)。</p>'; return; }
+          box.innerHTML = `<div class="card" style="margin-top:12px"><h3>2023年版 総論${esc(b.dataset.gl.replace("_", "-"))} ${esc(g.title)} <span class="small">${g.paragraphs.length}段落</span> ${g.docx_url ? `<a href="${esc(g.docx_url)}" target="_blank" rel="noopener">Word(原文)</a>` : ""}</h3>
+            <p class="small">段落 ID を、原稿の根拠や変更箇所の指示に使う。</p><div class="paras">${g.paragraphs.map((p) => `<div class="para"><span class="pid">${esc(p.id)}</span><div>${esc(p.text)}</div></div>`).join("")}</div></div>`;
+          box.scrollIntoView({ behavior: "smooth" }); } catch (e) { toast(e.message, true); } }));
     },
 
     async screening(m) {

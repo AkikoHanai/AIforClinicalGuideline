@@ -8,8 +8,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 API = os.path.join(HERE, "..", "api")
 shutil.copy(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), os.path.join(API, "approved_plan.json"))
 # PDF本文の抽出に使う pypdf(純Python)を Lambda の資産に同梱する
-if not os.path.isdir(os.path.join(API, "pypdf")):
-    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "--target", API, "pypdf>=5"], check=True)
+for pkg, probe in (("pypdf>=5", "pypdf"), ("openpyxl", "openpyxl"), ("et_xmlfile", "et_xmlfile")):  # 純Python。Minds書類(xlsx)の出力に openpyxl
+    if not os.path.isdir(os.path.join(API, probe)):
+        subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "--target", API, pkg], check=True)
 
 app = cdk.App()
 PortalStack(app, "jascc-gl-portal", env=cdk.Environment(account=os.environ.get("CDK_DEFAULT_ACCOUNT"), region=os.environ.get("CDK_DEFAULT_REGION", "ap-northeast-1")),

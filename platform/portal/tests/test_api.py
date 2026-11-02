@@ -174,6 +174,32 @@ def test_soron_flow_separated_from_sr(env):
     c, d = call("GET", "/dashboard", who=dict(email="naito@example.org", groups=("総説執筆者",))); assert [s["key"] for s in d["my_soron"]] == ["A"]
 
 
+def test_export_and_gl2023_soron(env):
+    register_paper("11111111")
+    call("PUT", "/papers/P1/11111111", {"chars": {"chemo_class": "白金製剤", "cancer": "大腸癌"}}, R1)
+    o = "CIPN Grade2以上の発生"
+    items = {k: {"v": 0, "evidence": ["11111111-p002"], "quote": "x"} for k in H.ITEM_KEYS}
+    call("PUT", f"/f45/P1/11111111/{o}/final", {"items": items, "counts": {"ctrl_num": 30, "ctrl_den": 60, "int_num": 20, "int_den": 60}, "effect": {"measure": "RR", "value": 0.67}}, LEAD)
+    call("PUT", f"/sr8/P1/{o}", {"rob": "0", "inconsistency": "0", "imprecision": "-1", "indirectness": "0", "publication_bias": "0", "upgrade": "0", "certainty": "B(中)"}, R1)
+    c, r = call("GET", "/export/P1", who=R1); assert c == 200 and r["sheets"] == ["CQ", "研究特性", "様式4-5", "様式SR-8", "SoF表", "EtD・推奨", "作成経過"] and r["bytes"] > 5000
+    import openpyxl, io
+    data = boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read()
+    wb = openpyxl.load_workbook(io.BytesIO(data))
+    sof = [row for row in wb["SoF表"].iter_rows(values_only=True)]
+    assert sof[1][0] == o and sof[1][2] == "30/60" and sof[1][3] == "20/60" and sof[1][5] == "B(中)"
+    f45 = [row for row in wb["様式4-5"].iter_rows(values_only=True)]; assert f45[1][1] == "11111111" and f45[1][4] == 0
+    # 2023年版総論の取り込み(統括委員会のみ)。総説執筆者が参照できる
+    items2 = {"items": [{"key": "H", "title": "H.CIPNの評価", "paragraphs": [{"id": "GL2023-総論H-p001", "text": "評価の段落。"}], "filename": "総論H.docx"}]}
+    assert call("POST", "/gl2023/soron", items2, R1)[0] == 403
+    c, r2 = call("POST", "/gl2023/soron", items2); assert c == 200 and r2["imported"] == 1 and r2["upload_urls"][0]
+    call("POST", "/users", {"email": "hanai@example.org", "name": "華井明子", "roles": ["総説執筆者"]})
+    c, g = call("GET", "/soron/H/gl2023", who=dict(email="hanai@example.org", groups=("総説執筆者",))); assert c == 200 and g["paragraphs"][0]["id"] == "GL2023-総論H-p001"
+    # EtD下書きは SR-8 がなければ作らない(P2)。P1 では作成中になる(Bedrock は呼ばれない環境では失敗として記録される)
+    assert call("POST", "/etd/P2/draft", {}, dict(email="g@example.org", groups=("作成グループ",)))[0] == 409
+    assert call("POST", "/etd/P1/draft", {}, dict(email="g@example.org", groups=("作成グループ",)))[0] == 202
+    assert call("GET", "/etd/P1")[1]["etd"]["ai_draft"]["status"] in ("下書き", "失敗")
+
+
 def test_audit_append_only_and_unauthenticated(env):
     n = len(call("GET", "/audit")[1]); assert n > 0
     assert call("DELETE", "/audit")[0] == 200 and len(call("GET", "/audit")[1]) == n
