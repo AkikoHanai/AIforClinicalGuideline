@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html><head><base target="_top"><meta charset="utf-8">
+<style>
+ body{font-family:-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;font-size:13px;margin:10px;color:#1b1f2a}
+ h3{margin:10px 0 6px;font-size:14px} .small{font-size:11px;color:#667085} select,input,button,textarea{font:inherit}
+ button{border:1px solid #e3e7ee;background:#fff;padding:5px 9px;border-radius:6px;cursor:pointer;margin:2px 0} button.p{background:#2b5fd9;color:#fff;border-color:#2b5fd9}
+ .para{border-bottom:1px solid #e3e7ee;padding:5px 0} .pid{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#2b5fd9}
+ .box{max-height:38vh;overflow:auto;border:1px solid #e3e7ee;border-radius:6px;padding:4px;background:#fafbfd}
+ .tag{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;background:#eef1f6;color:#667085}
+ textarea{width:100%;box-sizing:border-box} .err{color:#c0392b}
+</style></head>
+<body>
+<div id="top"><span class="small">読み込み中…</span></div>
+<div id="main" style="display:none">
+ <div><label>総論 <select id="key"></select></label> <span id="status" class="tag"></span></div>
+ <div style="margin:6px 0"><a id="open2028" href="#">2028年版 原稿を開く</a> ／ <a id="open2023" href="#">2023年版 原文を開く</a></div>
+ <h3>前回版(2023年版)の本文 <span class="small">段落 ID を根拠や変更箇所の指示に使う</span></h3>
+ <input id="find" placeholder="本文を検索" style="width:100%;box-sizing:border-box"><div id="paras" class="box"></div>
+ <h3>文章作成</h3>
+ <div class="small">本文は Google ドキュメント(2028年版 原稿)で書く。版は Docs の版履歴に残る。</div>
+ <button id="sumBtn">要約の下書き(原稿から)</button><textarea id="sum" rows="5" placeholder="要約の下書きがここに出る。確認して原稿に貼る"></textarea>
+ <h3>サマリー図表の提案</h3>
+ <button id="propBtn" class="p">図表案を提案する(2023年版と原稿から)</button>
+ <div id="ideas"></div>
+ <h3>グラフを作る</h3>
+ <div class="small">データ(1行目は見出し。タブ区切りまたはカンマ区切り。出典の PMID を図の説明に書く)</div>
+ <input id="ctitle" placeholder="図の題名" style="width:100%;box-sizing:border-box"><textarea id="cdata" rows="4" placeholder="薬剤,発生率(%)&#10;オキサリプラチン,70&#10;パクリタキセル,60"></textarea>
+ <select id="ctype"><option>棒</option><option>折れ線</option></select> <button id="chartBtn">原稿に挿入</button>
+ <h3>状態・共有</h3>
+ <select id="st"><option>原稿未提出</option><option>執筆中</option><option>査読中</option><option>修正中</option><option>完了</option></select> <button id="stBtn">更新</button>
+ <div class="small">原稿は、ドライブ「JASCC_GL_総論/2028年版原稿」に保存され、担当表のメールアドレスに共有される。査読コメントは原稿のコメント機能で行う。</div>
+ <div id="msg" class="small"></div>
+</div>
+<script>
+ const $=s=>document.querySelector(s); let S={items:[]};
+ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ const run=(fn,...a)=>new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(e=>rej(new Error(e.message||e))) [fn](...a));
+ const msg=(t,bad)=>{$("#msg").textContent=t;$("#msg").className=bad?"err":"small";};
+ async function boot(){ try{ S=await run("getState"); if(S.error){$("#top").innerHTML='<span class="err">'+esc(S.error)+'</span>';return;}
+  $("#top").innerHTML='<span class="small">'+esc(S.me)+(S.admin?"(統括委員会)":"")+'</span>'; $("#main").style.display="";
+  $("#key").innerHTML=S.items.map(i=>`<option value="${esc(i.key)}">${esc(i.key.replace("_","-"))} ${esc(i.title)}(${esc(i.author)})</option>`).join("")||'<option value="">担当の総論がありません(担当表のメールアドレスを確認)</option>';
+  $("#key").addEventListener("change",load); load(); }catch(e){$("#top").innerHTML='<span class="err">'+esc(e.message)+'</span>';} }
+ async function load(){ const k=$("#key").value; if(!k)return; const it=S.items.find(i=>i.key===k); $("#status").textContent=it.status; $("#st").value=it.status;
+  $("#open2028").href=it.doc2028||"#"; $("#open2023").href=it.doc2023||"#"; $("#paras").innerHTML='<span class="small">読み込み中…</span>';
+  try{ const g=await run("get2023",k); $("#paras").innerHTML=g.paragraphs.length?g.paragraphs.map(p=>`<div class="para"><span class="pid">${esc(p.id)}</span><div>${esc(p.text)}</div></div>`).join(""):'<span class="small">'+esc(g.note||"なし")+'</span>'; }catch(e){msg(e.message,true);} }
+ $("#find").addEventListener("input",()=>{const q=$("#find").value.toLowerCase();document.querySelectorAll(".para").forEach(d=>d.style.display=!q||d.textContent.toLowerCase().includes(q)?"":"none");});
+ $("#sumBtn").addEventListener("click",async()=>{msg("要約を作成中…");try{$("#sum").value=await run("summarize",$("#key").value);msg("要約の下書きを作りました。確認して原稿に貼ってください");}catch(e){msg(e.message,true);}});
+ $("#propBtn").addEventListener("click",async()=>{msg("図表案を作成中(1分程度)…");try{const items=await run("proposeFigures",$("#key").value);
+  $("#ideas").innerHTML=items.map((it,i)=>`<div class="para"><b>${esc(it.kind)}</b> ${esc(it.title)}<div class="small">${esc(it.content)} ／ 出典: ${esc(it.source||"")} ／ 許諾: ${esc(it.permission||"")}</div>${it.kind==="表"&&(it.columns||[]).length?`<button data-i="${i}">表の骨組みを原稿に挿入</button>`:""}</div>`).join("");
+  $("#ideas").querySelectorAll("button[data-i]").forEach(b=>b.addEventListener("click",async()=>{const it=items[+b.dataset.i];try{await run("insertTable",$("#key").value,it.title,it.columns);msg("表を挿入しました");}catch(e){msg(e.message,true);}}));
+  msg(items.length+"件の案を原稿の「3. 図表」と図表案タブに書きました。採否は執筆者が決めます");}catch(e){msg(e.message,true);}});
+ $("#chartBtn").addEventListener("click",async()=>{const rows=$("#cdata").value.trim().split(/\n/).map(l=>l.split(/\t|,/).map(x=>x.trim())).filter(r=>r.length>=2);
+  if(rows.length<2||!$("#ctitle").value)return msg("題名と、見出し行+1行以上のデータが必要です",true);
+  const data=rows.map((r,i)=>i===0?r:[r[0],...r.slice(1).map(Number)]); try{await run("insertChart",$("#key").value,$("#ctitle").value,data,$("#ctype").value);msg("グラフを原稿に挿入しました");}catch(e){msg(e.message,true);}});
+ $("#stBtn").addEventListener("click",async()=>{try{S=await run("setStatus",$("#key").value,$("#st").value);$("#status").textContent=$("#st").value;msg("状態を更新しました");}catch(e){msg(e.message,true);}});
+ boot();
+</script>
+</body></html>
