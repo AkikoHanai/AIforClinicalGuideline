@@ -172,6 +172,24 @@ function insertChart(key, title, data, type) {
   b.insertImage(idx + 1, blob).setWidth(480).setHeight(300);
   log("グラフの挿入", `総論${key}`, title); return true;
 }
+/** 学外の執筆者はスクリプトを使えないため、2023年版の本文(段落ID付き)を原稿の冒頭「0. 2023年版 原文(参照)」に差し込む。原稿だけで作業できるようにする */
+function embed2023(key) {
+  const g = get2023(key); const row = findRow(key); const doc = DocumentApp.openByUrl(row.doc2028); const b = doc.getBody();
+  if (b.getParagraphs().some((p) => /^0\.\s*2023年版 原文/.test(p.getText()))) return "既に差し込み済みです";
+  const h1 = b.getParagraphs().find((p) => /^1\.\s*2023年版からの変更点/.test(p.getText())); let idx = h1 ? b.getChildIndex(h1) : 2;
+  b.insertParagraph(idx++, "0. 2023年版 原文(参照。編集しない。段落IDを変更箇所の指示と根拠に使う)").setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  g.paragraphs.forEach((p) => { const para = b.insertParagraph(idx++, `[${p.id}] ${p.text}`); para.setForegroundColor("#555555").setFontSize(9); });
+  b.insertParagraph(idx++, "");
+  log("2023年版の差し込み", `総論${key}`, `${g.paragraphs.length}段落`); return `${g.paragraphs.length}段落を差し込みました`;
+}
+/** 要約の下書きを原稿の「2. 本文」の冒頭に「要点(下書き)」として書く(執筆者が確認・修正する) */
+function writeSummary(key) {
+  const text = summarize(key); const row = findRow(key); const doc = DocumentApp.openByUrl(row.doc2028); const b = doc.getBody();
+  const h = b.getParagraphs().find((p) => /^2\.\s*本文/.test(p.getText())); let idx = h ? b.getChildIndex(h) + 1 : b.getNumChildren();
+  b.insertParagraph(idx++, "要点(Claude の下書き。執筆者が確認・修正する)").setBold(true);
+  text.split(/\n/).filter((l) => l.trim()).forEach((l) => b.insertParagraph(idx++, l.trim()));
+  return text;
+}
 /** 要約(箇条書き)の下書き。原稿の末尾ではなく、パネルに返す(執筆者が貼る) */
 function summarize(key) {
   const d = getDraft(key); const row = findRow(key);

@@ -18,7 +18,7 @@
  <input id="find" placeholder="本文を検索" style="width:100%;box-sizing:border-box"><div id="paras" class="box"></div>
  <h3>文章作成</h3>
  <div class="small">本文は Google ドキュメント(2028年版 原稿)で書く。版は Docs の版履歴に残る。</div>
- <button id="sumBtn">要約の下書き(原稿から)</button><textarea id="sum" rows="5" placeholder="要約の下書きがここに出る。確認して原稿に貼る"></textarea>
+ <button id="embedBtn">2023年版の本文を原稿に差し込む(学外の執筆者向け)</button> <button id="sumBtn">要約の下書き(原稿から)</button> <button id="sumDocBtn">要約を原稿に書く</button><textarea id="sum" rows="5" placeholder="要約の下書きがここに出る。確認して原稿に貼る"></textarea>
  <h3>サマリー図表の提案</h3>
  <button id="propBtn" class="p">図表案を提案する(2023年版と原稿から)</button>
  <div id="ideas"></div>
@@ -44,6 +44,8 @@
   $("#open2028").href=it.doc2028||"#"; $("#open2023").href=it.doc2023||"#"; $("#paras").innerHTML='<span class="small">読み込み中…</span>';
   try{ const g=await run("get2023",k); $("#paras").innerHTML=g.paragraphs.length?g.paragraphs.map(p=>`<div class="para"><span class="pid">${esc(p.id)}</span><div>${esc(p.text)}</div></div>`).join(""):'<span class="small">'+esc(g.note||"なし")+'</span>'; }catch(e){msg(e.message,true);} }
  $("#find").addEventListener("input",()=>{const q=$("#find").value.toLowerCase();document.querySelectorAll(".para").forEach(d=>d.style.display=!q||d.textContent.toLowerCase().includes(q)?"":"none");});
+ $("#embedBtn").addEventListener("click",async()=>{msg("差し込み中…");try{msg(await run("embed2023",$("#key").value));}catch(e){msg(e.message,true);}});
+ $("#sumDocBtn").addEventListener("click",async()=>{msg("要約を作成中…");try{$("#sum").value=await run("writeSummary",$("#key").value);msg("要約の下書きを原稿の「2. 本文」の冒頭に書きました");}catch(e){msg(e.message,true);}});
  $("#sumBtn").addEventListener("click",async()=>{msg("要約を作成中…");try{$("#sum").value=await run("summarize",$("#key").value);msg("要約の下書きを作りました。確認して原稿に貼ってください");}catch(e){msg(e.message,true);}});
  $("#propBtn").addEventListener("click",async()=>{msg("図表案を作成中(1分程度)…");try{const items=await run("proposeFigures",$("#key").value);
   $("#ideas").innerHTML=items.map((it,i)=>`<div class="para"><b>${esc(it.kind)}</b> ${esc(it.title)}<div class="small">${esc(it.content)} ／ 出典: ${esc(it.source||"")} ／ 許諾: ${esc(it.permission||"")}</div>${it.kind==="表"&&(it.columns||[]).length?`<button data-i="${i}">表の骨組みを原稿に挿入</button>`:""}</div>`).join("");
