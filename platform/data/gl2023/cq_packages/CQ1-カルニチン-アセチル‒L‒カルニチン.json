@@ -1,0 +1,66 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ1",
+    "category": "薬物療法による予防",
+    "intervention": "カルニチン(アセチル‒L‒カルニチン)",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ1-カルニチン-アセチル‒L‒カルニチン",
+  "title": "CQ1 薬物療法による予防: カルニチン(アセチル‒L‒カルニチン)",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "カルニチン(アセチル‒L‒カルニチン)",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状（タキサン系抗がん薬由来に限る）の予防として，アセチル—L—カルニチンを投与しないことを強く推奨する。",
+    "direction": "against_strong",
+    "strength": "5",
+    "strength_label": "強",
+    "certainty": "B",
+    "certainty_label": "中",
+    "cited_pmids": [
+      "23733756",
+      "24105751",
+      "29361042"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 1.0,
+      "agreement_n": 13,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "CIPN の予防に関するアセチル—L—カルニチンの RCT は 2 件ある1）2）。1 件ではカルニチン投与群で有意に CIPN 症状が強いと報告し，その長期フォローアップ調査でも有意に悪い結果が得られた1）3）。いずれも CIPN の誘発薬はタキサン系抗がん薬であった。Sagopilone による CIPN の予防に関する 1 件の RCT では，CIPN からの回復期間に有意差が認められなかった2）。 以上より，アセチル—L—カルニチンの投与はタキサン系抗がん薬の CIPN 症状を悪化させる可能性が高く，明らかに不利益が大きいと考え，投与しないことを強く推奨するとした。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1）Hershman DL, Unger JM, Crew KD, et al. Randomized double—blind placebo—controlled trial of acetyl— L—carnitine for the prevention of taxane—induced neuropathy in women undergoing adjuvant breast cancer therapy. J Clin Oncol. 2013； 31： 2627—33.［PMID： 23733756］",
+      "pmid": "23733756"
+    },
+    {
+      "no": 2,
+      "citation": "2）Campone M, Berton—Rigaud D, Joly—Lobbedez F, et al. A double—blind, randomized phase II study to evaluate the safety and efficacy of acetyl—L—carnitine in the prevention of sagopilone—induced periph- eral neuropathy. Oncologist. 2013； 18： 1190—1.［PMID： 24105751］",
+      "pmid": "24105751"
+    },
+    {
+      "no": 3,
+      "citation": "3）Hershman DL, Unger JM, Crew KD, et al. Two—Year Trends of Taxane—Induced Neuropathy in Women Enrolled in a Randomized Trial of Acetyl—L—Carnitine（SWOG S0715）. J Natl Cancer Inst. 2018； 110： 669—76.［PMID： 29361042］",
+      "pmid": "29361042"
+    }
+  ]
+}

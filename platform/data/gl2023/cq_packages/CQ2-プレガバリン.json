@@ -1,0 +1,72 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ2",
+    "category": "薬物療法による治療",
+    "intervention": "プレガバリン",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ2-プレガバリン",
+  "title": "CQ2 薬物療法による治療: プレガバリン",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "プレガバリン",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の治療としてのプレガバリンの投与について「推奨なし」とする。",
+    "direction": "none",
+    "strength": "3",
+    "strength_label": "推奨なし",
+    "certainty": "C",
+    "certainty_label": "弱",
+    "cited_pmids": [
+      "31335651",
+      "30057636",
+      "31967742",
+      "31925721"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 1.0,
+      "agreement_n": 13,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "CIPN 治療に対するプレガバリンの臨床試験は 4 件ある。Hincker らによるプラセボ対照の無作為化二重盲検クロスオーバー比較試験では有効性は示されなかった1）。 デュロキセチン対照の無作為化比較試験は 3 件ある2）～4）。このうち 2 件は，デュロキセチンと比較してプレガバリンにおいて CIPN に伴う疼痛や感覚性神経障害に対する有効性を報告している。また，1 件では末梢神経障害を含む神経障害性疼痛に対して，プレガバリンと比較してデュロキセチンでの有意な効果を報告しているが，ベースラインと比較してプレガバリンにおいても神経障害性疼痛に対して有意な改善が報告されている。 以上より，エビデンスには非直接性・非一貫性の問題があり，プレガバリンの投与によって得られる利益が不利益を上回るかは不確実であり，患者によって最善の対応が異なる可能性がある。プレガバリンは神経障害性疼痛に対する保険適用があるため，従来から CIPN に対してしばしば使用されてきた。そのためエビデンスが十分にないことを理解したうえで，利益と不利益のバランスを個別に評価し，CIPN を訴える患者に投与することは否定しない。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1） Hincker A, Frey K, Rao L, et al. Somatosensory predictors of response to pregabalin in painful chemo- therapy—induced peripheral neuropathy： a randomized, placebo—controlled, crossover study. Pain. 2019； 160： 1835—46.［PMID： 31335651］",
+      "pmid": "31335651"
+    },
+    {
+      "no": 2,
+      "citation": "2） Avan R, Janbabaei G, Hendouei N, et al. The effect of pregabalin and duloxetine treatment on quality of life of breast cancer patients with taxane—induced sensory neuropathy： A randomized clinical trial. J Res Med Sci. 2018； 23： 52.［PMID： 30057636］",
+      "pmid": "30057636"
+    },
+    {
+      "no": 3,
+      "citation": "3） GülŞK, Tepetam H, Gül HL. Duloxetine and pregabalin in neuropathic pain of lung cancer patients. Brain Behav. 2020； 10： e01527.［PMID： 31967742］",
+      "pmid": "31967742"
+    },
+    {
+      "no": 4,
+      "citation": "4） Salehifar E, Janbabaei G, Hendouei N, et al. Comparison of the Efficacy and Safety of Pregabalin and Duloxetine in Taxane—Induced Sensory Neuropathy： A Randomized Controlled Trial. Clin Drug Inves- tig. 2020； 40： 249—57.［PMID： 31925721］",
+      "pmid": "31925721"
+    }
+  ]
+}

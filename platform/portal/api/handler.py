@@ -569,11 +569,17 @@ def gl2023(method, parts, body, user):
         if not isinstance(items, list): return resp(400, {"error": "etd_2023.json の配列が必要です"})
         plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
         dir2id = {d: it["id"] for it in plan["SR項目"] + plan["FRQ項目"] for d in it["dir"]}  # 2023年版の作業フォルダ名 → 企画書の項目ID
-        n = 0
+        merged = {}
         for n_, it in enumerate(items, 1):
             cqid = it.get("plan_id") or it.get("cq") or dir2id.get(it.get("dir", "")) or f"CQ{n_:02d}"
-            paras = [{"id": f"GL2023-{cqid}-p{i + 1:03d}", "text": s} for i, s in enumerate(x for x in re.split(r"(?<=。)\s*", it.get("narrative") or "") if x.strip())]
-            put("GL2023", cqid, {"cq": cqid, "title": it.get("title", ""), "dir": it.get("dir", ""), "rec": it.get("rec", ""), "strength": it.get("strength", ""), "certainty": it.get("certainty", ""), "votes": it.get("votes"), "paragraphs": paras}); n += 1
+            m = merged.setdefault(cqid, {"cq": cqid, "title": it.get("title", ""), "dir": it.get("dir", ""), "rec": "", "strength": "", "certainty": "", "votes": None, "recs": [], "paragraphs": []})
+            m["recs"].append({"rec": it.get("rec", ""), "strength": it.get("strength", ""), "certainty": it.get("certainty", ""), "votes": it.get("votes"), "stem": it.get("stem", "")})
+            m["rec"] = "\n".join(r["rec"] for r in m["recs"]); m["strength"] = "・".join(r["strength"] for r in m["recs"]); m["certainty"] = "・".join(r["certainty"] for r in m["recs"]); m["votes"] = m["recs"][0]["votes"]
+            base = len(m["paragraphs"])
+            m["paragraphs"] += [{"id": f"GL2023-{cqid}-p{base + i + 1:03d}", "text": s} for i, s in enumerate(x for x in re.split(r"(?<=。)\s*", it.get("narrative") or "") if x.strip())]
+        n = 0
+        for cqid, m in merged.items():
+            put("GL2023", cqid, m); n += 1
         audit(user, "2023年版の記述の取り込み", "全CQ", f"{n}件"); return resp(200, {"imported": n})
     return resp(405, {"error": "方法が不正です"})
 

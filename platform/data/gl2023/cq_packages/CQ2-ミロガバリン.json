@@ -1,0 +1,71 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ2",
+    "category": "薬物療法による治療",
+    "intervention": "ミロガバリン",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ2-ミロガバリン",
+  "title": "CQ2 薬物療法による治療: ミロガバリン",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "ミロガバリン",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の治療としてのミロガバリンの投与について「推奨なし」とする。",
+    "direction": "none",
+    "strength": "3",
+    "strength_label": "推奨なし",
+    "certainty": "C",
+    "certainty_label": "弱",
+    "cited_pmids": [
+      "33856660",
+      "34886831",
+      "33239138"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 12,
+      "agreement_rate": 1.0,
+      "agreement_n": 12,
+      "agreement_total": 12,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "CIPN の治療としてミロガバリンの効果をみた RCT は存在しない。ミロガバリンの有効性は糖尿病性末梢神経障害性疼痛，帯状疱疹後神経痛，脊髄損傷後神経痛，脳卒中後疼痛およびパーキンソン病による中枢性神経障害性疼痛に対して国内ないし国際共同第Ⅲ相試験で効果が示されている。何らかの理由で投与した場合は，有害事象による不利益も予想されるため，傾眠，末梢性浮腫，めまい等への注意が必要である。 Kimura らは末梢神経障害性疼痛を有する 152 例（うち Pain post chemotherapy 6 例を含む）を対象に，疼痛治療をプレガバリンからミロガバリンへ切り替えることによる変化を前方視的観察研究により評価した1）。その結果，ミロガバリンへの切り替えは安全に実施可能であり，VAS スコア平均値は有意に減少することが示された（Δ15.7 mm，p＜0.0001）。 Sugimoto らは，FOLFIRINOX 療法（オキサリプラチンを含む）または GnP 療法（アルブミン懸濁型パクリタキセルを含む）を施行した膵がん患者の CIPN を後方視的に調査した2）。ミロガバリン投与群（n＝13），プレガバリン投与群（n＝21）ともに投与開始前と比較して CTCAE v5.0 を用いて評価した CIPN Grade は有意に改善が認められた。また，投与 2 週間， 4 週間，6 週間でのミロガバリン群における CIPN 改善率はプレガバリン群と比較して有意に高かった（2 週 84.6％ vs 33.3％，p＝0.005；4 週，6 週 92.3％ vs 33.3％，p＝0.001）。 Kanbayashi らは，CIPN を含む神経障害性疼痛緩和を目的にミロガバリンが投与された 133 例（うち CIPN 16 例含む）を対象に，poorly effective 群（48 例，うち CIPN 6 例），effective 群（76 例，うち CIPN 8 例），very effective 群（9 例，うち CIPN 2 例）に分類し，ミロガバリンの効果の予測因子について後方視的に調査した3）。その結果，ミロガバリンの効果とミロガバリンの維持量（≦20 mg），オピオイドおよびノイロトロピン® の併用が相関していることが示唆された。 ミロガバリンの有害事象についてはわが国における後方視的調査の結果，CTCAE v 5.0 Grade 2 以下の傾眠，四肢浮腫がそれぞれ 19％，Grade 3 以上の有害事象としては四肢浮腫が 5％認められたと報告されている4）。 なお，ミロガバリンは神経障害性疼痛に対する保険適用があるため，CIPN に対してしばしば使用されている。 以上より，ミロガバリンの投与によって得られる利益が有害事象などの不利益を上回るかは不確実であり，患者によって最善の対応が異なる可能性がある。そのため効果のエビデンスが十分にないことを理解したうえで，利益と不利益のバランスを個別に評価し，CIPN を訴える患者に投与することは否定しない。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1） Kimura Y, Yamaguchi S, Suzuki T, et al. Switching From Pregabalin to Mirogabalin in Patients with Peripheral Neuropathic Pain： A Multi—Center, Prospective, Single—Arm, Open—Label Study（MIROP Study）. Pain Ther. 2021； 10： 711—27.［PMID： 33856660］",
+      "pmid": "33856660"
+    },
+    {
+      "no": 2,
+      "citation": "2） Sugimoto M, Takagi T, Suzuki R, et al. Mirogabalin vs pregabalin for chemotherapy—induced peripheral neuropathy in pancreatic cancer patients. BMC Cancer. 2021； 21： 1319.［PMID： 34886831］",
+      "pmid": "34886831"
+    },
+    {
+      "no": 3,
+      "citation": "3） Kanbayashi Y, Amaya F, Ikoma K, et al. Predictors of the usefulness of mirogabalin for neuropathic pain： a single—institution retrospective study. Pharmazie. 2020； 75： 602—5.［PMID： 33239138］",
+      "pmid": "33239138"
+    },
+    {
+      "no": 4,
+      "citation": "4）石川雄大，高木昭佳，梶浦新也，他．抗がん薬に伴う末梢神経障害に対するミロガバリンの有効性評価．医療薬．2021； 47： 1—9．",
+      "pmid": null
+    }
+  ]
+}

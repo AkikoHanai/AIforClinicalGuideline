@@ -1,0 +1,108 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ2",
+    "category": "薬物療法による治療",
+    "intervention": "オピオイド",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ2-オピオイド",
+  "title": "CQ2 薬物療法による治療: オピオイド",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "オピオイド",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の治療としてのオピオイドの投与について「推奨なし」とする。",
+    "direction": "none",
+    "strength": "3",
+    "strength_label": "推奨なし",
+    "certainty": "D",
+    "certainty_label": "非常に弱い",
+    "cited_pmids": [
+      "29280313",
+      "28699105",
+      "24452412",
+      "22699304",
+      "21837673",
+      "21703938",
+      "28715848",
+      "28226332",
+      "33533519",
+      "26977696"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 1.0,
+      "agreement_n": 13,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "CIPN の治療としてオピオイド投与の効果をみた RCT は存在せず，観察研究が 4 件（オピオイド全般 1 件，オキシコドン 1 件，トラマドール／アセトアミノフェン合剤 1 件，タペンタドール 1 件），後方視的研究が 1 件（オキシコドン），そして多施設フォローアップ研究（オキシコドン／ナロキソン合剤）が 1 件あるのみであり1）～6），投与することの有効性は明らかではないとした。 わが国においては，フェンタニル経皮吸収型製剤とオキシコドン徐放錠（TR 錠）が慢性疼痛にも使用可能であるが，長期オピオイド処方による弊害に関するエビデンスが確固たるものとなっている7）～10）。漫然とオピオイドを使用することは避けるべきであり，オピオイド鎮痛薬による治療開始と同時に，早期に中止することを念頭に治療を慎重に進める必要がある。有害事象が持続する場合や鎮痛効果が得られない場合は，常に減量中止を検討する。 以上より，オピオイドの投与によって得られる利益と不利益は不確実であり，患者によって最善の対応が異なる可能性がある。そのため明確な効果を示すエビデンスがないことを理解し，ほかの薬剤で除痛効果が得られない場合に，利益と不利益のバランスを個別に評価しながら，短期的に患者に投与することは否定しない。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1） Kim BS, Jin JY, Kwon JH, et al. Efficacy and safety of oxycodone／naloxone as add—on therapy to gaba- pentin or pregabalin for the management of chemotherapy—induced peripheral neuropathy in Korea. Asia Pac J Clin Oncol. 2018； 14： e448—54.［PMID： 29280313］",
+      "pmid": "29280313"
+    },
+    {
+      "no": 2,
+      "citation": "2） Galiè E, Villani V, Terrenato I, et al. Tapentadol in neuropathic pain cancer patients： a prospective open label study. Neurol Sci. 2017； 38： 1747—52.［PMID： 28699105］",
+      "pmid": "28699105"
+    },
+    {
+      "no": 3,
+      "citation": "3） Nagashima M, Ooshiro M, Moriyama A, et al. Efficacy and tolerability of controlled—release oxycodone for oxaliplatin—induced peripheral neuropathy and the extension of FOLFOX therapy in advanced colorectal cancer patients. Support Care Cancer. 2014； 22： 1579—84.［PMID： 24452412］",
+      "pmid": "24452412"
+    },
+    {
+      "no": 4,
+      "citation": "4） Cartoni C, Brunetti GA, Federico V, et al. Controlled—release oxycodone for the treatment of bortezo- mib—induced neuropathic pain in patients with multiple myeloma. Support Care Cancer. 2012； 20： 2621—6.［PMID： 22699304］",
+      "pmid": "22699304"
+    },
+    {
+      "no": 5,
+      "citation": "5） Liu YC, Wang WS. Human mu—opioid receptor gene A118G polymorphism predicts the efficacy of tra- madol／acetaminophen combination tablets （ultracet）in oxaliplatin—induced painful neuropathy. Cancer. 2012； 118： 1718—25.［PMID： 21837673］",
+      "pmid": "21837673"
+    },
+    {
+      "no": 6,
+      "citation": "6） Boyette—Davis JA, Cata JP, Zhang H, et al. Follow—up psychophysical studies in bortezomib—related chemoneuropathy patients. J Pain. 2011； 12： 1017—24.［PMID： 21703938］",
+      "pmid": "21703938"
+    },
+    {
+      "no": 7,
+      "citation": "7） Frank JW, Lovejoy TI, Becker WC, et al. Patient Outcomes in Dose Reduction or Discontinuation of Long—Term Opioid Therapy： A Systematic Review. Ann Intern Med. 2017； 167： 181—91.［PMID： 28715848］",
+      "pmid": "28715848"
+    },
+    {
+      "no": 8,
+      "citation": "8） Manchikanti L, Kaye AM, Knezevic NN, et al. Responsible, Safe, and Effective Prescription of Opioids for Chronic Non—Cancer Pain： American Society of Interventional Pain Physicians（ASIPP）Guidelines. Pain Physician. 2017； 20： S3—92.［PMID： 28226332］",
+      "pmid": "28226332"
+    },
+    {
+      "no": 9,
+      "citation": "9） Tölle T, Fitzcharles MA, Häuser W. Is opioid therapy for chronic non—cancer pain associated with a greater risk of all—cause mortality compared to non—opioid analgesics? A systematic review of propen- sity score matched observational studies. Eur J Pain. 2021； 25： 1195—208.［PMID： 33533519］",
+      "pmid": "33533519"
+    },
+    {
+      "no": 10,
+      "citation": "10） Dowell D, Haegerich TM, Chou R. CDC Guideline for Prescribing Opioids for Chronic Pain——United States, 2016. JAMA. 2016； 315： 1624—45.［PMID： 26977696］",
+      "pmid": "26977696"
+    }
+  ]
+}

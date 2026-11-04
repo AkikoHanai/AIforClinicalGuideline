@@ -1,0 +1,108 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ1",
+    "category": "非薬物療法による予防",
+    "intervention": "冷却",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ1-冷却",
+  "title": "CQ1 非薬物療法による予防: 冷却",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "冷却",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状（タキサン系抗がん薬由来に限る）の予防として，冷却を実施することを提案する。",
+    "direction": "for",
+    "strength": "2",
+    "strength_label": "弱",
+    "certainty": "C",
+    "certainty_label": "弱",
+    "cited_pmids": [
+      "32663120",
+      "34912720",
+      "31590108",
+      "32036471",
+      "31811482",
+      "29924336",
+      "27891244",
+      "33424755",
+      "31912787",
+      "35070969"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 12,
+      "agreement_rate": 0.92,
+      "agreement_n": 11,
+      "agreement_total": 12,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "局所に分布する抗がん薬の量が少なければ，CIPN などの有害事象の発生を抑えられるのではないかという理論のもとに，抗がん薬投与にあわせて四肢末梢を冷却することで血流循環量を低下させることについて主にタキサン系抗がん薬でさまざまな検討がなされてきた1）。なお，白金製剤に関しては，冷却が痛みを惹起するという副作用を生じ，また代謝されず残存しやすいという薬理動態や偽単極ニューロンにおける後根神経節における神経細胞体の障害であることから冷却に向かないという特性がある。 タキサン誘発性の CIPN に対する冷却の効果に関するシステマティックレビュー論文においては，9 件の研究より効果があることが結論づけられていた2）。そのうち 6 件が介入試験であり3）～8），いずれも介入なしを比較とした研究であった。また，タキサン系製剤，白金系製剤どちらの患者も包含して冷却予防を行った RCT に関しては脱落が 34％と多く，有意な効果は認められなかった9）。 また，新たに公開されたメタ解析におけるパクリタキセル使用患者を対象として冷却の有効性を検討した 5 件の介入研究の統合解析の結果では，冷却により CIPN の頻度は有意に減 9）少した（pooled RR＝0.47，95％CI 0.35—0.63，p＜0.001，I2＝0％） 。報告では薬物療法，非薬物療法がすべて検討されており，バイアスリスクは深刻ではなく10），Grade score は moder- ate であったが，サブグループであること，試験間における評価方法のばらつき，個々の試験の症例数が少ないこと，二重盲検ではないことなどが指摘された。 いずれの臨床試験においても冷却は医療者により管理され，重篤な有害事象は報告されていないが，ドライアイスで冷やした冷却手袋の使用など患者管理での冷却で表皮温が 0 度以下に保たれた場合には凍傷を起こす危険性があるため，注意が必要である。また，現在，医療機器として入手できる冷却具はない状況であるため，手足の血流量が半減した状態を維持できる冷却環境を個別に用意する必要がある。そのため医療者・患者には一定の作業負担が生じるが，得られる利益が上回ると考えられ，推奨の強さは 2 とした。現在も冷却については手足冷却装置の医師主導治験などが進行中であり，今後のさらなる知見の集積が望まれる。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1）Loprinzi CL, Lacchetti C, Bleeker J, et al. Prevention and Management of Chemotherapy—Induced Peripheral Neuropathy in Survivors of Adult Cancers： ASCO Guideline Update. J Clin Oncol. 2020； 38： 3325—48.［PMID： 32663120］",
+      "pmid": "32663120"
+    },
+    {
+      "no": 2,
+      "citation": "2）Jia J, Guo Y, Sundar R, et al. Cryotherapy for Prevention of Taxane—Induced Peripheral Neuropathy： A Meta—Analysis. Front Oncol. 2021； 11： 781812.［PMID： 34912720］",
+      "pmid": "34912720"
+    },
+    {
+      "no": 3,
+      "citation": "3）Ruddy KJ, Le—Rademacher J, Lacouture ME, et al. Randomized controlled trial of cryotherapy to pre- vent paclitaxel—induced peripheral neuropathy （RU221511I）； an ACCRU trial. Breast. 2019； 48： 89— 97.［PMID： 31590108］",
+      "pmid": "31590108"
+    },
+    {
+      "no": 4,
+      "citation": "4）Shigematsu H, Hirata T, Nishina M, et al. Cryotherapy for the prevention of weekly paclitaxel—induced peripheral adverse events in breast cancer patients. Support Care Cancer. 2020； 28： 5005—11.［PMID： 32036471］",
+      "pmid": "32036471"
+    },
+    {
+      "no": 5,
+      "citation": "5）Bandla A, Tan S, Kumarakulasinghe NB, et al. Safety and tolerability of cryocompression as a method of enhanced limb hypothermia to reduce taxane—induced peripheral neuropathy. Support Care Cancer. 2020； 28： 3691—9.［PMID： 31811482］",
+      "pmid": "31811482"
+    },
+    {
+      "no": 6,
+      "citation": "6）Hanai A, Ishiguro H, Sozu T, et al. Effects of Cryotherapy on Objective and Subjective Symptoms of Paclitaxel—Induced Neuropathy： Prospective Self—Controlled Trial. J Natl Cancer Inst. 2018； 110： 141— 8.［PMID： 29924336］",
+      "pmid": "29924336"
+    },
+    {
+      "no": 7,
+      "citation": "7）Sato J, Mori M, Nihei S, et al. The effectiveness of regional cooling for paclitaxel—induced peripheral neuropathy. J Pharm Health Care Sci. 2016； 2： 33.［PMID： 27891244］",
+      "pmid": "27891244"
+    },
+    {
+      "no": 8,
+      "citation": "8）Ng DQ, Tan CJ, Soh BC, et al. Impact of Cryotherapy on Sensory, Motor, and Autonomic Neuropathy in Breast Cancer Patients Receiving Paclitaxel： A Randomized, Controlled Trial. Front Neurol. 2020； 11： 604688.［PMID： 33424755］",
+      "pmid": "33424755"
+    },
+    {
+      "no": 9,
+      "citation": "9）Beijers AJM, Bonhof CS, Mols F, et al. Multicenter randomized controlled trial to evaluate the efficacy and tolerability of frozen gloves for the prevention of chemotherapy—induced peripheral neuropathy. Ann Oncol. 2020； 31： 131—6.［PMID： 31912787］",
+      "pmid": "31912787"
+    },
+    {
+      "no": 10,
+      "citation": "10）Leen AJ, Yap DWT, Teo CB, et al. A Systematic Review and Meta—Analysis of the Effectiveness of Neuroprotectants for Paclitaxel—Induced Peripheral Neuropathy. Front Oncol. 2022； 11： 763229. ［PMID： 35070969］",
+      "pmid": "35070969"
+    }
+  ]
+}

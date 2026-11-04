@@ -1,0 +1,72 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ2",
+    "category": "薬物療法による治療",
+    "intervention": "デュロキセチン",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ2-デュロキセチン",
+  "title": "CQ2 薬物療法による治療: デュロキセチン",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "デュロキセチン",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の治療として，デュロキセチンを投与することを提案する。",
+    "direction": "for",
+    "strength": "2",
+    "strength_label": "弱",
+    "certainty": "B",
+    "certainty_label": "中",
+    "cited_pmids": [
+      "23549581",
+      "25762165",
+      "30105459",
+      "31925721"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 1.0,
+      "agreement_n": 13,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "CIPN の治療にデュロキセチンは有効であるとする大規模 RCT が存在する1）。 Smith らは，白金やタキサン系の製剤投与後に CIPN が認められた患者を無作為，二重盲検割り付けし，両者の症状の程度を NRS で比較した。結果はデュロキセチン群でプラセボ群より有意に症状が改善した1）。探索的検討ではデュロキセチンはタキサン系よりも白金製剤誘発性の患者に，より有効性が認められた。Hirayama らは，日本人においてもデュロキセチンは CIPN への効果が期待できると報告した2）。Farshchian らは，CIPN を有するがん患者を対象としてデュロキセチン，ベンラファキシン，プラセボの 3 群に無作為に割り付ける RCT を行った3）。デュロキセチン群とベンラファキシン群で神経障害性疼痛を含む症状は有意に減少し，この現象はデュロキセチン群でベンラファキシン群より有意に顕著であった。 Salehifar らは，タキサン系抗がん薬治療後，CIPN を有する患者を対象としてプレガバリンとの治療効果の RCT を行った。しかしながら，プレガバリンと比較し，デュロキセチンの効果は有意に低かった4）。これは，デュロキセチンは，タキサン系抗がん薬による CIPN には効果が乏しいという過去の Smith らの報告と合致する結果であった。複数の RCT から効果が報告されているため，エビデンスの確実性は中程度とした。なお，投与により傾眠，めまいなどの有害事象が起こることがあり，これらを自覚した場合は自動車運転をしないよう患者に指導する必要がある（第 2 章総論 J．臨床における諸問題参照）。わが国ではデュロキセチンは CIPN に対して保険適用がないことなどから，コストに関しても十分に説明し同意を得る必要がある＊。 以上より，CIPN に効果が期待できる可能性がある一方で，費用負担や有害事象が生じる可能性があるため，利益と不利益のバランスを鑑み投与することを提案することとした。 ＊薬理作用に基づく医薬品の適応外事例について，社会保険診療上，認められることがある（詳細は第 2 章総論 J2．デュロキセチン参照）。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1） Smith EM, Pang H, Cirrincione C, et al； Alliance for Clinical Trials in Oncology. Effect of duloxetine on pain, function, and quality of life among patients with chemotherapy—induced painful peripheral neu- ropathy： a randomized clinical trial. JAMA. 2013； 309： 1359—67.［PMID： 23549581］",
+      "pmid": "23549581"
+    },
+    {
+      "no": 2,
+      "citation": "2） Hirayama Y, Ishitani K, Sato Y, et al. Effect of duloxetine in Japanese patients with chemotherapy— induced peripheral neuropathy： a pilot randomized trial. Int J Clin Oncol. 2015； 20： 866—71. ［PMID： 25762165］",
+      "pmid": "25762165"
+    },
+    {
+      "no": 3,
+      "citation": "3） Farshchian N, Alavi A, Heydarheydari S, et al. Comparative study of the effects of venlafaxine and duloxetine on chemotherapy—induced peripheral neuropathy. Cancer Chemother Pharmacol. 2018； 82： 787—93.［PMID： 30105459］",
+      "pmid": "30105459"
+    },
+    {
+      "no": 4,
+      "citation": "4） Salehifar E, Janbabaei G, Hendouei N, et al. Comparison of the Efficacy and Safety of Pregabalin and Duloxetine in Taxane—Induced Sensory Neuropathy： A Randomized Controlled Trial. Clin Drug Inves- tig. 2020； 40： 249—57.［PMID： 31925721］",
+      "pmid": "31925721"
+    }
+  ]
+}

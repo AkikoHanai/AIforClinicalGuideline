@@ -1,0 +1,96 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ1",
+    "category": "薬物療法による予防",
+    "intervention": "牛車腎気丸",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ1-牛車腎気丸",
+  "title": "CQ1 薬物療法による予防: 牛車腎気丸",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "牛車腎気丸",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状（白金製剤由来に限る）の予防として，牛車腎気丸を投与しないことを提案する。",
+    "direction": "against",
+    "strength": "4",
+    "strength_label": "弱",
+    "certainty": "B",
+    "certainty_label": "中",
+    "cited_pmids": [
+      "21258836",
+      "22969845",
+      "24121454",
+      "24377531",
+      "25627820",
+      "29280005",
+      "29270698",
+      "34916380"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 1.0,
+      "agreement_n": 13,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "牛車腎気丸の有効性を評価した RCT は 5 件ある1）～5）。Oki らによる大規模な RCT においてオキサリプラチンによる CIPN の予防として牛車腎気丸の有効性を CTCAE v 3.0 で示せず，中間解析において CIPN の発症が介入群で有意に多かったため試験中止となっている。 ほかに小規模の RCT は 4 件あり，オキサリプラチンに対する Kono らの報告では CTCAE v 3.0 で有意差を示せず，Nishioka らの報告では有意差は認められたものの非盲検（オープンラベル）であった。パクリタキセルに対する Kaku らの報告では CTCAE v 3.0 で有意差を示せず，ドセタキセルに対する Abe らの報告では実薬群で有意に神経障害が少なかったものの非盲検であった。牛車腎気丸の有効性を評価したメタ解析では，臨床的に問題となる Grade 2 以上の発現率で有意差を認めなかった6）7）。 オキサリプラチンに限定した場合は Oki らの報告が大規模でバイアスリスクも少ないため，本ガイドラインの前身である「がん薬物療法に伴う末梢神経障害マネジメントの手引き 2017 年版」では「オキサリプラチンによる CIPN 症状の予防に牛車腎気丸の投与は推奨しない」と記載した。オキサリプラチンに関しては，その後も推奨を支持するエビデンスの追加はみられない。また，本ガイドラインの検索期間（2021 年 6 月）以降に Aoyama らの報告があり，オキサリプラチンによる神経障害に牛車腎気丸の効果を RCT で示すことはできなかった8）。 以上より，メタ解析および RCT の一貫した結果から牛車腎気丸の投与によって CIPN の予防効果が得られることが期待できず，投与により CIPN が増悪する可能性があるため，投与しないことを提案する。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1）Nishioka M, Shimada M, Kurita N, et al. The Kampo medicine, Goshajinkigan, prevents neuropathy in patients treated by FOLFOX regimen. Int J Clin Oncol. 2011； 16： 322—7. ［PMID： 21258836］",
+      "pmid": "21258836"
+    },
+    {
+      "no": 2,
+      "citation": "2）Kaku H, Kumagai S, Onoue H, et al. Objective evaluation of the alleviating effects of Goshajinkigan on peripheral neuropathy induced by paclitaxel／carboplatin therapy： A multicenter collaborative study. Exp Ther Med. 2012； 3： 60—5.［PMID： 22969845］",
+      "pmid": "22969845"
+    },
+    {
+      "no": 3,
+      "citation": "3）Kono T, Hata T, Morita S, et al. Goshajinkigan oxaliplatin neurotoxicity evaluation（GONE）： a phase 2, multicenter, randomized, double—blind, placebo—controlled trial of goshajinkigan to prevent oxaliplatin— induced neuropathy. Cancer Chemother Pharmacol. 2013； 72： 1283—90.［PMID： 24121454］",
+      "pmid": "24121454"
+    },
+    {
+      "no": 4,
+      "citation": "4）Abe H, Kawai Y, Mori T, et al. The Kampo medicine Goshajinkigan prevents neuropathy in breast cancer patients treated with docetaxel. Asian Pac J Cancer Prev. 2013； 14： 6351—6.［PMID： 24377531］",
+      "pmid": "24377531"
+    },
+    {
+      "no": 5,
+      "citation": "5）Oki E, Emi Y, Kojima H, et al. Preventive effect of Goshajinkigan on peripheral neurotoxicity of FOLFOX therapy（GENIUS trial）： a placebo—controlled, double—blind, randomized phase III study. Int J Clin Oncol. 2015； 20： 767—75. ［PMID： 25627820］",
+      "pmid": "25627820"
+    },
+    {
+      "no": 6,
+      "citation": "6）Kuriyama A, Endo K. Goshajinkigan for prevention of chemotherapy—induced peripheral neuropathy： a systematic review and meta—analysis. Support Care Cancer. 2018； 26： 1051—9.［PMID： 29280005］",
+      "pmid": "29280005"
+    },
+    {
+      "no": 7,
+      "citation": "7）Hoshino N, Ganeko R, Hida K, et al. Goshajinkigan for reducing chemotherapy—induced peripheral neu- ropathy： a systematic review and meta—analysis. Int J Clin Oncol. 2018； 23： 434—42.［PMID： 29270698］",
+      "pmid": "29270698"
+    },
+    {
+      "no": 8,
+      "citation": "8）Aoyama T, Morita S, Kono T, et al. Effects of Goshajinkigan（TJ—107） for oxaliplatin—induced peripheral neurotoxicity using the functional assessment of cancer therapy／gynecologic oncology group 12—item neurotoxicity questionnaire in a Phase II, multicenter, randomized, double—blind, placebo—controlled trial. J Cancer Res Ther. 2021； 17： 1473—8. ［PMID： 34916380］",
+      "pmid": "34916380"
+    }
+  ]
+}

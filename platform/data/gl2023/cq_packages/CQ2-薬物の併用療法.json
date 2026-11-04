@@ -1,0 +1,60 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ2",
+    "category": "薬物療法による治療",
+    "intervention": "薬物の併用療法",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ2-薬物の併用療法",
+  "title": "CQ2 薬物療法による治療: 薬物の併用療法",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "薬物の併用療法",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の治療として，薬物の併用療法の実施について「推奨なし」とする。",
+    "direction": "none",
+    "strength": "3",
+    "strength_label": "推奨なし",
+    "certainty": "D",
+    "certainty_label": "非常に弱い",
+    "cited_pmids": [
+      "29280313",
+      "31254640"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 1.0,
+      "agreement_n": 13,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "CIPN 症状（しびれ，疼痛）の治療として，複数の薬物を併用して投与することの有効性，安全性を検討した。併用の候補薬として本ガイドラインで取り上げたプレガバリン，デュロキセチン，オピオイドなどに関して検索した。 CIPN において検索した限りでは RCT は存在しなかった。ハンドサーチでオキシコドン／ナロキソン配合剤とガバペンチノイドの併用報告を確認した。Kim らは，ガバペンチノイドでコントロール不十分（NRS≧4）な CIPN 患者 72 例を対象にオキシコドン／ナロキソン配合剤を追加し，4 週後の NRS の低下が 1.29±1.84（p＜0.0001）であったと報告したが，単群の研究であることは結果の解釈に慎重を要する。併用後にめまい（20.8％），嘔気（9.7％）など有害事象を 42 例（58.3％）に認めた1）。 併用療法の有害事象に関しては，対象を CIPN 以外に広げるとハンドサーチで 1 件の論文を確認した。Matsuoka らはオピオイド＋プレガバリンを投与中の CIPN を除くがん性疼痛の患者 70 名を無作為化し，デュロキセチン（35 名）あるいはプラセボ（35 名）を投与した（二重盲検）2）。その結果，がん性疼痛への有効性は Brief Pain Inventory—Item 5 での評価で 4.03 vs 4.88 （p＝0.053）であった。有害事象に関してはデュロキセチンあるいはプラセボ投与例において眠気，めまい，嘔気，動悸，高血圧，倦怠感の報告例があり，Grade 3 以上の有害事象としてはデュロキセチン併用群で Grade 3 と 4 の嘔気が各 1 例（2.9％）認められた。 以上より，複数の薬物の投与により明確な効果を示すエビデンスは不十分であり，わずかではあるが治療による不利益が利益を上回る可能性がある。一方，臨床的にはがん性疼痛などが併存することも多く，併用療法を必要とする場合があるため，その際には利益と不利益のバランスを個別に評価しながら，投与することは否定しない。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1） Kim BS, Jin JY, Kwon JH, et al. Efficacy and safety of oxycodone／naloxone as add—on therapy to gaba- pentin or pregabalin for the management of chemotherapy—induced peripheral neuropathy in Korea. Asia Pac J Clin Oncol. 2018； 14： e448—54.［PMID： 29280313］",
+      "pmid": "29280313"
+    },
+    {
+      "no": 2,
+      "citation": "2） Matsuoka H, Iwase S, Miyaji T, et al. Additive Duloxetine for Cancer—Related Neuropathic Pain Nonre- sponsive or Intolerant to Opioid—Pregabalin Therapy： A Randomized Controlled Trial（JORTC— PAL08）. J Pain Symptom Manage. 2019； 58： 645—53.［PMID： 31254640］",
+      "pmid": "31254640"
+    }
+  ]
+}

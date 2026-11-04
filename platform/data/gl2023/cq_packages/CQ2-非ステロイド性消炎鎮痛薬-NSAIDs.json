@@ -1,0 +1,60 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ2",
+    "category": "薬物療法による治療",
+    "intervention": "非ステロイド性消炎鎮痛薬(NSAIDs)",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs",
+  "title": "CQ2 薬物療法による治療: 非ステロイド性消炎鎮痛薬(NSAIDs)",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "非ステロイド性消炎鎮痛薬(NSAIDs)",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の治療としての非ステロイド性消炎鎮痛薬（NSAIDs）の投与について「推奨なし」とする。",
+    "direction": "none",
+    "strength": "3",
+    "strength_label": "推奨なし",
+    "certainty": "D",
+    "certainty_label": "非常に弱い",
+    "cited_pmids": [
+      "29390421",
+      "31277138"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 1.0,
+      "agreement_n": 13,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "CIPN の症状の治療として，NSAIDs を投与することに関するシステマティックレビューは存在せず，RCT は同一の著者より 2 件出ており，オキサリプラチンを投与した胃がん患者に対してセレコキシブ投与，非投与において disease free survival を主エンドポイントに， CIPN を含む QOL などを副エンドポイントにした研究の結果が報告されている1）2）。割り付け方法に詳細な記載がなく，参加者，アウトカム評価者の盲検化に関しても記載がなかった。 有害事象に関しても先の 2 文献ではプラセボとほぼ同等の有害事象発生割合であり，併用化学療法そのものによる有害事象と考えられ，評価は不能であった。 以上より，NSAIDs の投与によって得られる利益と不利益は不明であり，患者によって最善の対応が異なる可能性がある。NSAIDs は安価な市販薬として手軽に試しやすいため，効果を示すエビデンスがないことを理解したうえで，利益と不利益のバランスを個別に評価しながら，短期的に患者に投与することは否定しない。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1） Guo Q, Liu X, Lu L, et al. Comprehensive evaluation of clinical efficacy and safety of celecoxib combined with chemotherapy in management of gastric cancer. Medicine（Baltimore）. 2017； 96： e8857. ［PMID： 29390421］",
+      "pmid": "29390421"
+    },
+    {
+      "no": 2,
+      "citation": "2） Guo Q, Li Q, Wang J, et al. A comprehensive evaluation of clinical efficacy and safety of celecoxib in combination with chemotherapy in metastatic or postoperative recurrent gastric cancer patients： A preliminary, three—center, clinical trial study. Medicine（Baltimore）. 2019； 98： e16234. ［PMID： 31277138］",
+      "pmid": "31277138"
+    }
+  ]
+}

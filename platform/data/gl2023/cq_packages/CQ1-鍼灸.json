@@ -1,0 +1,54 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ1",
+    "category": "非薬物療法による予防",
+    "intervention": "鍼灸",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ1-鍼灸",
+  "title": "CQ1 非薬物療法による予防: 鍼灸",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "鍼灸",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の予防として，鍼灸を実施しないことを提案する。",
+    "direction": "against",
+    "strength": "4",
+    "strength_label": "弱",
+    "certainty": "D",
+    "certainty_label": "非常に弱い",
+    "cited_pmids": [
+      "27013473"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 0.85,
+      "agreement_n": 11,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "鍼灸はがんの支持療法として欧米でも取り入れられているが，CIPN の予防に関して十分なエビデンスをもった報告は極めて少ない。RCT としては，小規模であるもののタキサン系製剤による CIPN の予防を目的とした週 1 回の電気鍼灸の報告が 1 件ある1）。電気鍼灸による予防効果は認められず，化学療法を中止した後の CIPN 症状回復もより遅くなったという結果であった。 さらなる研究が待たれるが，現時点では CIPN の予防としての鍼灸によって利益が得られることが期待できず，治療による不利益が利益を上回る場合があるため，実施しないことを提案する。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1）Greenlee H, Crew KD, Capodice J, et al. Randomized sham—controlled pilot trial of weekly electro—acu- puncture for the prevention of taxane—induced peripheral neuropathy in women with early stage breast cancer. Breast Cancer Res Treat. 2016； 156： 453—64.［PMID： 27013473］ CQ CIPN 症状（しびれ，疼痛）の治療として何が推奨で 2 きるか。",
+      "pmid": "27013473"
+    }
+  ]
+}

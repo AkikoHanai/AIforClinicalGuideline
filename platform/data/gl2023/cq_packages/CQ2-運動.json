@@ -1,0 +1,72 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ2",
+    "category": "非薬物療法による治療",
+    "intervention": "運動",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ2-運動",
+  "title": "CQ2 非薬物療法による治療: 運動",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "運動",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の治療として，運動を実施することを提案する。",
+    "direction": "for",
+    "strength": "2",
+    "strength_label": "弱",
+    "certainty": "B",
+    "certainty_label": "中",
+    "cited_pmids": [
+      "31046719",
+      "30888982",
+      "33850959",
+      "33660078"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 12,
+      "agreement_rate": 0.83,
+      "agreement_n": 10,
+      "agreement_total": 12,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "一度発症した CIPN に対してリハビリテーションとしての運動療法が行われている（詳細は第 2 章総論 J5．CIPN における理学的手法参照）。CIPN の治療としての運動に関する RCT の文献は 3 件抽出された1）～3）。またメタ解析が 1 件報告されている4）。 Şimşek らによるタキサン系製剤誘発性の CIPN 患者 90 名の RCT では，介入群は冷却 30 名，運動 30 名であり，対照群は標準治療 30 名であった3）。運動は在宅で行う 12 週間の構成で，筋力強化，ストレッチ，バランス運動であった。運動群では CIPN 発症から 12 週後の CIPNAT によって測定した手足の感覚鈍麻のスコアが対照群（標準治療）に比べて有意に低く，運動が CIPN の重症度を軽減するのに効果があることを示唆した。 Lin らによる RCT のメタ解析の結果から，運動療法によって CIPN の症状は有意に改善す 4）ることが示されている（mean difference：0.5319，95％CI 0.2295—0.8344） 。ただし，その一貫性には問題があり，運動療法のプロトコールや介入強度の検討には，より特異的なアウトカムの測定を用いたより大きなサンプルでの研究が必要であると結論づけている。 このように複数の RCT およびメタ解析の結果から，運動療法が，CIPN の症状軽減に有益であることが示唆されているが，そのエビデンスには常にバイアスの問題がある。 以上より，運動はその効果の大きさは不確実であるが CIPN の一部の症状を改善にする可能性があり，とりわけ CIPN 以外の利益やリスクが低いことも鑑みて，利益と不利益のバランスから，実施することを提案する。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1） Kneis S, Wehrle A, Müller J, et al. It’s never too late—balance and endurance training improves func- tional performance, quality of life, and alleviates neuropathic symptoms in cancer survivors suffering from chemotherapy—induced peripheral neuropathy： results of a randomized controlled trial. BMC Cancer. 2019； 19： 414.［PMID： 31046719］",
+      "pmid": "31046719"
+    },
+    {
+      "no": 2,
+      "citation": "2） Dhawan S, Andrews R, Kumar L, et al. A Randomized Controlled Trial to Assess the Effectiveness of Muscle Strengthening and Balancing Exercises on Chemotherapy—Induced Peripheral Neuropathic Pain and Quality of Life Among Cancer Patients. Cancer Nurs. 2020； 43： 269—80. ［PMID： 30888982］",
+      "pmid": "30888982"
+    },
+    {
+      "no": 3,
+      "citation": "3） Şimşek NY, Demir A. Cold Application and Exercise on Development of Peripheral Neuropathy during Taxane Chemotherapy in Breast Cancer Patients： A Randomized Controlled Trial. Asia Pac J Oncol Nurs. 2021； 8： 255—66.［PMID： 33850959］",
+      "pmid": "33850959"
+    },
+    {
+      "no": 4,
+      "citation": "4） Lin WL, Wang RH, Chou FH, et al. The effects of exercise on chemotherapy—induced peripheral neu- ropathy symptoms in cancer patients： a systematic review and meta—analysis. Support Care Cancer. 2021； 29： 5303—11.［PMID： 33660078］",
+      "pmid": "33660078"
+    }
+  ]
+}

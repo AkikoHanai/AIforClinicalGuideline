@@ -1,0 +1,78 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ1",
+    "category": "非薬物療法による予防",
+    "intervention": "運動",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ1-運動",
+  "title": "CQ1 非薬物療法による予防: 運動",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "運動",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の予防として，運動を実施することを提案する。",
+    "direction": "for",
+    "strength": "2",
+    "strength_label": "弱",
+    "certainty": "C",
+    "certainty_label": "弱",
+    "cited_pmids": [
+      "32663120",
+      "28963591",
+      "29243164",
+      "34226683",
+      "31976819"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 12,
+      "agreement_rate": 0.92,
+      "agreement_n": 11,
+      "agreement_total": 12,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "ASCO の運動・栄養のガイドラインでは，根治目的で積極的な治療中にがん治療の副作用を軽減するために，医療者は有酸素運動とレジスタンス運動を推奨する必要があると強く推奨している。CIPN に対する運動療法について，2020 年の ASCO CIPN ガイドライン1）では， 2 件の RCT が採用され2）3），実行可能性，安全性，有益性が示唆されたが，いずれもサブグループ解析であり，確実なエビデンスとはならなかった。 ASCO CIPN ガイドライン以後に公表された CIPN の予防のための運動療法に関する RCT の文献は 2 件あった4）5）。 Müller らの研究では，介入群と対照群の CIPN の症状に有意な差を認めなかったが，介入群の運動療法の実施アドヒアランスが 67％を超える参加者に限定した場合，有意差を認めた4）。本研究における運動プログラムの介入期間は 3 週間であり，継続して運動療法を実施できるアドヒアランスは CIPN 予防のために重要な因子であると明らかにされた。 また，Hammond らによる研究では，4 週間の理学療法ホームプログラムを実施した5）。その結果，NRS 1 以上の痛みについて介入群の上肢における発生頻度が有意に低下したと報告した。 CIPN の予防について，多くの研究が pilot study の段階であり，参加者と医療提供者の盲検化が困難という介入の特性に伴うバイアスの問題も抱えている。さらに，運動の頻度，強度，持続時間，運動の種類については試験依存で異なっており，これらの画一的規定は困難な状況であることから，大規模な臨床試験による十分なエビデンスおよび規定された運動方法は確立していない（詳細は第 2 章総論 J5．CIPN における理学的手法を参照）。 以上より，運動はその効果の大きさは不確実であるが，CIPN 予防以外の利益も大きく，有害事象のリスクが低いことも鑑みて，利益と不利益のバランスから，実施することを提案する。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1）Loprinzi CL, Lacchetti C, Bleeker J, et al. Prevention and Management of Chemotherapy—Induced Peripheral Neuropathy in Survivors of Adult Cancers： ASCO Guideline Update. J Clin Oncol. 2020； 38： 3325—48.［PMID： 32663120］",
+      "pmid": "32663120"
+    },
+    {
+      "no": 2,
+      "citation": "2）Zimmer P, Trebing S, Timmers—Trebing U, et al. Eight—week, multimodal exercise counteracts a prog- ress of chemotherapy—induced peripheral neuropathy and improves balance and strength in metasta- sized colorectal cancer patients： a randomized controlled trial. Support Care Cancer. 2018； 26： 615— 24.［PMID： 28963591］",
+      "pmid": "28963591"
+    },
+    {
+      "no": 3,
+      "citation": "3）Kleckner IR, Kamen C, Gewandter JS, et al. Effects of exercise during chemotherapy on chemotherapy— induced peripheral neuropathy： a multicenter, randomized controlled trial. Support Care Cancer. 2018； 26： 1019—28.［PMID： 29243164］",
+      "pmid": "29243164"
+    },
+    {
+      "no": 4,
+      "citation": "4）Müller J, Weiler M, Schneeweiss A, et al. Preventive effect of sensorimotor exercise and resistance training on chemotherapy—induced peripheral neuropathy： a randomised—controlled trial. Br J Cancer. 2021； 125： 955—65.［PMID： 34226683］",
+      "pmid": "34226683"
+    },
+    {
+      "no": 5,
+      "citation": "5）Andersen Hammond E, Pitz M, Steinfeld K, et al. An Exploratory Randomized Trial of Physical Ther- apy for the Treatment of Chemotherapy—Induced Peripheral Neuropathy. Neurorehabil Neural Repair. 2020； 34： 235—46.［PMID： 31976819］",
+      "pmid": "31976819"
+    }
+  ]
+}

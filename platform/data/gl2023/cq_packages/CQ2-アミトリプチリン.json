@@ -1,0 +1,54 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ2",
+    "category": "薬物療法による治療",
+    "intervention": "アミトリプチリン",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ2-アミトリプチリン",
+  "title": "CQ2 薬物療法による治療: アミトリプチリン",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "アミトリプチリン",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の治療として，アミトリプチリンを投与しないことを提案する。",
+    "direction": "against",
+    "strength": "4",
+    "strength_label": "弱",
+    "certainty": "D",
+    "certainty_label": "非常に弱い",
+    "cited_pmids": [
+      "17980550"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 0.85,
+      "agreement_n": 11,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "デュロキセチン以外の抗うつ薬であるアミトリプチリン製剤は末梢神経障害性疼痛に対する保険適用があるため，がん緩和ケアなどでは使用されることがある。 しかし，CIPN に対するアミトリプチリン投与の効果を評価した無作為化比較試験は 1 件だけであり，有効性は示されなかった1）。 アミトリプチリンの有害事象として，口喝，尿閉，眠気等，抗コリン作用の頻度が高く，自殺企図，敵意，攻撃性等の精神症状の発現リスクもある。 以上より，CIPN の改善効果は期待できず，利益よりも副作用による不利益のほうが高くなる可能性があるため，投与しないことを提案する。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1） Kautio AL, Haanpää M, Saarto T, et al. Amitriptyline in the treatment of chemotherapy—induced neu- ropathic symptoms. J Pain Symptom Manage. 2008； 35： 31—9.［PMID： 17980550］",
+      "pmid": "17980550"
+    }
+  ]
+}

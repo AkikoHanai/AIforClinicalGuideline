@@ -1,0 +1,72 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ1",
+    "category": "薬物療法による予防",
+    "intervention": "プレガバリン",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ1-プレガバリン",
+  "title": "CQ1 薬物療法による予防: プレガバリン",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "プレガバリン",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の予防として，プレガバリンを投与しないことを提案する。",
+    "direction": "against",
+    "strength": "4",
+    "strength_label": "弱",
+    "certainty": "B",
+    "certainty_label": "中",
+    "cited_pmids": [
+      "26155765",
+      "30773731",
+      "16945171",
+      "28652279"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 1.0,
+      "agreement_n": 13,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "CIPN 予防としてプレガバリンの効果をみた RCT は 2 件あるが，両報告とも予防効果は示されなかった1）2）。また，類似薬であるガバペンチンに関して非無作為化試験3），RCT が 1 件4）ずつあり，予防効果は RCT の 1 件でのみ報告されている。 Shinde らによる第Ⅱ相 RCT （二重盲検）では，12 週間 weekly パクリタキセル（80 mg／m2／ dose）の施行を予定している乳がん患者をプレガバリン投与群（n＝23）とプラセボ群（n＝23）に割り付けし，プレガバリンによるパクリタキセル関連 CIPN の予防効果について EORTC— QLQ CIPN20 および CTCAE v4.0 を用いて評価を行った。その結果，プラセボ群と比較してプレガバリン群におけるパクリタキセル関連急性疼痛もしくはパクリタキセル起因性末梢神経障害に対する予防効果に有意な差は認められなかった1）。 de Andrade らによる第Ⅲ相 RCT （二重盲検）では，modified—FLOX 療法（オキサリプラチンを含む）を施行予定で，疼痛を有さない化学療法未実施の大腸がん患者を対象とした。患者はプレガバリン群（n＝78）とプラセボ群（n＝65）に割り付けを行い，各オキサリプラチンの投与前後 3 日間それぞれの投与を行い，慢性オキサリプラチン関連神経障害性疼痛の予防効果を評価した。最大 6 カ月間のフォローアップの結果，Brief Pain Inventory の VAS で評価した最終診察時の疼痛強度はプレガバリン群とプラセボ群で有意な差は認められなかった。また，EORTC—QLQ—C30 v3 を用いて評価した QOL に関しても両群間で有意な差は認められなかった。よって，本試験ではプレガバリンによる慢性オキサリプラチン関連神経障害性疼痛の発生抑制に対する効果を示すことはできなかった4）。 以上より，プレガバリンの CIPN 予防効果について複数の RCT で一貫して効果がみられないとされており，めまいや傾眠などの有害事象による不利益も予想されるため，不利益が利益を上回ると考え，CIPN 予防を目的としてプレガバリンは投与しないことを提案する。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1）Shinde SS, Seisler D, Soori G, et al. Can pregabalin prevent paclitaxel—associated neuropathy?——An ACCRU pilot trial. Support Care Cancer. 2016； 24： 547—53.［PMID： 26155765］",
+      "pmid": "26155765"
+    },
+    {
+      "no": 2,
+      "citation": "2）Aghili M, Zare M, Mousavi N, et al. Efficacy of gabapentin for the prevention of paclitaxel induced peripheral neuropathy： A randomized placebo controlled clinical trial. Breast J. 2019； 25： 226—31. ［PMID： 30773731］",
+      "pmid": "30773731"
+    },
+    {
+      "no": 3,
+      "citation": "3）Mitchell PL, Goldstein D, Michael M, et al. Addition of gabapentin to a modified FOLFOX regimen does not reduce oxaliplatin—induced neurotoxicity. Clin Colorectal Cancer. 2006； 6： 146—51.［PMID： 16945171］",
+      "pmid": "16945171"
+    },
+    {
+      "no": 4,
+      "citation": "4）de Andrade DC, Jacobsen Teixeira M, Galhardoni R, et al. Pregabalin for the Prevention of Oxaliplatin— Induced Painful Neuropathy： A Randomized, Double—Blind Trial. Oncologist. 2017； 22： 1154—e105. ［PMID： 28652279］",
+      "pmid": "28652279"
+    }
+  ]
+}

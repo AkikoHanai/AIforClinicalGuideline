@@ -1,0 +1,78 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ1",
+    "category": "非薬物療法による予防",
+    "intervention": "圧迫",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ1-圧迫",
+  "title": "CQ1 非薬物療法による予防: 圧迫",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "圧迫",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状（タキサン系抗がん薬由来に限る）の予防としての圧迫の実施について 「推奨なし」とする。",
+    "direction": "none",
+    "strength": "3",
+    "strength_label": "推奨なし",
+    "certainty": "D",
+    "certainty_label": "非常に弱い",
+    "cited_pmids": [
+      "32663120",
+      "27620884",
+      "33985457",
+      "31901783",
+      "35070969"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 0.92,
+      "agreement_n": 12,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "局所に分布する抗がん薬の量が少なければ，CIPN などの有害事象の発生を抑えられるのではないかという理論のもとに，抗がん薬投与にあわせて四肢末梢を圧迫することで血流循環量を低下させることについて検討されてきたが，2020 年の ASCO ガイドライン更新では明確な推奨は作成されなかった1）。 Tsuyuki らのアルブミン結合パクリタキセルを使用した患者での検討では，圧迫により Grade 2 以上の CIPN の頻度は有意に少なかったが2），パクリタキセルを使用した患者に圧迫を検討した試験では差はみられなかった3）。また，Kanbayashi らの圧迫と cryotherapy の比較では両群に差は認めなかった4）。 パクリタキセル使用患者を対象とする薬物療法，非薬物療法のメタ解析では，cryother- apy と圧迫をあわせて検討した結果，非薬物療法による介入で CIPN の発生頻度は低下していたが，圧迫のみによる検討結果はなかった5）。 報告は小規模な限られた RCT のみであり，結果にも一貫性がないことから，利益が不利益を上回るかは不確実であり，患者によって最善の対応が異なる可能性がある。そのため利益と不利益のバランスを個別に評価し，タキサン系抗がん薬を使用する患者に圧迫を実施することは否定しないと判断し，推奨なしとした。今後の知見の集積が期待される。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1）Loprinzi CL, Lacchetti C, Bleeker J, et al. Prevention and Management of Chemotherapy—Induced Peripheral Neuropathy in Survivors of Adult Cancers： ASCO Guideline Update. J Clin Oncol. 2020； 38： 3325—48.［PMID： 32663120］",
+      "pmid": "32663120"
+    },
+    {
+      "no": 2,
+      "citation": "2）Tsuyuki S, Senda N, Kanng Y, Y et al. Evaluation of the effect of compression therapy using surgical gloves on nanoparticle albumin—bound paclitaxel—induced peripheral neuropathy： a phase II multi- center study by the Kamigata Breast Cancer Study Group. Breast Cancer Res Treat. 2016； 160： 61— 7.［PMID： 27620884］",
+      "pmid": "27620884"
+    },
+    {
+      "no": 3,
+      "citation": "3）Kotani H, Terada M, Mori M, et al. Compression therapy using surgical gloves does not prevent pacli- taxel—induced peripheral neuropathy： results from a double—blind phase 2 trial. BMC Cancer. 2021； 21： 548.［PMID： 33985457］",
+      "pmid": "33985457"
+    },
+    {
+      "no": 4,
+      "citation": "4）Kanbayashi Y, Sakaguchi K, Ishikawa T, et al. Comparison of the efficacy of cryotherapy and compres- sion therapy for preventing nanoparticle albumin—bound paclitaxel—induced peripheral neuropathy： A prospective self—controlled trial. Breast. 2020； 49： 219—24.［PMID： 31901783］",
+      "pmid": "31901783"
+    },
+    {
+      "no": 5,
+      "citation": "5）Leen AJ, Yap DWT, Teo CB, et al. A Systematic Review and Meta—Analysis of the Effectiveness of Neuroprotectants for Paclitaxel—Induced Peripheral Neuropathy. Front Oncol. 2022； 11： 763229. ［PMID： 35070969］",
+      "pmid": "35070969"
+    }
+  ]
+}

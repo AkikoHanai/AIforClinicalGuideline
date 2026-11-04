@@ -1,0 +1,78 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ2",
+    "category": "薬物療法による治療",
+    "intervention": "ビタミン B12",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ2-ビタミン-B12",
+  "title": "CQ2 薬物療法による治療: ビタミン B12",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "ビタミン B12",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の治療としてのビタミン B12 の投与について「推奨なし」とする。",
+    "direction": "none",
+    "strength": "3",
+    "strength_label": "推奨なし",
+    "certainty": "C",
+    "certainty_label": "弱",
+    "cited_pmids": [
+      "25762165",
+      "22969845",
+      "27003903",
+      "25863665",
+      "27612466"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 0.85,
+      "agreement_n": 11,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "ビタミン B12 は末梢性神経障害に対する保険適用があるため，CIPN に対してしばしば使用されてきた。近年まではビタミン B12 の有効性を示すための無作為化比較試験が存在せず，デュロキセチンや漢方（牛車腎気丸）の有効性を示す試験における対照群として報告された1）2）。ビタミン B12 は両薬剤よりも効果が上回ることは示されなかったものの，従来から使用されるなかで不利益の報告を認めず，後方視的研究・症例報告では有効性を示すものもあった3）4）。2017 年に報告された RCT では，CIPN の予防に対する有効性は示されなかった5）。 以上より，ビタミン B12 の投与によって得られる利益が不利益を上回るかは不確実であり，患者によって最善の対応が異なる可能性がある。そのため効果のエビデンスが乏しいことを十分に理解したうえで，利益と不利益のバランスを個別に評価しながら，CIPN を訴える患者に投与することは否定しない。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1） Hirayama Y, Ishitani K, Sato Y, I et al. Effect of duloxetine in Japanese patients with chemotherapy— induced peripheral neuropathy： a pilot randomized trial. Int J Clin Oncol. 2015； 20： 866—71. ［PMID： 25762165］",
+      "pmid": "25762165"
+    },
+    {
+      "no": 2,
+      "citation": "2） Kaku H, Kumagai S, Onoue H, et al. Objective evaluation of the alleviating effects of Goshajinkigan on peripheral neuropathy induced by paclitaxel／carboplatin therapy： A multicenter collaborative study. Exp Ther Med. 2012； 3： 60—5.［PMID： 22969845］",
+      "pmid": "22969845"
+    },
+    {
+      "no": 3,
+      "citation": "3） Solomon LR. Functional vitamin B12 deficiency in advanced malignancy： implications for the manage- ment of neuropathy and neuropathic pain. Support Care Cancer. 2016； 24： 3489—94.［PMID： 27003903］",
+      "pmid": "27003903"
+    },
+    {
+      "no": 4,
+      "citation": "4） Schloss JM, Colosimo M, Airey C, et al. Chemotherapy—induced peripheral neuropathy （CIPN） and vita- min B12 deficiency. Support Care Cancer. 2015； 23： 1843—50.［PMID： 25863665］",
+      "pmid": "25863665"
+    },
+    {
+      "no": 5,
+      "citation": "5） Schloss JM, Colosimo M, Airey C, et al. A randomised, placebo—controlled trial assessing the efficacy of an oral B group vitamin in preventing the development of chemotherapy—induced peripheral neuropa- thy（CIPN）. Support Care Cancer. 2017； 25： 195—204.［PMID： 27612466］",
+      "pmid": "27612466"
+    }
+  ]
+}

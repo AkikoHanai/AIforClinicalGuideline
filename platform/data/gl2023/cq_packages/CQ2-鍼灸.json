@@ -1,0 +1,66 @@
+{
+  "_source": {
+    "pdf": "src.pdf",
+    "extracted_by": "extract_cipn_guideline.py",
+    "cq": "CQ2",
+    "category": "非薬物療法による治療",
+    "intervention": "鍼灸",
+    "注意": "刊行GL本文からの自動抽出。エビデンス総体・個別研究(studies/results/evidence_bodies)は未入力。学生が構築中のROB2評価シートをmerge_rob2_evidence.py でマージして埋める。",
+    "parse_warnings": []
+  },
+  "cq_id": "CQ2-鍼灸",
+  "title": "CQ2 非薬物療法による治療: 鍼灸",
+  "comparator_kind": "none",
+  "pico": {
+    "P": "",
+    "I": "鍼灸",
+    "C": "",
+    "O": []
+  },
+  "outcomes": [],
+  "evidence_bodies": [],
+  "studies": [],
+  "includes": [],
+  "results": [],
+  "draft": {
+    "_note": "刊行版(2023年版)の推奨をそのまま入れたもの（AI生成ではない）。改訂時はここをPhase1出力(Bedrock)で置き換える",
+    "generated_by": "published_guideline_2023",
+    "recommendation_text": "CIPN 症状の治療としての鍼灸の実施について「推奨なし」とする。",
+    "direction": "none",
+    "strength": "3",
+    "strength_label": "推奨なし",
+    "certainty": "B",
+    "certainty_label": "中",
+    "cited_pmids": [
+      "34441990",
+      "34390283",
+      "32676134"
+    ],
+    "mentioned_outcomes": [],
+    "panel_vote": {
+      "n_panel": 13,
+      "agreement_rate": 1.0,
+      "agreement_n": 13,
+      "agreement_total": 13,
+      "_note": "5択の内訳(誰が何%)は本抽出器では未パース。合意率のみ"
+    }
+  },
+  "narrative": "鍼灸の有効性に関して研究の質が担保された RCT は 3 件報告されている1）～3）。対照群はそれぞれ偽鍼1），偽鍼と通常ケア2），薬剤（ビタミン B1＋ガバペンチン）内服3）であった。 いずれも鍼灸による CIPN 関連症状の軽減や QOL の改善に効果が期待されるものであった。ただし 3 件とも海外（台湾，米国，中国）からの報告であり，使用する鍼の太さや深達度，刺入保持時間についてはわが国の一般的な使用方法とわずかな違いが認められる。また， CIPN の誘発薬は多岐にわたる。 以上より，エビデンスの質や一貫性には問題があり，効果があるという報告もわが国で実施される一般的な方法と異なるため，CIPN の改善効果が得られる施術を提供することは難しいと考えられる。ただし，臨床上，提供可能な鍼により CIPN の症状が改善されることが期待できることも考えられ，利益が不利益を上回るかは不確実であり，患者によって最善の対応が異なる可能性がある。そのため利益と不利益のバランスを個別に評価し，鍼灸を実施することは否定しないと判断し，推奨なしとした。",
+  "references": [
+    {
+      "no": 1,
+      "citation": "1） Huang CC, Ho TJ, Ho HY, et al. Acupuncture Relieved Chemotherapy—Induced Peripheral Neuropathy in Patients with Breast Cancer： A Pilot Randomized Sham—Controlled Trial. J Clin Med. 2021； 10： 3694.［PMID： 34441990］",
+      "pmid": "34441990"
+    },
+    {
+      "no": 2,
+      "citation": "2） Bao T, Baser R, Chen C, et al. Health—Related Quality of Life in Cancer Survivors with Chemotherapy— Induced Peripheral Neuropathy： A Randomized Clinical Trial. Oncologist. 2021； 26： e2070—8.［PMID： 34390283］",
+      "pmid": "34390283"
+    },
+    {
+      "no": 3,
+      "citation": "3） Iravani S, Kazemi Motlagh AH, Emami Razavi SZ, et al. Effectiveness of Acupuncture Treatment on Chemotherapy—Induced Peripheral Neuropathy： A Pilot, Randomized, Assessor—Blinded, Controlled Trial. Pain Res Manag. 2020； 2020： 2504674.［PMID： 32676134］",
+      "pmid": "32676134"
+    }
+  ]
+}
