@@ -4,7 +4,8 @@
   python3 platform/portal/scripts/sync_papers.py --pdf-dir <フォルダ> <メールアドレス>   平らなフォルダのPDFを登録する。ファイル名がPMIDならそのPMIDで、
       そうでなければ1〜2ページ目の本文を2023年版の引用文献(platform/data/gl2023/cq_packages)の題名と照合してPMIDとCQを決める。照合できないPDFは一覧に出す
 PDF の名前は PMID.pdf。既に登録済みで本文抽出済みのものは飛ばす。終わりに、CQ ごとの件数と、PDF が 1 件もない CQ を表示する。"""
-import glob, json, os, re, sys, urllib.request
+import glob, json, logging, os, re, sys, urllib.request
+logging.getLogger("pypdf").setLevel(logging.ERROR)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from admin_user import OUT, token  # noqa: E402
 
@@ -74,9 +75,11 @@ def main_pdf_dir(folder, email):
         for r in json.load(open(f, encoding="utf-8")).get("references", []):
             if r.get("pmid"): refs.setdefault(str(r["pmid"]), {"title": r.get("title", ""), "cqs": set()})["cqs"].add(cqid)
     tok = token(email); done, unmatched = 0, []
-    for f in sorted(glob.glob(os.path.join(folder, "**", "*.pdf"), recursive=True)):
+    seen = set()
+    for f in sorted(set(glob.glob(os.path.join(folder, "**", "*.pdf"), recursive=True))):
         name = os.path.splitext(os.path.basename(f))[0]
-        pmid = name if name.isdigit() else None
+        m = re.search(r"PMID[_\- ]?(\d{6,9})", name, re.I) or re.fullmatch(r"(\d{6,9})", name)
+        pmid = m.group(1) if m else None
         if not pmid:
             try:
                 rd = PdfReader(f); head = norm(" ".join((rd.pages[i].extract_text() or "") for i in range(min(2, len(rd.pages)))))
@@ -85,6 +88,8 @@ def main_pdf_dir(folder, email):
             hits = [p for p, r in refs.items() if r["title"] and len(norm(r["title"])) > 25 and norm(r["title"])[:80] in head]
             pmid = hits[0] if len(hits) == 1 else None
         cqs = sorted(refs.get(pmid, {}).get("cqs", [])) if pmid else []
+        if pmid and pmid in seen: continue  # 同じPMIDのPDFが複数あれば最初の1つだけ
+        if pmid: seen.add(pmid)
         if not pmid or not cqs:
             unmatched.append(os.path.basename(f) + (f" (PMID {pmid}: 2023年版の引用文献にない。新規論文は <CQフォルダ>/PMID.pdf に置く)" if pmid else " (題名の照合なし)")); continue
         data = open(f, "rb").read()

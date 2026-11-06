@@ -319,7 +319,11 @@ def cq(method, parts, body, user):
             c = get("CQ", parts[1])
             if not c: return resp(404, {"error": "ありません"})
             st = stage_auto(c); return resp(200, {**c, "stages": st, "progress": progress(st)})
-        return resp(200, [{**c, "stages": stage_auto(c), "progress": progress(stage_auto(c))} for c in sorted(query("CQ"), key=lambda c: c["id"])])
+        out = []
+        for c in sorted(query("CQ"), key=lambda c: c["id"]):
+            c.setdefault("approved", "統括委員長承認済み(企画書 Ver1 2026-06-17)"); c.pop("stages", None); st = stage_auto(c)
+            out.append({**c, "stages": st, "progress": progress(st)})
+        return resp(200, out)
     if method == "PUT" and len(parts) > 1:
         c = get("CQ", parts[1])
         if not c: return resp(404, {"error": "ありません"})

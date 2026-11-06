@@ -2,7 +2,8 @@
   python3 platform/portal/scripts/check_papers.py <PDFのフォルダ>
 照合: ファイル名が PMID ならその PMID。そうでなければ 1〜2 ページ目の本文を引用文献の題名と照合する(pypdf)。
 出力: CQ ごとの「必要 / あり / 不足(PMID・題名)」、照合できなかった PDF(新規論文または題名の照合失敗)、照合結果の CSV。"""
-import csv, glob, json, os, re, sys, unicodedata
+import csv, glob, json, logging, os, re, sys, unicodedata
+logging.getLogger("pypdf").setLevel(logging.ERROR)  # フォントの警告を出さない
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -23,10 +24,12 @@ def main(folder):
         for r in json.load(open(f, encoding="utf-8")).get("references", []):
             if r.get("pmid"):
                 refs.setdefault(str(r["pmid"]), {"title": r.get("title", ""), "cqs": set()})["cqs"].add(cqid); by_cq.setdefault(cqid, set()).add(str(r["pmid"]))
-    pdfs = sorted(glob.glob(os.path.join(folder, "**", "*.pdf"), recursive=True))
+    pdfs = sorted(set(glob.glob(os.path.join(folder, "**", "*.pdf"), recursive=True)))
     found, unmatched, rows = {}, [], []
     for f in pdfs:
-        name = os.path.splitext(os.path.basename(f))[0]; pmid = name if name.isdigit() else None; how = "ファイル名"
+        name = os.path.splitext(os.path.basename(f))[0]
+        m = re.search(r"PMID[_\- ]?(\d{6,9})", name, re.I) or re.fullmatch(r"(\d{6,9})", name)  # 例: 01_PMID23733756_2013_Hershman.pdf、23733756.pdf
+        pmid = m.group(1) if m else None; how = "ファイル名のPMID"
         if not pmid:
             try:
                 rd = PdfReader(f); head = norm(" ".join((rd.pages[i].extract_text() or "") for i in range(min(2, len(rd.pages)))))
