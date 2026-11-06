@@ -24,7 +24,7 @@ def main(folder):
         for r in json.load(open(f, encoding="utf-8")).get("references", []):
             if r.get("pmid"):
                 refs.setdefault(str(r["pmid"]), {"title": r.get("title", ""), "cqs": set()})["cqs"].add(cqid); by_cq.setdefault(cqid, set()).add(str(r["pmid"]))
-    pdfs = sorted(set(glob.glob(os.path.join(folder, "**", "*.pdf"), recursive=True)))
+    pdfs = sorted(f for f in set(glob.glob(os.path.join(folder, "**", "*.pdf"), recursive=True)) if not any(part.startswith("_") for part in os.path.relpath(f, folder).split(os.sep)[:-1]))  # _work などの作業フォルダは除く
     found, unmatched, rows = {}, [], []
     for f in pdfs:
         name = os.path.splitext(os.path.basename(f))[0]
@@ -49,7 +49,7 @@ def main(folder):
         print(f"{cqid} | {len(need)} | {len(have)} | {len(miss)}")
         for p in sorted(miss): print(f"    不足 PMID {p}: {refs[p]['title'][:90]}")
     dup = {p: fs for p, fs in found.items() if len(fs) > 1}
-    print(f"\n不足の合計(CQ×論文): {total_missing} / 重複して入っている論文: {len(dup)}")
+    print(f"\n不足の合計(CQ×論文): {total_missing} / 複数のCQフォルダに入っている論文(CQが複数の文献の複製): {len(dup)}")
     for p, fs in dup.items(): print(f"    PMID {p}: {', '.join(fs)}")
     if unmatched:
         print(f"\n照合できなかった PDF({len(unmatched)} 件。新規論文は <CQフォルダ>/PMID.pdf にする):")

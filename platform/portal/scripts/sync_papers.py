@@ -76,7 +76,7 @@ def main_pdf_dir(folder, email):
             if r.get("pmid"): refs.setdefault(str(r["pmid"]), {"title": r.get("title", ""), "cqs": set()})["cqs"].add(cqid)
     tok = token(email); done, unmatched = 0, []
     seen = set()
-    for f in sorted(set(glob.glob(os.path.join(folder, "**", "*.pdf"), recursive=True))):
+    for f in sorted(f for f in set(glob.glob(os.path.join(folder, "**", "*.pdf"), recursive=True)) if not any(part.startswith("_") for part in os.path.relpath(f, folder).split(os.sep)[:-1])):  # _work などは除く
         name = os.path.splitext(os.path.basename(f))[0]
         m = re.search(r"PMID[_\- ]?(\d{6,9})", name, re.I) or re.fullmatch(r"(\d{6,9})", name)
         pmid = m.group(1) if m else None
