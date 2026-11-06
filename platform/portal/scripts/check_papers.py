@@ -58,6 +58,27 @@ def main(folder):
     with open(out, "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh); w.writerow(["ファイル", "PMID", "CQ", "照合方法"]); w.writerows(rows)
     print(f"\n照合結果を保存: {out}")
+    # フォルダ(CQ-介入)ごとの過不足。フォルダ名は cq_packages の名前と同じ(CQ1-冷却・圧迫 は 冷却+圧迫、CQ1-鍼灸-3-章 は 鍼灸)
+    pk = {}
+    for f in glob.glob(os.path.join(ROOT, "data", "gl2023", "cq_packages", "CQ*.json")):
+        stem = os.path.splitext(os.path.basename(f))[0]
+        pk[stem] = {str(r["pmid"]) for r in json.load(open(f, encoding="utf-8")).get("references", []) if r.get("pmid")}
+    subs = [d for d in sorted(os.listdir(folder)) if os.path.isdir(os.path.join(folder, d)) and d.startswith("CQ")]
+    if subs:
+        print("\nフォルダ(CQ-介入)ごとの過不足:  フォルダ | 2023年版の引用 | あり | 不足 | 2023年版にないPDF")
+        for d in subs:
+            keys = ["CQ1-冷却", "CQ1-圧迫"] if d == "CQ1-冷却・圧迫" else [re.sub(r"-3-章$", "", d)]
+            need = set().union(*(pk.get(k, set()) for k in keys))
+            inpdf = set()
+            for f in glob.glob(os.path.join(folder, d, "**", "*.pdf"), recursive=True):
+                m = re.search(r"PMID[_\- ]?(\d{6,9})", os.path.basename(f), re.I); inpdf.add(m.group(1) if m else os.path.basename(f))
+            miss = sorted(need - inpdf); extra = sorted(inpdf - need)
+            print(f"{d} | {len(need)} | {len(need & inpdf)} | {len(miss)} | {len(extra)}")
+            for q in miss: print(f"    不足 PMID {q}: {refs.get(q, {}).get('title', '')[:90]}")
+            for q in extra: print(f"    2023年版にない: {q}" + (f"(2023年版では {'・'.join(sorted(refs[q]['cqs']))} の引用)" if q in refs else ""))
+    for n in ("未取得文献.md", "取得結果.md"):
+        fp = os.path.join(folder, n)
+        if os.path.exists(fp): print(f"\n==== {n} ====\n" + open(fp, encoding="utf-8", errors="ignore").read()[:4000])
 
 
 if __name__ == "__main__":
