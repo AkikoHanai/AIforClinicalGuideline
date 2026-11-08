@@ -41,8 +41,7 @@ def main(email, use_docx=False):
         paras = paragraphs(f)
         items.append({"key": key, "title": title, "paragraphs": [{"id": f"GL2023-総論{key.replace('_', '-')}-p{i + 1:03d}", "text": p} for i, p in enumerate(paras)], "filename": name})
         print(f"総論{key}: {len(paras)}段落")
-    req = urllib.request.Request(OUT["ApiUrl"] + "/gl2023/soron", method="POST", headers={"Authorization": "Bearer " + tok, "Content-Type": "application/json"}, data=json.dumps({"items": items}, ensure_ascii=False).encode())
-    r = json.loads(urllib.request.urlopen(req).read().decode()); print(r)
+    r = tok.call("POST", "/gl2023/soron", {"items": items}); print(r)
     for it, url in zip(items, r.get("upload_urls", [])):
         if url and it.get("filename"):
             with open(os.path.join(SRC, it["filename"]), "rb") as fh:

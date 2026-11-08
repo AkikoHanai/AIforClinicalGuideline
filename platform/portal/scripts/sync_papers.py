@@ -15,12 +15,7 @@ INBOX = os.path.join(JASCC_GL, "論文受け取り")
 
 
 def call(path, tok, method="GET", data=None):
-    req = urllib.request.Request(OUT["ApiUrl"] + path, method=method, headers={"Authorization": "Bearer " + tok, "Content-Type": "application/json"},
-                                 data=json.dumps(data, ensure_ascii=False).encode() if data is not None else None)
-    try:
-        return json.loads(urllib.request.urlopen(req).read().decode())
-    except urllib.error.HTTPError as e:
-        return {"error": f"{e.code} {e.read().decode()[:200]}"}
+    return tok.call(method, path, data)
 
 
 def main(email):
