@@ -68,7 +68,7 @@ def paragraphs(doc_id: str, pages):
 def quality(pages, paras):
     """抽出の状態。画像だけの PDF(文字が無い)と、節の見出しを判定できない PDF を区別する"""
     chars = sum(len(t) for _, t in pages)
-    if not paras or chars < 200 * max(1, len(pages)) // 4:
+    if not paras or chars < 600 * max(1, len(pages)):  # 1ページあたり 600 字未満(通常の論文は 3000 字前後)→ 文字層が無い、または壊れている
         return "画像PDF(本文を抽出できない。OCR が必要)"
     if not any(p["section"] in ("methods", "results") for p in paras):
         return "本文抽出済(節の見出しを判定できない。全段落を参照)"

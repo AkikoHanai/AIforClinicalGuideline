@@ -597,7 +597,9 @@ def gl2023(method, parts, body, user):
         n = 0
         for cqid, m in merged.items():
             put("GL2023", cqid, m); n += 1
-        audit(user, "2023年版の記述の取り込み", "全CQ", f"{n}件"); return resp(200, {"imported": n})
+        stale = [g["sk"] for g in query("GL2023") if g["sk"] not in merged and g["sk"] not in set(dir2id.values())]  # 企画書の項目IDでない古い記録(以前の取り込み)を消す
+        for sk in stale: table().delete_item(Key={"pk": "GL2023", "sk": sk})
+        audit(user, "2023年版の記述の取り込み", "全CQ", f"{n}件" + (f"、古い記録 {len(stale)} 件を削除" if stale else "")); return resp(200, {"imported": n, "removed": stale})
     return resp(405, {"error": "方法が不正です"})
 
 
