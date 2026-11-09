@@ -219,6 +219,7 @@ def test_extract_inline_headings_chunks_and_quality():
     assert all(len(p["text"]) <= X.CHUNK for p in paras) and sum(len(p["text"]) for p in paras) > 2500  # 切り捨てない
     assert X.quality(pages, paras) == "本文抽出済"
     assert X.quality([(1, ""), (2, "")], []).startswith("画像PDF")
+    assert X.quality([(1, "x" * 3000), (2, ""), (3, ""), (4, "")], [{"section": "methods", "text": "x"}]).startswith("画像PDF")  # 大半のページに文字層が無い
     assert X.quality([(1, "Some text. " * 100)], [{"section": "other", "text": "x"}]).startswith("本文抽出済(節の見出し")
 
 
