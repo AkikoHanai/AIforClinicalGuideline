@@ -209,3 +209,22 @@ def test_audit_append_only_and_unauthenticated(env):
 def test_extract_relevant_prefers_methods_results():
     paras = X.paragraphs("1", [(1, "Abstract\nShort abstract text that is long enough to be a paragraph here.\nMethods\nWe randomized patients using sealed envelopes and a random table.\nResults\nNeuropathy occurred in ten of fifty patients in each of the two arms.\nDiscussion\nThis discussion paragraph should not be sent to the model by default.")])
     sel = X.relevant(paras); assert {p["section"] for p in sel} == {"methods", "results"}
+
+
+def test_extract_inline_headings_chunks_and_quality():
+    pages = [(1, "METHODS Patients with breast cancer receiving paclitaxel were randomized to cooling or control. " + "The primary outcome was CTCAE grade 2 or higher sensory neuropathy. " * 40),
+             (2, "Results: Of 120 patients, 60 received cooling. Grade 2 or higher neuropathy occurred in 20% versus 50% of controls at 12 weeks.")]
+    paras = X.paragraphs("1", pages)
+    assert any(p["section"] == "methods" for p in paras) and any(p["section"] == "results" for p in paras)
+    assert all(len(p["text"]) <= X.CHUNK for p in paras) and sum(len(p["text"]) for p in paras) > 2500  # 切り捨てない
+    assert X.quality(pages, paras) == "本文抽出済"
+    assert X.quality([(1, ""), (2, "")], []).startswith("画像PDF")
+    assert X.quality([(1, "Some text. " * 100)], [{"section": "other", "text": "x"}]).startswith("本文抽出済(節の見出し")
+
+
+def test_put_ocr_text(env):
+    H.handler(ev("POST", "/admin/seed", {}, **CHAIR))
+    H.handler(ev("POST", "/papers/N1/99999999/upload-url", {"title": "t"}, **CHAIR))
+    r = H.handler(ev("PUT", "/papers/N1/99999999/text", {"pages": [{"page": 1, "text": "Methods\nPatients were randomized to cooling. " * 5 + "\n\nResults\nNeuropathy was less frequent in the cooling group than in controls."}], "source": "OCR(Apple Vision)"}, **CHAIR))
+    j = json.loads(r["body"]); assert r["statusCode"] == 200 and j["sections"]["methods"] == 1 and j["sections"]["results"] == 1 and j["status"] == "本文抽出済(OCR(Apple Vision))"
+    t = json.loads(H.handler(ev("GET", "/papers/N1/99999999/text", **CHAIR))["body"]); assert t["source"] == "OCR(Apple Vision)"

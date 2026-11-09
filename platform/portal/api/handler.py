@@ -168,7 +168,7 @@ def stage_auto(cq):
     sr8 = [s for s in query("SR8", f"{cqid}#") if s.get("certainty")]
     etd = get("ETD", cqid)
     return {"CQ確定": "承認済み(統括委員長)",
-            "論文登録": f"{len(papers)}件(本文抽出済 {sum(1 for p in papers if p.get('status') == '本文抽出済')}件)" if papers else "記録なし",
+            "論文登録": f"{len(papers)}件(本文抽出済 {sum(1 for p in papers if str(p.get('status', '')).startswith('本文抽出済'))}件)" if papers else "記録なし",
             "様式4-5": (f"確定 {len(fixed)}/{need}(提出 {submitted})" if need else ("アウトカム未登録" if papers else "記録なし")),
             "様式SR-8": (f"確実性 記入 {len(sr8)}/{len(outs)}" if outs else "記録なし"),
             "EtD": (etd.get("status", "下書き") if etd else "記録なし")}
@@ -341,6 +341,18 @@ def paper_key(cqid, pmid):
     return f"{cqid}#{pmid}"
 
 
+def save_text(user, cqid, pmid, p, pages, source):
+    from extract_text import paragraphs, quality
+    paras = paragraphs(pmid, pages); status = quality(pages, paras)
+    if source != "pypdf": status = status.replace("本文抽出済", f"本文抽出済({source})")
+    text_key = f"text/{cqid}/{pmid}.json"
+    s3().put_object(Bucket=BUCKET, Key=text_key, Body=json.dumps({"pmid": pmid, "pages": len(pages), "source": source, "paragraphs": paras}, ensure_ascii=False).encode(), ContentType="application/json")
+    secs = {s: sum(1 for x in paras if x["section"] == s) for s in ("abstract", "methods", "results", "discussion", "other")}
+    p.update({"text_key": text_key, "status": status, "pages": len(pages), "n_paragraphs": len(paras), "sections": secs, "text_source": source}); put("PAPER", p["sk"], p)
+    audit(user, "本文の抽出", f"{cqid} / PMID {pmid}", f"{source}: {len(pages)}ページ、{len(paras)}段落(Method {secs['methods']}、Result {secs['results']})。{status}")
+    return resp(200, {"pages": len(pages), "paragraphs": len(paras), "sections": secs, "status": status})
+
+
 def papers(method, parts, body, user):
     # GET /papers/<cq>                      一覧
     # POST /papers/<cq>/<pmid>/upload-url   PDF置き場(署名付きURL)。登録も行う
@@ -373,15 +385,15 @@ def papers(method, parts, body, user):
         return resp(200, {"url": url, "key": key})
     if method == "POST" and sub == "extract":
         if not p: return resp(404, {"error": "未登録です"})
-        from extract_text import pdf_pages, paragraphs
+        from extract_text import pdf_pages
         data = s3().get_object(Bucket=BUCKET, Key=p["s3_key"])["Body"].read()
-        pages = pdf_pages(data); paras = paragraphs(pmid, pages)
-        text_key = f"text/{cqid}/{pmid}.json"
-        s3().put_object(Bucket=BUCKET, Key=text_key, Body=json.dumps({"pmid": pmid, "pages": len(pages), "paragraphs": paras}, ensure_ascii=False).encode(), ContentType="application/json")
-        secs = {s: sum(1 for x in paras if x["section"] == s) for s in ("abstract", "methods", "results", "discussion", "other")}
-        p.update({"text_key": text_key, "status": "本文抽出済", "pages": len(pages), "n_paragraphs": len(paras), "sections": secs}); put("PAPER", p["sk"], p)
-        audit(user, "本文の抽出", f"{cqid} / PMID {pmid}", f"{len(pages)}ページ、{len(paras)}段落(Method {secs['methods']}、Result {secs['results']})")
-        return resp(200, {"pages": len(pages), "paragraphs": len(paras), "sections": secs})
+        return save_text(user, cqid, pmid, p, pdf_pages(data), "pypdf")
+    if method == "PUT" and sub == "text":
+        # PUT /papers/<cq>/<pmid>/text  画像PDFを Mac で OCR した本文(pages: [{page, text}])を保存する
+        if not p: return resp(404, {"error": "未登録です"})
+        pages = [(int(x.get("page", i + 1)), str(x.get("text", ""))) for i, x in enumerate(body.get("pages") or []) if isinstance(x, dict)]
+        if not pages: return resp(400, {"error": "pages が必要です"})
+        return save_text(user, cqid, pmid, p, pages, str(body.get("source") or "OCR"))
     if method == "PUT" and not sub:
         if not p: return resp(404, {"error": "未登録です"})
         if "title" in body: p["title"] = str(body["title"])
@@ -443,7 +455,7 @@ def f45(method, parts, body, user):
         put("F45", f45_key(cqid, pmid, outcome, "確定"), rec); audit(user, "様式4-5の確定(照合)", f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); return resp(200, rec)
     if method == "POST" and sub == "draft":
         if not (is_assignee(user, c) or lead): raise Forbidden("この CQ の担当委員に限ります")
-        if p.get("status") != "本文抽出済": return resp(409, {"error": "本文が未抽出です。PDFを登録し、本文を抽出してください(抄録だけでは作りません)"})
+        if not str(p.get("status", "")).startswith("本文抽出済"): return resp(409, {"error": "本文が未抽出です。PDFを登録し、本文を抽出してください(抄録だけでは作りません。画像PDFは OCR で本文を入れます)"})
         put("F45", f45_key(cqid, pmid, outcome, "AI"), {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "作成中", "requested_by": user["name"]})
         ev = {"task": "draft45", "cq": cqid, "pmid": pmid, "outcome": outcome, "user": user}
         if FUNCTION:
@@ -479,6 +491,7 @@ def run_draft45(ev):
         import draft45
         text = json.loads(s3().get_object(Bucket=BUCKET, Key=p["text_key"])["Body"].read())
         paras = relevant(text["paragraphs"])
+        if not paras: return resp(400, {"error": "本文の段落がありません(画像PDF)。OCR で本文を入れてから下書きを作ります"})
         out = draft45.draft(c["title"], c["pico"].get("P"), c["pico"].get("I") or c["title"], outcome, paras)
         rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "下書き", "items": out["items"], "study": out.get("study") or {}, "design": out.get("design"),
                "counts": out.get("counts") or {}, "effect": out.get("effect") or {}, "model": draft45.MODEL_ID, "paragraphs_used": [x["id"] for x in paras], "at": now()}

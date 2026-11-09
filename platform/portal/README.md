@@ -54,3 +54,12 @@ Bedrock のモデルは環境変数 `BEDROCK_MODEL_ID`(省略時 `anthropic.clau
 pip install moto pytest pypdf
 python3 -m pytest platform/portal/tests -q
 ```
+
+## 本文を取り出せない PDF(画像だけの PDF)
+`sync_papers.py` は、文字を取り出せない PDF を「画像PDF(本文を抽出できない。OCR が必要)」として登録し、終わりに一覧を出す。Mac の文字認識(Apple Vision)で本文を入れる:
+```bash
+pip install pypdfium2 ocrmac
+python3 platform/portal/scripts/sync_papers.py --pdf-dir <フォルダ> <メールアドレス>   # もう一度実行すると、該当 PDF だけ OCR して本文を入れる
+```
+OCR の本文は状態「本文抽出済(OCR(Apple Vision))」で区別する。様式4-5 の画面では PDF を並べて表示するので、引用箇所は PDF で確認する。
+Method・Result の見出しを判定できない PDF は「本文抽出済(節の見出しを判定できない。全段落を参照)」とし、画面では全段落を表示する。

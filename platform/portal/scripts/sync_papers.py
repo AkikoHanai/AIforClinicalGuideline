@@ -35,7 +35,7 @@ def main(email):
             pmid = re.sub(r"\D", "", os.path.splitext(os.path.basename(f))[0])
             if not pmid:
                 print(f"  飛ばす(PMID でない名前): {f}"); continue
-            if have.get(pmid, {}).get("status") == "本文抽出済":
+            if str(have.get(pmid, {}).get("status", "")).startswith("本文抽出済"):
                 done += 1; continue
             r = call(f"/papers/{cqid}/{pmid}/upload-url", tok, "POST", {"title": ""})
             if "error" in r:
@@ -58,6 +58,21 @@ def norm(s):
     return re.sub(r"[^a-z0-9]", "", unicodedata.normalize("NFKC", s or "").lower())
 
 
+def ocr_pages(path):
+    """画像だけの PDF を Mac の文字認識(Apple Vision、ocrmac)で本文にする。pypdfium2 でページを画像にする。
+    必要: pip install pypdfium2 ocrmac  (macOS のみ)"""
+    import pypdfium2 as pdfium
+    from ocrmac import ocrmac
+    pdf = pdfium.PdfDocument(path); pages = []
+    for i in range(len(pdf)):
+        img = pdf[i].render(scale=2.5).to_pil()
+        ann = ocrmac.OCR(img, language_preference=["en-US", "ja-JP"], recognition_level="accurate").recognize()
+        # ann: [text, 確度, [x, y, w, h]](0〜1。y は下が 0)。上から下、左から右に並べる
+        lines = sorted(ann, key=lambda a: (-round(a[2][1] + a[2][3], 2), a[2][0]))
+        pages.append({"page": i + 1, "text": "\n".join(a[0] for a in lines)})
+    return pages
+
+
 def main_pdf_dir(folder, email):
     """平らなフォルダの PDF を、PMID 名または題名の照合で CQ に振り分けて登録する"""
     from pypdf import PdfReader
@@ -69,7 +84,7 @@ def main_pdf_dir(folder, email):
         if not cqid: continue
         for r in json.load(open(f, encoding="utf-8")).get("references", []):
             if r.get("pmid"): refs.setdefault(str(r["pmid"]), {"title": r.get("title", ""), "cqs": set()})["cqs"].add(cqid)
-    tok = token(email); done, unmatched = 0, []
+    tok = token(email); done, unmatched, need_ocr = 0, [], []
     seen = set()
     for f in sorted(f for f in set(glob.glob(os.path.join(folder, "**", "*.pdf"), recursive=True)) if not any(part.startswith("_") for part in os.path.relpath(f, folder).split(os.sep)[:-1])):  # _work などは除く
         name = os.path.splitext(os.path.basename(f))[0]
@@ -93,8 +108,18 @@ def main_pdf_dir(folder, email):
             if "error" in r: print(f"  {cqid} {pmid}: {r['error']}"); continue
             urllib.request.urlopen(urllib.request.Request(r["url"], method="PUT", data=data, headers={"Content-Type": "application/pdf"}))
             x = call(f"/papers/{cqid}/{pmid}/extract", tok, "POST", {})
-            print(f"  {cqid} {pmid}: {os.path.basename(f)} → " + (f"{x['pages']}頁 {x['paragraphs']}段落(Method {x['sections']['methods']} / Result {x['sections']['results']})" if "error" not in x else x["error"])); done += 1
+            if "error" not in x and x.get("status", "").startswith("画像PDF"):
+                try:
+                    pages = ocr_pages(f)
+                    x = call(f"/papers/{cqid}/{pmid}/text", tok, "PUT", {"pages": pages, "source": "OCR(Apple Vision)"})
+                except ImportError:
+                    need_ocr.append(os.path.basename(f))
+                except Exception as e:
+                    need_ocr.append(f"{os.path.basename(f)} (OCR 失敗: {e})")
+            print(f"  {cqid} {pmid}: {os.path.basename(f)} → " + (f"{x['pages']}頁 {x['paragraphs']}段落(Method {x['sections']['methods']} / Result {x['sections']['results']}) {x.get('status', '')}" if "error" not in x else x["error"])); done += 1
     print(f"\n登録 {done} 件(CQ×論文)")
+    if need_ocr:
+        print("文字を取り出せない PDF(画像)。Mac の文字認識で本文を入れる: pip install pypdfium2 ocrmac のあと、同じ命令をもう一度実行\n  " + "\n  ".join(sorted(set(need_ocr))))
     if unmatched:
         print("照合できなかった PDF:\n  " + "\n  ".join(unmatched))
 

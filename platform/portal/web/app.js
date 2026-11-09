@@ -53,7 +53,9 @@
   function paraPanel(text, highlight) {
     const hl = new Set(highlight || []);
     const secJa = { abstract: "抄録", methods: "Method", results: "Result", discussion: "Discussion", other: "その他" };
-    return `<div class="paras"><div class="row"><label><input type="checkbox" id="onlyMR" checked> Method・Result だけ表示</label><input id="paraFind" placeholder="本文を検索" size="20"></div>
+    const hasMR = text.paragraphs.some((p) => p.section === "methods" || p.section === "results");
+    const note = !text.paragraphs.length ? '<p class="muted">文字を取り出せない PDF(画像)です。右の PDF を参照してください。OCR で本文を入れると段落が出ます。</p>' : (!hasMR ? '<p class="muted">Method・Result の見出しを判定できないため、全段落を表示します。</p>' : "");
+    return `<div class="paras">${note}<div class="row"><label><input type="checkbox" id="onlyMR" ${hasMR ? "checked" : ""}> Method・Result だけ表示</label><input id="paraFind" placeholder="本文を検索" size="20"> ${text.source && text.source !== "pypdf" ? `<span class="tag">${esc(text.source)}</span>` : ""}</div>
       ${text.paragraphs.map((p) => `<div class="para ${hl.has(p.id) ? "hl" : ""}" data-sec="${p.section}" data-id="${esc(p.id)}"><span class="pid">${esc(p.id)}</span> <span class="tag">${secJa[p.section] || p.section} p.${p.page}</span><div>${esc(p.text)}</div></div>`).join("")}</div>`;
   }
   function wireParas(root) {
@@ -107,7 +109,7 @@
         <p class="small">二次スクリーニングで採用した論文を PMID で登録し、PDF を置く。本文を抽出すると、Method・Result の段落に ID が付き、様式4-5 の根拠として引用できる。PDF は委員だけが閲覧できる。</p>
         ${ed ? `<div class="card"><div class="row"><input id="pmid" placeholder="PMID" size="10"><input id="ptitle" placeholder="題名(任意)" size="40"><input type="file" id="pdf" accept="application/pdf"><button id="regBtn" class="primary">登録してPDFを置く</button></div></div>` : ""}
         <table style="margin-top:12px"><tr><th>PMID</th><th>題名</th><th>状態</th><th>本文</th><th>がん腫</th><th>化学療法(分類 / 薬剤)</th><th>デザイン</th><th></th></tr>
-        ${list.map((p) => `<tr data-pmid="${esc(p.pmid)}"><td><a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.pmid)}/" target="_blank" rel="noopener">${esc(p.pmid)}</a></td><td>${esc(p.title)}</td><td>${tag(p.status, p.status === "本文抽出済" ? "ok" : "warn")}</td>
+        ${list.map((p) => `<tr data-pmid="${esc(p.pmid)}"><td><a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.pmid)}/" target="_blank" rel="noopener">${esc(p.pmid)}</a></td><td>${esc(p.title)}</td><td>${tag(p.status, p.status.startsWith("本文抽出済") ? "ok" : "warn")}</td>
           <td class="small">${p.n_paragraphs ? `${p.pages}頁 ${p.n_paragraphs}段落(M ${p.sections?.methods ?? 0} / R ${p.sections?.results ?? 0})` : "—"}</td>
           <td>${esc(p.chars?.cancer || "")}</td><td>${esc(p.chars?.chemo_class || "")} ${p.chars?.chemo_drugs ? "/ " + esc(p.chars.chemo_drugs) : ""}</td><td>${esc(p.chars?.design || "")}</td>
           <td><button data-act="pdf">PDF</button> ${ed ? `<button data-act="extract">本文抽出</button> <button data-act="chars">研究特性</button>` : ""} <a href="#f45?cq=${esc(cqid)}&pmid=${esc(p.pmid)}">様式4-5</a></td></tr>`).join("") || "<tr><td colspan=8 class='muted'>登録なし</td></tr>"}</table>
