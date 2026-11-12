@@ -156,22 +156,38 @@ def seed(user):
 
 
 # ---------- 集計 ----------
+def cq_records(cq):
+    """1つの CQ について記録を読み、件数にする。推測はしない。
+    戻り値: (counts, units)。units: (PMID, アウトカム) → {"submitted": [提出した評価者], "final": 確定の記録の有無}"""
+    cqid = cq["id"]; outs = cq.get("outcomes") or []
+    papers = query("PAPER", f"{cqid}#")
+    units = {}
+    for r in query("F45", f"{cqid}#"):
+        base, reviewer = r["sk"].rsplit("#", 1); _, pmid, outcome = base.split("#", 2)
+        u = units.setdefault((pmid, outcome), {"submitted": [], "final": False})
+        if reviewer == "確定": u["final"] = True
+        elif reviewer != "AI" and r.get("submitted"): u["submitted"].append(reviewer)
+    wait = sorted(({"pmid": pm, "outcome": o, "submitted": sorted(u["submitted"])} for (pm, o), u in units.items() if len(u["submitted"]) >= 2 and not u["final"]), key=lambda w: (w["pmid"], w["outcome"]))
+    etd = get("ETD", cqid)
+    counts = {"outcomes": len(outs), "papers": len(papers), "extracted": sum(1 for p in papers if str(p.get("status", "")).startswith("本文抽出済")),
+              "f45_need": len(papers) * len(outs), "f45_submitted": sum(len(u["submitted"]) for u in units.values()), "f45_fixed": sum(1 for u in units.values() if u["final"]),
+              "f45_wait": wait, "sr8": sum(1 for r in query("SR8", f"{cqid}#") if r.get("certainty")),
+              "etd_status": (etd.get("status", "下書き") if etd else ""), "etd_agreement": ((etd.get("vote") or {}).get("agreement") if etd else None)}
+    return counts, units, papers
+
+
+def stage_text(n):
+    """件数(cq_records)を、段階ごとの文字にする。"""
+    return {"CQ確定": "承認済み(統括委員長)",
+            "論文登録": f"{n['papers']}件(本文抽出済 {n['extracted']}件)" if n["papers"] else "記録なし",
+            "様式4-5": (f"確定 {n['f45_fixed']}/{n['f45_need']}(提出 {n['f45_submitted']})" if n["f45_need"] else ("アウトカム未登録" if n["papers"] else "記録なし")),
+            "様式SR-8": (f"確実性 記入 {n['sr8']}/{n['outcomes']}" if n["outcomes"] else "記録なし"),
+            "EtD": n["etd_status"] or "記録なし"}
+
+
 def stage_auto(cq):
     """記録された件数から、各段階の状態を文字で返す。推測はしない。"""
-    cqid = cq["id"]
-    papers = query("PAPER", f"{cqid}#")
-    outs = cq.get("outcomes") or []
-    f45 = query("F45", f"{cqid}#")
-    fixed = {s["sk"].rsplit("#", 1)[0] for s in f45 if s["sk"].endswith("#確定")}
-    submitted = sum(1 for s in f45 if s.get("submitted"))
-    need = len(papers) * len(outs)
-    sr8 = [s for s in query("SR8", f"{cqid}#") if s.get("certainty")]
-    etd = get("ETD", cqid)
-    return {"CQ確定": "承認済み(統括委員長)",
-            "論文登録": f"{len(papers)}件(本文抽出済 {sum(1 for p in papers if str(p.get('status', '')).startswith('本文抽出済'))}件)" if papers else "記録なし",
-            "様式4-5": (f"確定 {len(fixed)}/{need}(提出 {submitted})" if need else ("アウトカム未登録" if papers else "記録なし")),
-            "様式SR-8": (f"確実性 記入 {len(sr8)}/{len(outs)}" if outs else "記録なし"),
-            "EtD": (etd.get("status", "下書き") if etd else "記録なし")}
+    return stage_text(cq_records(cq)[0])
 
 
 def progress(st):
@@ -181,22 +197,35 @@ def progress(st):
 
 
 def dashboard(user):
-    cqs = sorted(query("CQ"), key=lambda c: c["id"])
-    soron = sorted(query("SORON"), key=lambda s: s["key"])
-    out_cq = []
-    for c in cqs:
-        st = stage_auto(c); out_cq.append({**c, "stages": st, "progress": progress(st)})
-    my_cq = [c for c in out_cq if user["name"] and any(user["name"].startswith(a) for a in c.get("assignees", []))]
-    my_soron = [s for s in soron if user["name"] and any(user["name"].startswith(a) for a in re.split("[・]", s.get("author", "")) if a)]
-    todo = []
-    for c in my_cq:
-        for p in query("PAPER", f"{c['id']}#"):
-            for o in c.get("outcomes") or []:
-                mine = get("F45", f"{c['id']}#{p['pmid']}#{o}#{user['name']}")
-                if not (mine and mine.get("submitted")):
-                    todo.append({"cq": c["id"], "pmid": p["pmid"], "title": p.get("title", ""), "outcome": o})
-    return {"user": user, "phase": (get("PHASE", "current") or {}).get("phase", ""), "cq": out_cq, "my_cq": [{"id": c["id"], "title": c["title"], "progress": c["progress"]} for c in my_cq],
-            "my_f45_todo": todo[:50], "my_f45_todo_count": len(todo),
+    """進捗ボード。記録された件数、自分の作業、承認(確定)の記録がない件を返す。SR の流れと総説の流れは、役割で分ける。"""
+    g = set(user["groups"]); name = user["name"]; lead = bool(g & ROLE_LEAD)
+    sr_view = bool(g & (ROLE_LEAD | {"SR委員", "作成グループ"})); soron_view = bool(g & (ROLE_ADMIN | {"総説執筆者"}))
+    out_cq, todo, approvals = [], [], []
+    for c in (sorted(query("CQ"), key=lambda c: c["id"]) if sr_view else []):
+        n, units, papers = cq_records(c); st = stage_text(n); mine = is_assignee(user, c)
+        wait = n.pop("f45_wait"); n["f45_wait"] = len(wait)
+        out_cq.append({**c, "stages": st, "progress": progress(st), "counts": n, "mine": mine})
+        if mine:
+            for p in papers:
+                for o in c.get("outcomes") or []:
+                    if name not in units.get((p["pmid"], o), {}).get("submitted", []):
+                        todo.append({"cq": c["id"], "pmid": p["pmid"], "title": p.get("title", ""), "outcome": o})
+        if lead or mine:
+            for w in wait:
+                approvals.append({"kind": "様式4-5の照合・確定", "target": f"{c['id']} PMID {w['pmid']} / {w['outcome']}", "record": "2名が提出済(" + "・".join(w["submitted"]) + ")。確定の記録なし",
+                                  "approver": "評価した2名、またはSR委員長", "can": lead or name in w["submitted"], "page": "f45", "q": {"cq": c["id"], "pmid": w["pmid"], "outcome": w["outcome"]}})
+        if n["etd_status"] == "協議中":
+            approvals.append({"kind": "EtD・推奨の確定", "target": f"{c['id']} {c['title']}", "record": "状態 協議中。" + (f"投票 合意率 {n['etd_agreement']}%" if n["etd_agreement"] is not None else "投票の記録なし"),
+                              "approver": "統括委員会", "can": "統括委員会" in g, "page": "etd", "q": {"cq": c["id"]}})
+    soron = sorted(query("SORON"), key=lambda s: s["key"]) if soron_view else []
+    is_author = lambda s: bool(name) and any(name.startswith(a) for a in re.split("[・]", s.get("author", "")) if a)
+    my_soron = [s for s in soron if is_author(s)]
+    for s in soron:
+        if s.get("status") == "査読中" and (g & ROLE_ADMIN or is_author(s)):
+            approvals.append({"kind": "総論の査読・完了", "target": f"総論{s['label']} {s['title']}", "record": "状態 査読中。" + (f"原稿 {s['file']}" if s.get("file") else "原稿の記録なし"),
+                              "approver": "統括委員会(査読コメントは統括委員会・事務局)", "can": bool(g & ROLE_ADMIN), "page": "soron", "q": {}})
+    return {"user": user, "phase": (get("PHASE", "current") or {}).get("phase", ""), "cq": out_cq, "my_cq": [{"id": c["id"], "title": c["title"], "progress": c["progress"]} for c in out_cq if c["mine"]],
+            "my_f45_todo": todo[:50], "my_f45_todo_count": len(todo), "approvals": approvals[:200], "approvals_count": len(approvals),
             "my_soron": [{"key": s["key"], "label": s["label"], "title": s["title"], "status": s["status"]} for s in my_soron],
             "soron_summary": {st: sum(1 for s in soron if s.get("status") == st) for st in SORON_STATES},
             "audit": sorted(query("AUDIT"), key=lambda a: a["sk"], reverse=True)[:20]}

@@ -3,12 +3,26 @@
 pypdf(純Python)で本文を取り出す。図表の文字は段落に混ざることがあるため、節の見出しは行頭の語で判定する。"""
 import io, re
 
-HEAD_M = r"(patients,? (materials )?and methods|materials and methods|methods and materials|subjects and methods|patients and methods|methods?|study design|trial design|participants|study population|experimental procedures?)"
-HEAD_R = r"(results?|findings)"
-SEC_PAT = [("abstract", r"^(abstract|summary)\b"), ("other", r"^(\d+\.?\s*)?(introduction|background)\b"), ("methods", r"^(\d+\.?\s*)?" + HEAD_M + r"\b"),
-           ("results", r"^(\d+\.?\s*)?" + HEAD_R + r"\b"), ("discussion", r"^(\d+\.?\s*)?(discussion|conclusions?|comment)\b"), ("references", r"^(references|acknowledg|funding|conflicts? of interest|disclosure)")]
-# 見出しと本文が同じ行にある場合(例: "METHODS Patients were …"、"Results: Of 120 …")。見出しが大文字、または直後にコロン
-INLINE = re.compile(r"^(?P<h>(\d+\.?\s*)?(" + HEAD_M + "|" + HEAD_R + r"|discussion))\s*[:.]?\s+(?P<rest>\S.{20,})$", re.I)
+NUM = r"(\d+(\.\d+)*\.?\s*[|:.\-–]?\s*)?"  # 見出しの番号。例: "2 "、"2. "、"4.1. "、"2 | "
+HEAD_M = r"(patients,? (materials )?and methods|materials and methods|methods and materials|subjects and methods|patients and methods|statistical (methods?|analys[ie]s)|methods?|study design|trial design|participants|study population|experimental( procedures?)?)"
+HEAD_R = r"((investigations? and )?results?|findings)"
+SEC_PAT = [("abstract", r"^(abstract|summary)\b"), ("other", "^" + NUM + r"(introduction|background)\b"), ("methods", "^" + NUM + HEAD_M + r"\b"),
+           ("results", "^" + NUM + HEAD_R + r"\b"), ("discussion", "^" + NUM + r"(discussion|conclusions?|comment)\b"), ("references", r"^(references|acknowledg|funding|conflicts? of interest|disclosure)")]
+# 見出しと本文が同じ行にある場合。採用する形: 見出しが大文字("METHODS Patients were …")、直後にコロン("Results: Of 120 …")、
+# 直後にピリオドで次が大文字("Methods. Pain-free …")。"Results were reported …" のような文は見出しにしない
+INLINE = re.compile(r"^(?P<h>" + NUM + "(" + HEAD_M + "|" + HEAD_R + r"|discussion))(?P<sep>\s*[:.]?)\s+(?P<rest>\S.{20,})$", re.I)
+
+
+def _inline(line):
+    """同じ行の見出し → (節, 残りの本文)。見出しでなければ None"""
+    m = INLINE.match(line)
+    if not m: return None
+    h, sep, rest = m.group("h"), m.group("sep").strip(), m.group("rest")
+    if not (h.isupper() or sep == ":" or (sep == "." and rest[:1].isupper())): return None
+    low = h.lower()
+    return ("results" if re.search(r"result|finding", low) else "discussion" if "discussion" in low else "methods"), rest
+
+
 CHUNK = 1500  # 1段落の上限文字数。超えるときは文末で分ける(切り捨てない)
 
 
@@ -52,10 +66,9 @@ def paragraphs(doc_id: str, pages):
                 if sec == "references":
                     return out
                 continue
-            m = INLINE.match(line)
-            if m and (m.group("h").isupper() or re.match(r"^[^:]*:", line[:len(m.group("h")) + 2])):
-                flush(); h = m.group("h").lower()
-                sec = "results" if re.search(HEAD_R, h) else ("discussion" if "discussion" in h else "methods"); line = m.group("rest")
+            il = _inline(line)
+            if il:
+                flush(); sec, line = il
             if buf and re.search(r"[.。]$", buf[-1]) and (line[:1].isupper() or re.match(r"^[A-Z]", line)) and len(" ".join(buf)) > 300:
                 flush()  # 文末で終わり、次が大文字で始まり、既に長い → 段落の切れ目
             if not buf:

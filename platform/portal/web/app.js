@@ -68,21 +68,49 @@
   const pages = {
     async dashboard(m) {
       const d = await api("/dashboard"); const showSr = can("統括委員会", "事務局", "SR委員長", "SR委員", "作成グループ"), showSoron = can("統括委員会", "事務局", "総説執筆者");
-      m.innerHTML = `<h2>ダッシュボード</h2>
-        <div class="card phase">現在の段階: <b>${esc(d.phase)}</b> ${isAdmin() ? `<span class="row">${sel(S.meta.phases, d.phase, 'id="phaseSel"')}<button id="phaseBtn">変更</button></span>` : ""}</div>
-        <div class="grid">
-          ${showSr ? `<div class="card"><h3>SRの流れ: 自分の作業</h3>${d.user.name ? "" : '<p class="small">利用者の氏名が未登録のため、担当の抽出ができません(事務局に依頼)。</p>'}
-            <p class="small">手順: 論文(PDF登録・本文) → 様式4-5(2名独立、照合) → 様式SR-8 → SoF表 → 推奨作成会議(投票)</p>
-            <p>様式4-5 の未提出: <b>${d.my_f45_todo_count}</b> 件</p>
-            <ul class="plain">${d.my_f45_todo.slice(0, 8).map((t) => `<li><a href="#f45?cq=${esc(t.cq)}&pmid=${esc(t.pmid)}&outcome=${encodeURIComponent(t.outcome)}">${esc(t.cq)} PMID ${esc(t.pmid)} / ${esc(t.outcome)}</a></li>`).join("")}</ul>
-            ${d.my_cq.length ? `<h3>担当CQ</h3><ul class="plain">${d.my_cq.map((c) => `<li><a href="#papers?cq=${esc(c.id)}">${esc(c.id)} ${esc(c.title)}</a> <span class="small">${c.progress === null ? "" : "様式4-5 確定 " + c.progress + "%"}</span></li>`).join("")}</ul>` : ""}</div>` : ""}
-          ${showSoron ? `<div class="card"><h3>総説の流れ: 自分の作業</h3><p class="small">手順: 原稿(Word)を提出 → 統括委員会の査読 → 修正 → 完了。原稿はこの画面で提出し、ドライブの共有は不要。</p>
-            ${d.my_soron.length ? `<ul class="plain">${d.my_soron.map((s) => `<li><a href="#soron">${esc(s.label)} ${esc(s.title)}</a> ${tag(s.status)}</li>`).join("")}</ul>` : '<p class="muted">担当の総論はありません</p>'}
-            <p>全体: ${Object.entries(d.soron_summary).map(([k, v]) => `${tag(k)} ${v}件 `).join("")}</p></div>` : ""}
-        </div>
-        ${showSr ? `<div class="card"><h3>CQごとの記録(登録された件数だけを表示する)</h3><table><tr><th>ID</th><th>名称</th><th>担当</th>${S.meta.stages.map((s) => `<th class="small">${esc(s)}</th>`).join("")}</tr>
-          ${d.cq.map((c) => `<tr><td>${esc(c.id)}</td><td><a href="#papers?cq=${esc(c.id)}">${esc(c.title)}</a></td><td>${esc(c.assignees.join("・"))}</td>${S.meta.stages.map((s) => `<td class="small">${esc(c.stages[s])}</td>`).join("")}</tr>`).join("")}</table></div>` : ""}
-        <div class="card" style="margin-top:14px"><h3>作成経過の記録(最新20件)</h3>${auditTable(d.audit)}</div>`;
+      const href = (page, q) => "#" + page + (q && Object.keys(q).length ? "?" + new URLSearchParams(q) : "");
+      const A = d.approvals || [], mineA = A.filter((a) => a.can);
+      const need = (t) => `<span class="approve">${esc(t)}</span>`;
+      // 手順(SRの流れ)。承認(確定)が必要な手順は 4 と 7。画面の番号(左の目次)と同じ
+      const STEPS = [
+        ["1", "CQ・PICO・アウトカムを登録する", "担当委員、SR委員長", "", "cq", "CQ・PICO・アウトカム"],
+        ["2", "採用論文を登録する(PDF、本文の抽出、研究特性: がん腫・化学療法の分類)", "担当委員、SR委員長、事務局", "", "papers", "論文"],
+        ["3", "様式4-5 を 2名独立で判定し、提出する(本文の Method・Result を根拠にする)", "担当委員 2名", "", "f45", "様式4-5"],
+        ["4", "様式4-5 を照合し、確定する", "評価した 2名", "評価した2名(照合)、またはSR委員長", "f45", "様式4-5"],
+        ["5", "様式SR-8 を記入する(確定した様式4-5 から。化学療法の分類で層別)", "担当委員、SR委員長", "", "sr8", "様式SR-8"],
+        ["6", "EtD・推奨文案・解説を書く(状態を「協議中」にする)", "作成グループ", "", "etd", "EtD・推奨"],
+        ["7", "推奨作成会議の投票を記録し、確定する", "作成グループ(記録)", "統括委員会(投票: 75%以上の参加、80%以上の一致)", "etd", "EtD・推奨"]];
+      const srCards = !showSr ? "" : `
+        <div class="card"><h3>作業手順(SRの流れ)</h3>
+          <div class="scroll"><table><tr><th class="nw">手順</th><th>作業</th><th>行う人</th><th>承認(確定)</th><th>画面</th></tr>
+          ${STEPS.map(([n, what, who, ap, page, label]) => `<tr><td class="num">${n}</td><td>${esc(what)}</td><td>${esc(who)}</td><td>${ap ? need("承認") + " " + esc(ap) : "承認なし"}</td><td class="nw"><a href="#${page}">${esc(label)}</a></td></tr>`).join("")}</table></div>
+          <p class="note">CQ・FRQ は、統括委員長が承認済み(企画書 Ver1)。Claude 下書きは出発点であり、判定は委員が行う。本文を抽出できない論文では下書きを作らない。</p></div>
+        <div class="card"><h3>CQごとの記録</h3>
+          <p class="note">記録された件数だけを示す。列の番号は作業手順の番号。「a / b」は、記録 a 件 / 必要 b 件(手順2 は 本文抽出済 / 登録、手順4 は 確定 / 論文×アウトカム、手順5 は 確実性の記入 / アウトカム)。自分が担当の行は淡い青。${need("要承認")} は、確定の記録がない件。名称を押すと、その CQ の論文の画面を開く。</p>
+          <div class="scroll"><table><tr><th>ID</th><th>名称</th><th>担当</th><th>手順1<br>アウトカム</th><th>手順2<br>論文</th><th>手順3<br>様式4-5 提出</th><th>手順4<br>様式4-5 確定</th><th>手順5<br>様式SR-8</th><th>手順6・7<br>EtD・推奨</th></tr>
+          ${d.cq.map((c) => { const n = c.counts; return `<tr class="${c.mine ? "mine" : ""}"><td class="nw">${esc(c.id)}</td><td><a href="${href("papers", { cq: c.id })}">${esc(c.title)}</a></td><td>${esc(c.assignees.join("・"))}</td>
+            <td class="num">${n.outcomes}</td><td class="num">${n.extracted} / ${n.papers}</td><td class="num">${n.f45_submitted}</td>
+            <td class="num">${n.f45_fixed} / ${n.f45_need}${n.f45_wait ? ` <a href="${href("f45", { cq: c.id })}">${need("要承認 " + n.f45_wait)}</a>` : ""}</td>
+            <td class="num">${n.sr8} / ${n.outcomes}</td>
+            <td>${n.etd_status ? `<a href="${href("etd", { cq: c.id })}">${esc(n.etd_status)}</a>` : "記録なし"}${n.etd_agreement !== null && n.etd_agreement !== undefined ? ` 合意率 ${n.etd_agreement}%` : ""}${n.etd_status === "協議中" ? " " + need("要承認") : ""}</td></tr>`; }).join("")}</table></div></div>`;
+      const soronCard = !showSoron ? "" : `
+        <div class="card"><h3>総説の流れ(総論 A〜N)</h3>
+          <ol class="steps"><li>執筆者が原稿(Word)を提出し、状態を「査読中」にする</li><li>統括委員会・事務局が査読コメントを書く(状態は「修正中」になる)</li><li>執筆者が修正版を提出する</li><li>${need("承認")} 統括委員会が「完了」にする</li></ol>
+          <p>記録: ${Object.entries(d.soron_summary).map(([k, v]) => `${esc(k)} ${v} 件`).join("、")}</p>
+          ${d.my_soron.length ? `<p>自分の担当: ${d.my_soron.map((x) => `<a href="#soron">総論${esc(x.label)} ${esc(x.title)}</a> ${tag(x.status)}`).join("、")}</p>` : ""}</div>`;
+      m.innerHTML = `<h2>${showSr ? "SR進捗ボード" : "総説の進捗ボード"}</h2>
+        <div class="card">現在の段階: <b>${esc(d.phase)}</b> ${isAdmin() ? `<span class="row">${sel(S.meta.phases, d.phase, 'id="phaseSel"')}<button id="phaseBtn">段階を変更</button></span>` : ""}</div>
+        <div class="card"><h3>承認(確定)が必要な記録</h3>
+          ${A.length ? `<p class="note need">${need("要承認")} 承認(確定)の記録がない件: <b>${d.approvals_count}</b> 件。うち自分が承認できる件: <b>${mineA.length}</b> 件。</p>
+            <div class="scroll"><table><tr><th>種類</th><th>対象</th><th>記録</th><th>承認する人</th><th>操作</th></tr>
+            ${A.map((a) => `<tr><td>${esc(a.kind)}</td><td>${esc(a.target)}</td><td>${esc(a.record)}</td><td>${esc(a.approver)}</td><td class="nw">${a.can ? `${need("承認できます")} <a href="${href(a.page, a.q)}">画面を開く</a>` : `<a href="${href(a.page, a.q)}">内容を見る</a>`}</td></tr>`).join("")}</table></div>`
+            : '<p class="note">承認(確定)の記録がない件は、ありません。</p>'}</div>
+        ${showSr ? `<div class="card"><h3>自分の作業(SRの流れ)</h3>${d.user.name ? "" : '<p class="note need">利用者の氏名が未登録のため、担当を抽出できません(事務局に依頼)。</p>'}
+          <p>様式4-5 の未提出(担当 CQ の 論文×アウトカム): <b>${d.my_f45_todo_count}</b> 件${d.my_f45_todo_count > 10 ? "(先頭の 10 件を表示)" : ""}</p>
+          <ul class="plain">${d.my_f45_todo.slice(0, 10).map((t) => `<li><a href="${href("f45", { cq: t.cq, pmid: t.pmid, outcome: t.outcome })}">${esc(t.cq)} PMID ${esc(t.pmid)} / ${esc(t.outcome)}</a></li>`).join("")}</ul>
+          <p>担当 CQ: ${d.my_cq.length ? d.my_cq.map((c) => `<a href="${href("papers", { cq: c.id })}">${esc(c.id)} ${esc(c.title)}</a>`).join("、") : "なし"}</p></div>` : ""}
+        ${srCards}${soronCard}
+        <div class="card"><h3>作成経過の記録(最新20件)</h3><div class="scroll">${auditTable(d.audit)}</div></div>`;
       $("#phaseBtn")?.addEventListener("click", async () => { await api("/phase", "PUT", { phase: $("#phaseSel").value }); toast("段階を変更しました"); render(); });
     },
 
@@ -109,7 +137,7 @@
         <p class="small">二次スクリーニングで採用した論文を PMID で登録し、PDF を置く。本文を抽出すると、Method・Result の段落に ID が付き、様式4-5 の根拠として引用できる。PDF は委員だけが閲覧できる。</p>
         ${ed ? `<div class="card"><div class="row"><input id="pmid" placeholder="PMID" size="10"><input id="ptitle" placeholder="題名(任意)" size="40"><input type="file" id="pdf" accept="application/pdf"><button id="regBtn" class="primary">登録してPDFを置く</button></div></div>` : ""}
         <table style="margin-top:12px"><tr><th>PMID</th><th>題名</th><th>状態</th><th>本文</th><th>がん腫</th><th>化学療法(分類 / 薬剤)</th><th>デザイン</th><th></th></tr>
-        ${list.map((p) => `<tr data-pmid="${esc(p.pmid)}"><td><a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.pmid)}/" target="_blank" rel="noopener">${esc(p.pmid)}</a></td><td>${esc(p.title)}</td><td>${tag(p.status, p.status.startsWith("本文抽出済") ? "ok" : "warn")}</td>
+        ${list.map((p) => `<tr data-pmid="${esc(p.pmid)}"><td><a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.pmid)}/" target="_blank" rel="noopener">${esc(p.pmid)}</a></td><td class="w">${esc(p.title)}</td><td>${tag(p.status, p.status.startsWith("本文抽出済") ? "ok" : "warn")}</td>
           <td class="small">${p.n_paragraphs ? `${p.pages}頁 ${p.n_paragraphs}段落(M ${p.sections?.methods ?? 0} / R ${p.sections?.results ?? 0})` : "—"}</td>
           <td>${esc(p.chars?.cancer || "")}</td><td>${esc(p.chars?.chemo_class || "")} ${p.chars?.chemo_drugs ? "/ " + esc(p.chars.chemo_drugs) : ""}</td><td>${esc(p.chars?.design || "")}</td>
           <td><button data-act="pdf">PDF</button> ${ed ? `<button data-act="extract">本文抽出</button> <button data-act="chars">研究特性</button>` : ""} <a href="#f45?cq=${esc(cqid)}&pmid=${esc(p.pmid)}">様式4-5</a></td></tr>`).join("") || "<tr><td colspan=8 class='muted'>登録なし</td></tr>"}</table>
@@ -169,7 +197,10 @@
       $("#f45body").innerHTML = `<div class="split">
         <div class="card" id="paraBox"><h3>本文の該当箇所 <button id="pdfBtn">PDF</button></h3>${text ? paraPanel(text, [...hl]) : '<p class="muted">本文が未抽出です。論文の画面で PDF を登録し、本文を抽出してください。下書きは本文がなければ作りません。</p>'}</div>
         <div class="card"><h3>判定(0 / -1 / -2) ${mine.submitted ? tag("提出済み", "ok") : ""} ${fin ? tag("確定", "ok") : d.reconcile_open ? tag("照合中", "run") : ""}</h3>
-          <p class="small">2名独立: 自分の欄に、本文を読んで判定する(バイアスリスク10項目、非直接性5項目を 0 / -1 / -2)。根拠の段落 ID と引用を書く。記載がなければ -1 とし「記載なし」と書く。相手の判定は、2名が提出するまで表示されない。提出後に照合し、確定する。盲検化の2項目は -2 を使わない(統括委員長の決定)。</p>
+          <ol class="steps"><li>自分の欄に、本文を読んで判定する(バイアスリスク10項目、非直接性5項目を 0 / -1 / -2)。根拠の段落 ID と引用を書く。記載がなければ -1 とし「記載なし」と書く</li>
+            <li>「提出」を押す。相手の判定は、2名が提出するまで表示されない(2名独立)</li>
+            <li><span class="approve">承認</span> 2名の提出後に確定欄が開く。照合し、「照合の結果を確定する」を押す。確定できるのは、評価した2名とSR委員長</li></ol>
+          <p class="note">盲検化の2項目は -2 を使わない(統括委員長の決定)。${fin ? `確定の記録: ${esc(fin.fixed_by || "")}` : d.reconcile_open ? '<span class="approve">要承認</span> 2名が提出済。確定の記録がない。' : `提出済: ${d.submitted.length} 名(${esc(d.submitted.join("・")) || "なし"})`}</p>
           <div class="row">${ed && text ? `<button id="draftBtn">Claude下書きを作る(本文の段落を根拠に)</button>` : ""} ${ed && ai?.items ? `<button id="copyAi">下書きを自分の欄に取り込んで修正する</button>` : ""} ${ai ? `<span class="small">下書き: ${esc(ai.status || "")} ${ai.error ? esc(ai.error) : ""}</span>` : ""}</div>
           <table class="f45"><tr><th>項目</th>${ai?.items ? "<th>Claude下書き</th>" : ""}<th>自分(${esc(S.me.name || "—")})</th>${otherCols.map(([n]) => `<th>${esc(n)}</th>`).join("")}${d.reconcile_open || fin || isLead() ? "<th>確定(照合)</th>" : ""}</tr>
             ${K.map((k, i) => `<tr><td>${esc(JA[i])}</td>${ai?.items ? `<td>${cell(ai, k, false)}</td>` : ""}<td data-col="mine">${cell(mine, k, ed)}</td>${otherCols.map(([, r]) => `<td>${cell(r, k, false)}</td>`).join("")}
@@ -179,7 +210,7 @@
             <label class="small">介入 分子/分母 <input id="inum" value="${esc(mine.counts?.int_num ?? "")}" size="4">/<input id="iden" value="${esc(mine.counts?.int_den ?? "")}" size="4"></label>
             <label class="small">効果 ${sel(["RR", "OR", "HR", "MD", "SMD"], mine.effect?.measure, 'id="emeas"', true)} <input id="eval" value="${esc(mine.effect?.value ?? "")}" size="6"> [<input id="elo" value="${esc(mine.effect?.ci_low ?? "")}" size="6">, <input id="ehi" value="${esc(mine.effect?.ci_high ?? "")}" size="6">]</label></div>
           <div class="row"><label class="small">備考 <input id="note45" value="${esc(mine.note || "")}" size="60"></label></div>
-          <div class="row">${ed ? `<button id="save45">保存(下書き)</button> <button id="submit45" class="primary">提出(確定後は照合で変更)</button>` : ""} ${(d.reconcile_open && d.submitted.includes(S.me.name)) || isLead() ? `<button id="final45" class="primary">照合の結果を確定する</button>` : ""}</div>
+          <div class="row">${ed ? `<button id="save45">保存(下書き)</button> <button id="submit45" class="primary">提出(提出後は照合で変更)</button>` : ""} ${(d.reconcile_open && d.submitted.includes(S.me.name)) || isLead() ? `<button id="final45" class="approve">承認: 照合の結果を確定する</button>` : ""}</div>
           ${ai?.paragraphs_used ? `<p class="small">下書きの根拠: ${ai.paragraphs_used.length} 段落(Method・Result)。モデル ${esc(ai.model)}。下書きは出発点であり、判定は委員が行う。</p>` : ""}</div></div>`;
       if (text) wireParas($("#paraBox"));
       $("#pdfBtn")?.addEventListener("click", async () => { try { const r = await api(`/papers/${cqid}/${pmid}/pdf-url`); window.open(r.url, "_blank"); } catch (e) { toast(e.message, true); } });
@@ -215,7 +246,11 @@
       const q = Q(); const cqid = q.cq || S.cqs[0]?.id; const d = await api("/etd/" + cqid); const e = d.etd; const g = d.gl2023; const ed = isGroup();
       const cons = S.meta.etd_considerations;
       m.innerHTML = `<h2>EtD・推奨(2023年版の体裁)</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")} ${tag(e.status)}</div>
-        <p class="small">左に 2023年版の記述(推奨文・推奨の強さ・エビデンスの確実性・解説・投票)、右に 2028年版の案。4つの考慮事項には根拠(論文の段落 ID、2023年版の段落 ID)を書く。推奨文には適用するがん腫・化学療法の分類を明記する。推奨作成会議で投票し(投票権のある委員の75%以上が参加、80%以上の一致で決定、最大3回)、結果を記録する。投票除外(直接評価した論文の筆頭著者、そのCQのSR担当者)は分母から除く。</p>
+        <ol class="steps"><li>左の 2023年版の記述(推奨文・推奨の強さ・エビデンスの確実性・解説・投票)と、様式SR-8 の確実性を確認する</li>
+          <li>右に 2028年版の案を書く。推奨文には、適用するがん腫・化学療法の分類を明記する。4つの考慮事項には、根拠(論文の段落 ID、2023年版の段落 ID)を書く</li>
+          <li>状態を「協議中」にして保存する</li>
+          <li>推奨作成会議の投票を記録する(投票権のある委員の75%以上が参加、80%以上の一致で決定、最大3回。投票除外(直接評価した論文の筆頭著者、そのCQのSR担当者)は分母から除く)</li>
+          <li><span class="approve">承認</span> 統括委員会が確定する</li></ol>
         <div class="split">
           <div class="card"><h3>2023年版</h3>${g ? `<p><b>推奨文</b> ${esc(g.rec)}</p><p>強さ ${esc(g.strength)} / 確実性 ${esc(g.certainty)} ${g.votes ? `/ 投票 分母 ${g.votes.denominator} 分布 ${(g.votes.counts || []).join("・")} (COI除外 ${g.votes.coi} SR除外 ${g.votes.sr})` : ""}</p>
             <div class="paras">${(g.paragraphs || []).map((p) => `<div class="para"><span class="pid">${esc(p.id)}</span><div>${esc(p.text)}</div></div>`).join("")}</div>` : '<p class="muted">2023年版の記述が未取り込みです(事務局が etd_2023.json を取り込む)。</p>'}
@@ -224,7 +259,7 @@
             <label class="small">推奨文(案。癌腫・レジメンを明記)<br><textarea id="rec" rows="3" cols="60" ${ed ? "" : "readonly"}>${esc(e.rec_draft || "")}</textarea></label>
             <div class="row"><label class="small">推奨の強さ ${ed ? sel(S.meta.strength, e.strength, 'id="strength"', true) : `<b>${esc(e.strength || "—")}</b>`}</label><label class="small">エビデンスの確実性 ${ed ? sel(S.meta.cert, e.certainty, 'id="cert"', true) : `<b>${esc(e.certainty || "—")}</b>`}</label></div>
             <label class="small">適用範囲・2023年版からの変更点 <input id="scope" value="${esc(e.scope_note || "")}" size="60" ${ed ? "" : "readonly"}></label>
-            <table style="margin-top:8px"><tr><th>考慮事項</th><th>内容</th><th>根拠(段落ID)</th></tr>
+            <table class="form" style="margin-top:8px"><tr><th>考慮事項</th><th>内容</th><th>根拠(段落ID)</th></tr>
               ${cons.map(([k, ja]) => `<tr><td>${esc(ja)}</td><td><textarea data-ck="${k}" data-f="text" rows="3" cols="40" ${ed ? "" : "readonly"}>${esc(e.considerations?.[k]?.text || "")}</textarea></td><td><input data-ck="${k}" data-f="evidence" value="${esc((e.considerations?.[k]?.evidence || []).join(","))}" size="18" ${ed ? "" : "readonly"}></td></tr>`).join("")}</table>
             <h3 style="margin-top:12px">投票の記録</h3>
             <div class="row"><label class="small">回 <input id="vround" value="${esc(e.vote?.round ?? 1)}" size="2"></label><label class="small">日付 <input id="vdate" type="date" value="${esc(e.vote?.date || "")}"></label>
@@ -232,7 +267,8 @@
               <label class="small">分母 <input id="vden" value="${esc(e.vote?.denominator ?? "")}" size="3"></label><label class="small">投票除外(筆頭著者) <input id="vcoi" value="${esc(e.vote?.coi_excluded ?? "")}" size="2"></label><label class="small">投票除外(SR担当) <input id="vsr" value="${esc(e.vote?.sr_excluded ?? "")}" size="2"></label>
               ${e.vote?.agreement !== undefined && e.vote?.agreement !== null ? `<b>合意率 ${e.vote.agreement}%</b>` : ""}</div>
             <label class="small">解説(推奨の理由。根拠の段落ID付き)<br><textarea id="narr" rows="6" cols="60" ${ed ? "" : "readonly"}>${esc(e.narrative || "")}</textarea></label>
-            <div class="row">${ed ? `<button id="etdSave" class="primary">保存</button> ${sel(["下書き", "協議中", "確定"], e.status, 'id="etdStatus"')} <button id="etdDraft">Claude下書きを作る(SR-8・様式4-5・2023年版を根拠に)</button>` : ""} <button id="exportBtn">Minds書類(xlsx)を出力</button></div>
+            <p class="note ${e.status === "協議中" ? "need" : ""}"><span class="approve">承認</span> 確定は、投票の記録のあとに統括委員会が行う。${e.status === "協議中" ? "状態は協議中。確定の記録がない。" : e.status === "確定" ? "確定の記録あり。" : "作成グループが書き終えたら、状態を「協議中」にして保存する。"}</p>
+            <div class="row">${ed ? `<button id="etdSave" class="primary">保存</button> 状態 ${sel(["下書き", "協議中"].concat(e.status === "確定" ? ["確定"] : []), e.status, 'id="etdStatus"')} ${can("統括委員会") && e.status !== "確定" ? '<button id="etdFix" class="approve">承認: 確定する(統括委員会)</button>' : ""} <button id="etdDraft">Claude下書きを作る(SR-8・様式4-5・2023年版を根拠に)</button>` : ""} <button id="exportBtn">Minds書類(xlsx)を出力</button></div>
             ${e.ai_draft ? `<div class="card" style="margin-top:10px"><h3>Claude下書き <span class="small">${esc(e.ai_draft.status || "")} ${esc((e.ai_draft.at || "").slice(0, 16))} ${e.ai_draft.error ? esc(e.ai_draft.error) : ""}</span></h3>
               ${e.ai_draft.rec_draft ? `<p><b>推奨文案</b> ${esc(e.ai_draft.rec_draft)}</p>${cons.map(([k, ja]) => `<p><b>${esc(ja)}</b> ${esc(e.ai_draft.considerations?.[k]?.text || "")} <span class="small">${esc((e.ai_draft.considerations?.[k]?.evidence || []).join(", "))}</span></p>`).join("")}<p><b>解説文案</b><br>${esc(e.ai_draft.narrative || "").replace(/\n/g, "<br>")}</p><p class="small">2023年版からの変更点: ${esc(e.ai_draft.changes_from_2023 || "")}</p>
               ${ed ? '<button id="etdCopy">下書きを右の欄に取り込んで修正する</button>' : ""}<p class="small">根拠のIDは、SR8-アウトカム、F45-PMID-アウトカム、GL2023-段落。推奨の強さと確実性は、下書きに含めない(投票と様式SR-8で決める)。</p>` : ""}</div>` : ""}</div></div>`;
@@ -240,10 +276,12 @@
       $("#etdDraft")?.addEventListener("click", async () => { try { await api("/etd/" + cqid + "/draft", "POST", {}); toast("下書きを作成中です(1〜2分後に再読み込み)"); setTimeout(render, 60000); } catch (e2) { toast(e2.message, true); } });
       $("#exportBtn")?.addEventListener("click", async () => { try { const r = await api("/export/" + cqid); toast(`出力しました(${r.sheets.join("・")})`); if (r.url) window.open(r.url, "_blank"); } catch (e2) { toast(e2.message, true); } });
       $("#etdCopy")?.addEventListener("click", () => { const a = e.ai_draft; $("#rec").value = a.rec_draft || ""; cons.forEach(([k]) => { m.querySelector(`[data-ck="${k}"][data-f="text"]`).value = a.considerations?.[k]?.text || ""; m.querySelector(`[data-ck="${k}"][data-f="evidence"]`).value = (a.considerations?.[k]?.evidence || []).join(","); }); $("#narr").value = a.narrative || ""; toast("取り込みました。確認・修正して保存してください"); });
-      $("#etdSave")?.addEventListener("click", async () => { const considerations = {}; cons.forEach(([k]) => (considerations[k] = { text: m.querySelector(`[data-ck="${k}"][data-f="text"]`).value, evidence: m.querySelector(`[data-ck="${k}"][data-f="evidence"]`).value.split(/[,\s]+/).filter(Boolean) }));
+      const saveEtd = async (status) => { const considerations = {}; cons.forEach(([k]) => (considerations[k] = { text: m.querySelector(`[data-ck="${k}"][data-f="text"]`).value, evidence: m.querySelector(`[data-ck="${k}"][data-f="evidence"]`).value.split(/[,\s]+/).filter(Boolean) }));
         const counts = [0, 1, 2, 3, 4].map((i) => m.querySelector(`[data-v="${i}"]`).value);
-        try { await api("/etd/" + cqid, "PUT", { rec_draft: $("#rec").value, strength: $("#strength")?.value, certainty: $("#cert")?.value, scope_note: $("#scope").value, considerations, narrative: $("#narr").value, status: $("#etdStatus").value,
-          vote: { round: $("#vround").value, date: $("#vdate").value, counts, denominator: $("#vden").value, coi_excluded: $("#vcoi").value, sr_excluded: $("#vsr").value } }); toast("保存しました"); render(); } catch (e2) { toast(e2.message, true); } });
+        try { await api("/etd/" + cqid, "PUT", { rec_draft: $("#rec").value, strength: $("#strength")?.value, certainty: $("#cert")?.value, scope_note: $("#scope").value, considerations, narrative: $("#narr").value, status: status || $("#etdStatus").value,
+          vote: { round: $("#vround").value, date: $("#vdate").value, counts, denominator: $("#vden").value, coi_excluded: $("#vcoi").value, sr_excluded: $("#vsr").value } }); toast(status ? "確定しました" : "保存しました"); render(); } catch (e2) { toast(e2.message, true); } };
+      $("#etdSave")?.addEventListener("click", () => saveEtd());
+      $("#etdFix")?.addEventListener("click", () => { if (confirm("この CQ の EtD・推奨を確定しますか(統括委員会の承認として記録されます)")) saveEtd("確定"); });
     },
 
     async soron(m) {
@@ -251,10 +289,11 @@
       const mineOnly = !admin && !isLead();
       const rows = list.filter((s) => !mineOnly || (S.me.name && s.author.split("・").some((a) => a && S.me.name.startsWith(a))));
       m.innerHTML = `<h2>総説の流れ: 総論(A〜N)の執筆・査読</h2>
-        <p class="small">企画書の総論18項目と担当。執筆者は原稿(Word)をこの画面で提出し、状態を「査読中」にする。統括委員会が査読コメントを書くと「修正中」になり、執筆者が修正版を提出する。完了は統括委員会が決める。原稿は版ごとに保存される。SRの流れ(CQ)とは独立している。</p>
+        <ol class="steps"><li>執筆者が原稿(Word)をこの画面で提出し、状態を「査読中」にして保存する</li><li>統括委員会・事務局が査読コメントを書く(状態は「修正中」になる)</li><li>執筆者が修正版を提出する</li><li><span class="approve">承認</span> 統括委員会が「完了」にする</li></ol>
+        <p class="note">企画書の総論18項目と担当。原稿は版ごとに保存される。SRの流れ(CQ)とは独立している。</p>
         <table><tr><th>項目</th><th>題名</th><th>担当</th><th>状態</th><th>期限</th><th>最新の原稿</th><th>査読コメント(統括委員会)</th><th>備考</th><th></th></tr>
         ${rows.map((s) => { const o = S.me.name && s.author.split("・").some((a) => a && S.me.name.startsWith(a)); const ed = o || admin;
-          return `<tr data-key="${esc(s.key)}"><td>${esc(s.label)}</td><td>${esc(s.title)}</td><td>${esc(s.author)}</td>
+          return `<tr data-key="${esc(s.key)}"><td class="nw">${esc(s.label)}</td><td class="w">${esc(s.title)}</td><td class="nw">${esc(s.author)}</td>
             <td>${ed ? sel(S.meta.soron_states.filter((x) => admin || x !== "完了"), s.status, "data-status") : tag(s.status)}</td>
             <td>${ed ? `<input type="date" data-due value="${esc(s.due || "")}">` : esc(s.due || "")}</td>
             <td class="small">${s.file ? `<a href="#" data-dl="${esc(s.key)}">${esc(s.file)}</a><br>${esc((s.file_at || "").slice(0, 16))} ${esc(s.file_by || "")}` : "—"}${ed ? `<br><input type="file" data-up accept=".docx,.doc,.pdf"> <button data-act="upload">提出</button>` : ""}</td>
@@ -306,7 +345,10 @@
     const page = (location.hash || "#dashboard").slice(1).split("?")[0];
     document.querySelectorAll(".side a").forEach((a) => a.classList.toggle("active", a.dataset.page === page));
     const m = $("#main"); m.innerHTML = '<p class="muted">読み込み中…</p>';
-    try { if (!S.cqs.length) S.cqs = await api("/cq"); await (pages[page] || pages.dashboard)(m); } catch (e) { m.innerHTML = `<p class="tag bad">${esc(e.message)}</p>`; }
+    try { if (!S.cqs.length) S.cqs = await api("/cq"); await (pages[page] || pages.dashboard)(m);
+      // 幅の広い表は、画面全体ではなく表の枠の中で横に送る
+      m.querySelectorAll("table").forEach((t) => { if (!t.parentElement.classList.contains("scroll")) { const w = document.createElement("div"); w.className = "scroll"; t.replaceWith(w); w.appendChild(t); } });
+    } catch (e) { m.innerHTML = `<p class="note need">${esc(e.message)}</p>`; }
   }
 
   async function boot() {

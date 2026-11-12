@@ -229,3 +229,49 @@ def test_put_ocr_text(env):
     r = H.handler(ev("PUT", "/papers/N1/99999999/text", {"pages": [{"page": 1, "text": "Methods\nPatients were randomized to cooling. " * 5 + "\n\nResults\nNeuropathy was less frequent in the cooling group than in controls."}], "source": "OCR(Apple Vision)"}, **CHAIR))
     j = json.loads(r["body"]); assert r["statusCode"] == 200 and j["sections"]["methods"] == 1 and j["sections"]["results"] == 1 and j["status"] == "本文抽出済(OCR(Apple Vision))"
     t = json.loads(H.handler(ev("GET", "/papers/N1/99999999/text", **CHAIR))["body"]); assert t["source"] == "OCR(Apple Vision)"
+
+
+def test_extract_heading_forms_seen_in_registered_papers():
+    """登録済み論文で見出しを判定できなかった 3 形式(Clinical Trial Results 形式、番号 + 縦線、多段の番号)"""
+    body = "Patients received the study drug for six cycles and neuropathy was graded at each visit by a blinded assessor. "
+    sec = lambda lines: [p["section"] for p in X.paragraphs("1", [(1, "\n".join(lines))])]
+    assert sec(["Methods. Pain-free, chemotherapy-naive CRC patients receiv-", body, "", "Results. One hundred ninety-nine patients were randomized.", body]) == ["methods", "results"]
+    assert sec(["1 | INTRODUCTION", body, "", "2 | PATIENTS AND METHODS", body, "", "3 | RESULTS", body, "", "4 | DISCUSSION", body]) == ["other", "methods", "results", "discussion"]
+    assert sec(["2. Investigations and results", body, "", "3. Discussion", body, "", "4.1. Patients and methods", body]) == ["results", "discussion", "methods"]
+    assert sec(["Statistical Methods: Descriptive data analysis presented categorical variables as observed counts.", body]) == ["methods"]
+    assert sec(["Introduction", body, "Results were reported as predicted means for numeric outcomes in each group."]) == ["other"]  # 文は見出しにしない
+
+
+def test_dashboard_counts_and_approvals(env):
+    """進捗ボード: 記録された件数、承認(確定)の記録がない件、役割による分離"""
+    register_paper(); o = "CIPN Grade2以上の発生"; path = f"/f45/P1/12345678/{o}"
+    items = {k: {"v": 0, "evidence": [], "quote": "x"} for k in H.ITEM_KEYS}
+    call("PUT", path, {"items": items, "submitted": True}, R1)
+    d = call("GET", "/dashboard", who=R1)[1]; p1 = next(c for c in d["cq"] if c["id"] == "P1")
+    assert p1["counts"] == {"outcomes": 2, "papers": 1, "extracted": 1, "f45_need": 2, "f45_submitted": 1, "f45_fixed": 0, "f45_wait": 0, "sr8": 0, "etd_status": "", "etd_agreement": None}
+    assert d["approvals"] == [] and d["my_f45_todo_count"] == 1  # R1 の未提出は QOL の 1 件
+    call("PUT", path, {"items": items, "submitted": True}, R2)
+    d = call("GET", "/dashboard", who=R1)[1]; a = d["approvals"]
+    assert len(a) == 1 and a[0]["kind"] == "様式4-5の照合・確定" and a[0]["can"] is True and a[0]["q"] == {"cq": "P1", "pmid": "12345678", "outcome": o}
+    assert next(c for c in d["cq"] if c["id"] == "P1")["counts"]["f45_wait"] == 1
+    call("PUT", path + "/final", {"items": items}, R2)
+    assert call("GET", "/dashboard", who=R1)[1]["approvals"] == []  # 確定の記録があれば出さない
+    # EtD: 協議中は統括委員会の確定待ち。作成グループには can=False で示す
+    G = dict(email="g@example.org", groups=("作成グループ",))
+    call("PUT", "/etd/P1", {"rec_draft": "x", "status": "協議中", "vote": {"round": 1, "counts": [0, 13, 2, 0, 0], "denominator": 15}}, G)
+    a = call("GET", "/dashboard", who=G)[1]["approvals"]; assert [x["kind"] for x in a] == ["EtD・推奨の確定"] and a[0]["can"] is False and "合意率 87%" in a[0]["record"]
+    assert call("GET", "/dashboard")[1]["approvals"][0]["can"] is True  # 統括委員会
+    # 総説執筆者だけの利用者には、SR の記録を返さない
+    d = call("GET", "/dashboard", who=dict(email="w@example.org", groups=("総説執筆者",)))[1]; assert d["cq"] == [] and d["approvals"] == []
+
+
+def test_web_style_rules():
+    """画面の体裁の規則(統括委員長の指示): 文字の大きさは 1 種類、白抜き文字を使わない、承認箇所の印(.approve)がある"""
+    import re
+    web = os.path.join(HERE, "..", "web")
+    css = re.sub(r"/\*.*?\*/", "", open(os.path.join(web, "style.css"), encoding="utf-8").read(), flags=re.S)
+    js = open(os.path.join(web, "app.js"), encoding="utf-8").read(); html = open(os.path.join(web, "index.html"), encoding="utf-8").read()
+    assert len(re.findall(r"font-size\s*:", css)) == 1 and "font-size" not in js and "font-size" not in html  # body の指定だけ
+    assert not re.search(r"(?<![-\w])color\s*:\s*(#fff\b|#ffffff\b|white\b)", css + js + html, re.I)   # 字の色に白を使わない
+    assert ".approve" in css and js.count('class="approve"') >= 4  # 様式4-5 の確定、EtD の確定、総論の完了、進捗ボード
+    assert "承認(確定)が必要な記録" in js and "作業手順(SRの流れ)" in js
