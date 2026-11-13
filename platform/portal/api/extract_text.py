@@ -7,7 +7,9 @@ NUM = r"(\d+(\.\d+)*\.?\s*[|:.\-–]?\s*)?"  # 見出しの番号。例: "2 "、
 HEAD_M = r"(patients,? (materials )?and methods|materials and methods|methods and materials|subjects and methods|patients and methods|statistical (methods?|analys[ie]s)|methods?|study design|trial design|participants|study population|experimental( procedures?)?)"
 HEAD_R = r"((investigations? and )?results?|findings)"
 SEC_PAT = [("abstract", r"^(abstract|summary)\b"), ("other", "^" + NUM + r"(introduction|background)\b"), ("methods", "^" + NUM + HEAD_M + r"\b"),
-           ("results", "^" + NUM + HEAD_R + r"\b"), ("discussion", "^" + NUM + r"(discussion|conclusions?|comment)\b"), ("references", r"^(references|acknowledg|funding|conflicts? of interest|disclosure)")]
+           ("results", "^" + NUM + HEAD_R + r"\b"), ("discussion", "^" + NUM + r"(discussion|conclusions?|comment)\b"), ("references", r"^(references|literature cited|bibliography)\b"), ("other", r"^(acknowledg|funding|conflicts? of interest|competing interests?|disclosure)")]
+# 「References」などの見出しで抽出を打ち切らない。著者原稿(PMC の Author Manuscript)は、1 ページ目に Funding・Conflict of interest・Disclosure の
+# 記載があり、本文より前に現れる。文献一覧は節「references」とし、あとに本文の見出しが現れれば、その節に戻る。
 # 見出しと本文が同じ行にある場合。採用する形: 見出しが大文字("METHODS Patients were …")、直後にコロン("Results: Of 120 …")、
 # 直後にピリオドで次が大文字("Methods. Pain-free …")。"Results were reported …" のような文は見出しにしない
 INLINE = re.compile(r"^(?P<h>" + NUM + "(" + HEAD_M + "|" + HEAD_R + r"|discussion))(?P<sep>\s*[:.]?)\s+(?P<rest>\S.{20,})$", re.I)
@@ -63,8 +65,6 @@ def paragraphs(doc_id: str, pages):
             hit = next((s for s, pat in SEC_PAT if re.match(pat, low) and len(line) < 60), None)
             if hit:
                 flush(); sec = hit
-                if sec == "references":
-                    return out
                 continue
             il = _inline(line)
             if il:
@@ -90,7 +90,7 @@ def quality(pages, paras):
 
 def relevant(paras, sections=("methods", "results"), limit_chars=60000):
     """Method と Result の段落(なければ全段落)。LLMへの入力。"""
-    sel = [p for p in paras if p["section"] in sections] or paras
+    sel = [p for p in paras if p["section"] in sections] or [p for p in paras if p["section"] != "references"]  # 文献一覧は入力にしない
     out, n = [], 0
     for p in sel:
         if n + len(p["text"]) > limit_chars:

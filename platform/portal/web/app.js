@@ -52,7 +52,7 @@
   // ---------- 本文の参照ウィンドウ ----------
   function paraPanel(text, highlight) {
     const hl = new Set(highlight || []);
-    const secJa = { abstract: "抄録", methods: "Method", results: "Result", discussion: "Discussion", other: "その他" };
+    const secJa = { abstract: "抄録", methods: "Method", results: "Result", discussion: "Discussion", other: "その他", references: "文献" };
     const hasMR = text.paragraphs.some((p) => p.section === "methods" || p.section === "results");
     const note = !text.paragraphs.length ? '<p class="muted">文字を取り出せない PDF(画像)です。右の PDF を参照してください。OCR で本文を入れると段落が出ます。</p>' : (!hasMR ? '<p class="muted">Method・Result の見出しを判定できないため、全段落を表示します。</p>' : "");
     return `<div class="paras">${note}<div class="row"><label><input type="checkbox" id="onlyMR" ${hasMR ? "checked" : ""}> Method・Result だけ表示</label><input id="paraFind" placeholder="本文を検索" size="20"> ${text.source && text.source !== "pypdf" ? `<span class="tag">${esc(text.source)}</span>` : ""}</div>
@@ -60,7 +60,7 @@
   }
   function wireParas(root) {
     const apply = () => { const only = root.querySelector("#onlyMR")?.checked; const q = (root.querySelector("#paraFind")?.value || "").toLowerCase();
-      root.querySelectorAll(".para").forEach((d) => { const okSec = !only || d.dataset.sec === "methods" || d.dataset.sec === "results" || d.classList.contains("hl"); const okQ = !q || d.textContent.toLowerCase().includes(q); d.style.display = okSec && okQ ? "" : "none"; }); };
+      root.querySelectorAll(".para").forEach((d) => { const okSec = d.classList.contains("hl") || (d.dataset.sec !== "references" && (!only || d.dataset.sec === "methods" || d.dataset.sec === "results")); const okQ = !q || d.textContent.toLowerCase().includes(q); d.style.display = okSec && okQ ? "" : "none"; }); };
     root.querySelector("#onlyMR")?.addEventListener("change", apply); root.querySelector("#paraFind")?.addEventListener("input", apply); apply();
   }
 

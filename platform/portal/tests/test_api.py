@@ -275,3 +275,15 @@ def test_web_style_rules():
     assert not re.search(r"(?<![-\w])color\s*:\s*(#fff\b|#ffffff\b|white\b)", css + js + html, re.I)   # 字の色に白を使わない
     assert ".approve" in css and js.count('class="approve"') >= 4  # 様式4-5 の確定、EtD の確定、総論の完了、進捗ボード
     assert "承認(確定)が必要な記録" in js and "作業手順(SRの流れ)" in js
+
+
+def test_extract_does_not_stop_at_front_matter_or_references():
+    """著者原稿は 1 ページ目に Funding・Conflict of interest があり、本文より前に現れる。そこで抽出を打ち切らない"""
+    body = "Patients received the study drug for six cycles and neuropathy was graded at each visit by a blinded assessor. "
+    pages = [(1, "\n".join(["Author Manuscript", body, "", "Conflict of interest", "The authors declare no conflict of interest in this work at all.", "", "Funding", "Supported by a grant from the national institute of health.", "",
+                              "Abstract", body, "", "Methods", body, "", "Results", body])),
+             (2, "\n".join(["References", "1. Smith J, et al. A randomized trial of something in patients with cancer. J Clin Oncol 2010.", "", "Table 1", "Results", body]))]
+    paras = X.paragraphs("1", pages); secs = [p["section"] for p in paras]
+    assert secs.count("methods") == 1 and secs.count("results") == 2 and "references" in secs  # 文献のあとの本文の見出しで節が戻る
+    assert X.quality(pages, paras) == "本文抽出済"
+    assert all(p["section"] != "references" for p in X.relevant([p for p in paras if p["section"] not in ("methods", "results")]))  # 文献一覧は LLM の入力にしない
