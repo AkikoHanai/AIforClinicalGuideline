@@ -1,4 +1,4 @@
-"""2023年版の総論(platform/soron/out/総論*.docx の「3. 2023年版 原文」)を、段落ID付きでポータルに取り込む(Mac で実行)。
+"""2023年版の総論(platform/data/gl2023/units.json。刊行版 PDF から原文のまま全文を切り出したもの)を、段落ID付きでポータルに取り込む(Mac で実行)。
   python3 platform/portal/scripts/import_soron2023.py <メールアドレス>                      platform/data/gl2023/units.json(2023年版PDFの抽出結果)から取り込む
   python3 platform/portal/scripts/import_soron2023.py --docx <メールアドレス>               platform/soron/out の docx から取り込む
 総論の画面で、執筆者が 2023年版の本文を参照できるようになる。docx 自体も S3 に置き、画面から取得できる。"""
@@ -26,16 +26,19 @@ def main(email, use_docx=False):
     items = []
     if not use_docx:
         units = json.load(open(os.path.join(ROOT, "data", "gl2023", "units.json"), encoding="utf-8"))
+        plan = json.load(open(os.path.join(ROOT, "governance", "approved_plan.json"), encoding="utf-8"))["総論"]
         for u in units:
-            paras = [p for p in u["paras"] if not p.startswith("#")]  # 見出し行(#)と文献(##文献)の印を除く。本文の段落だけ
             key = u["key"]
+            if key not in plan:
+                print(f"{key}: 2028年版の企画書に対応する項目がないため、取り込まない(参考の docx は platform/soron/out にある)"); continue
+            paras = [p for p in u["paras"] if not p.startswith("#")]  # 見出し行(#)と文献(##文献)の印を除く。本文・表図・文献の段落
             docx = glob.glob(os.path.join(SRC, f"総論{key}_*.docx"))
             items.append({"key": key, "title": u["title"], "paragraphs": [{"id": f"GL2023-総論{key.replace('_', '-')}-p{i + 1:03d}", "text": p} for i, p in enumerate(paras)], "filename": os.path.basename(docx[0]) if docx else ""})
-            print(f"総論{key}: {len(paras)}段落 (2023年版 pp.{u['pages']})")
+            print(f"総論{key}: {len(paras)}段落 (2023年版 章{u['letter2023']} pp.{u['chapter_pages']}。照合: 落ちた文字 {u['verify']['missing']} 字)")
     for f in (sorted(glob.glob(os.path.join(SRC, "総論*.docx"))) if use_docx else []):
         name = os.path.basename(f)
-        m = re.match(r"総論([A-M](?:_\d)?)_(.+)\.docx$", name)
-        if not m:
+        m = re.match(r"総論([A-N](?:_\d)?)_(.+)\.docx$", name)
+        if not m or name.endswith("_新設.docx"):
             continue
         key, title = m.group(1), m.group(2)
         paras = paragraphs(f)

@@ -76,8 +76,8 @@ function import2023() {
   const list = ss.getSheetByName(CFG.tabs.list); const rows = list.getRange(2, 1, list.getLastRow() - 1, 7).getValues();
   const files = src.getFilesByType(MimeType.MICROSOFT_WORD); let n = 0;
   while (files.hasNext()) {
-    const f = files.next(); const m = f.getName().match(/^総論([A-M](?:_\d)?)_/);
-    if (!m) continue;
+    const f = files.next(); const m = f.getName().match(/^総論([A-N](?:_\d)?)_/);
+    if (!m || /_新設\.docx$/.test(f.getName())) continue;   // 新設の項目は 2023年版の本文がない
     const key = m[1]; const i = rows.findIndex((r) => r[0] === key);
     if (i < 0 || rows[i][6]) continue;
     const g = Drive.Files.create({ name: `総論${key.replace("_", "-")} 2023年版 原文`, mimeType: MimeType.GOOGLE_DOCS, parents: [dst.getId()] }, f.getBlob());
@@ -104,8 +104,9 @@ function isAdmin(email) {
 function get2023(key) {
   const row = findRow(key); if (!row.doc2023) return { paragraphs: [], note: "2023年版の原文は未取り込み(新設の節、または取り込み待ち)" };
   const doc = DocumentApp.openByUrl(row.doc2023); const ps = doc.getBody().getParagraphs().map((p) => p.getText().trim()).filter((t) => t);
-  const start = ps.findIndex((t) => /^3\.\s*2023年版\s*原文/.test(t)); const body = start >= 0 ? ps.slice(start + 1) : ps;
-  const end = body.findIndex((t) => /^(4\.|文献$)/.test(t)); const sel = end >= 0 ? body.slice(0, end) : body;
+  // 依頼書の「2. 2023年版の全文(原文のまま)」より後を、2023年版の本文として読む(文献を含む。注記の段落と、表・図の文字の見出しは除く)
+  const start = ps.findIndex((t) => /^(2\.\s*2023年版の全文|3\.\s*2023年版\s*原文)/.test(t)); const body = start >= 0 ? ps.slice(start + 1) : ps;
+  const sel = body.filter((t) => !/^段落 \d+、文献 \d+、表・図 \d+。/.test(t));
   return { url: row.doc2023, paragraphs: sel.map((t, i) => ({ id: `GL2023-総論${key.replace("_", "-")}-p${String(i + 1).padStart(3, "0")}`, text: t })) };
 }
 /** 2028年版原稿の本文(確認用) */

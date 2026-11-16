@@ -1,0 +1,124 @@
+{
+ "A": {
+  "pdf_chars": 2227,
+  "docx_chars": 2227,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ },
+ "B": {
+  "pdf_chars": 1776,
+  "docx_chars": 1776,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ },
+ "C": {
+  "pdf_chars": 968,
+  "docx_chars": 968,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ },
+ "D": {
+  "pdf_chars": 2274,
+  "docx_chars": 2274,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ },
+ "E": {
+  "pdf_chars": 2876,
+  "docx_chars": 2876,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ },
+ "F": {
+  "pdf_chars": 558,
+  "docx_chars": 558,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ },
+ "G": {
+  "pdf_chars": 3917,
+  "docx_chars": 3917,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ },
+ "H": {
+  "pdf_chars": 8912,
+  "docx_chars": 8912,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ },
+ "I": {
+  "pdf_chars": 14502,
+  "docx_chars": 14502,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": [
+   {
+    "where": "2023年版 p.37 文献 10",
+    "text": "10）篠　美紀，滝口修平，櫛橋幸民，他．薬剤性嗅覚障害の臨床的検討．日味と匂会誌．"
+   }
+  ]
+ },
+ "J": {
+  "pdf_chars": 24761,
+  "docx_chars": 24761,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ },
+ "K": {
+  "pdf_chars": 1464,
+  "docx_chars": 1464,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ },
+ "L": {
+  "pdf_chars": 1753,
+  "docx_chars": 1753,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ },
+ "M": {
+  "pdf_chars": 589,
+  "docx_chars": 589,
+  "missing": 0,
+  "missing_chars": "",
+  "extra": 0,
+  "extra_chars": "",
+  "corrections": []
+ }
+}

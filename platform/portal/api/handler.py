@@ -653,7 +653,10 @@ def gl2023_soron(method, parts, body, user):
             else:
                 urls.append(None)
             put("GL2023S", key, rec)
-        audit(user, "2023年版総論の取り込み", "総論", f"{sum(1 for u in urls if u is not None or True)}件"); return resp(200, {"imported": len(items), "upload_urls": urls})
+        keys = {str(it.get("key", "")).strip() for it in items}
+        stale = [g["sk"] for g in query("GL2023S") if g["sk"] not in keys] if len(keys) >= 10 else []   # 全体の取り込みのときだけ、一覧にない古い記録を消す
+        for sk in stale: table().delete_item(Key={"pk": "GL2023S", "sk": sk})
+        audit(user, "2023年版総論の取り込み", "総論", f"{len(items)}件" + (f"、古い記録 {len(stale)} 件を削除({'・'.join(stale)})" if stale else "")); return resp(200, {"imported": len(items), "removed": stale, "upload_urls": urls})
     return resp(405, {"error": "方法が不正です"})
 
 
