@@ -192,7 +192,8 @@
       const cell = (rec, k, editable, prefix) => { const it = (rec?.items || {})[k] || {}; return editable
         ? `${vsel(it.v, `data-k="${k}" data-f="v"`)}<br><input data-k="${k}" data-f="evidence" value="${esc((it.evidence || []).join(","))}" placeholder="段落ID" size="12"><br><input data-k="${k}" data-f="quote" value="${esc(it.quote || "")}" placeholder="引用 / 記載なし" size="22">`
         : `<b>${it.v === null || it.v === undefined ? "—" : it.v}</b> <span class="small">${(it.evidence || []).map((e) => `<a href="#" data-para="${esc(e)}">${esc(e)}</a>`).join(" ")}</span><div class="small">${esc(it.quote || "")}</div>`; };
-      const hl = new Set(); [mine, ai, fin, ...Object.values(d.others || {})].forEach((r) => Object.values(r?.items || {}).forEach((it) => (it.evidence || []).forEach((e) => hl.add(e))));
+      const nz = (v) => (v === null || v === undefined || v === "" ? "—" : esc(v));
+      const hl = new Set(); (ai?.numbers?.evidence || []).forEach((e) => hl.add(e)); [mine, ai, fin, ...Object.values(d.others || {})].forEach((r) => Object.values(r?.items || {}).forEach((it) => (it.evidence || []).forEach((e) => hl.add(e))));
       const otherCols = Object.entries(d.others || {});
       $("#f45body").innerHTML = `<div class="split">
         <div class="card" id="paraBox"><h3>本文の該当箇所 <button id="pdfBtn">PDF</button></h3>${text ? paraPanel(text, [...hl]) : '<p class="muted">本文が未抽出です。論文の画面で PDF を登録し、本文を抽出してください。下書きは本文がなければ作りません。</p>'}</div>
@@ -201,10 +202,12 @@
             <li>「提出」を押す。相手の判定は、2名が提出するまで表示されない(2名独立)</li>
             <li><span class="approve">承認</span> 2名の提出後に確定欄が開く。照合し、「照合の結果を確定する」を押す。確定できるのは、評価した2名とSR委員長</li></ol>
           <p class="note">盲検化の2項目は -2 を使わない(統括委員長の決定)。${fin ? `確定の記録: ${esc(fin.fixed_by || "")}` : d.reconcile_open ? '<span class="approve">要承認</span> 2名が提出済。確定の記録がない。' : `提出済: ${d.submitted.length} 名(${esc(d.submitted.join("・")) || "なし"})`}</p>
-          <div class="row">${ed && text ? `<button id="draftBtn">Claude下書きを作る(本文の段落を根拠に)</button>` : ""} ${ed && ai?.items ? `<button id="copyAi">下書きを自分の欄に取り込んで修正する</button>` : ""} ${ai ? `<span class="small">下書き: ${esc(ai.status || "")} ${ai.error ? esc(ai.error) : ""}</span>` : ""}</div>
+          <div class="row">${ed && text ? `<button id="draftBtn">Claude下書きを作る(本文の段落を根拠に)</button>` : ""} ${ed && ai?.items ? `<button id="copyAi">下書き(判定・測定尺度・人数・効果)を自分の欄に取り込んで修正する</button>` : ""} ${ai ? `<span class="small">下書き: ${esc(ai.status || "")} ${ai.error ? esc(ai.error) : ""}</span>` : ""}</div>
           <table class="f45"><tr><th>項目</th>${ai?.items ? "<th>Claude下書き</th>" : ""}<th>自分(${esc(S.me.name || "—")})</th>${otherCols.map(([n]) => `<th>${esc(n)}</th>`).join("")}${d.reconcile_open || fin || isLead() ? "<th>確定(照合)</th>" : ""}</tr>
             ${K.map((k, i) => `<tr><td>${esc(JA[i])}</td>${ai?.items ? `<td>${cell(ai, k, false)}</td>` : ""}<td data-col="mine">${cell(mine, k, ed)}</td>${otherCols.map(([, r]) => `<td>${cell(r, k, false)}</td>`).join("")}
               ${d.reconcile_open || fin || isLead() ? `<td data-col="final">${cell(fin || mine, k, (d.reconcile_open && d.submitted.includes(S.me.name)) || isLead())}</td>` : ""}</tr>`).join("")}</table>
+          ${ai?.items ? `<p class="note">Claude下書き(本文から): 測定尺度 <b>${esc(ai.study?.instrument || "記載なし")}</b>。対照 ${nz(ai.counts?.ctrl_num)} / ${nz(ai.counts?.ctrl_den)}、介入 ${nz(ai.counts?.int_num)} / ${nz(ai.counts?.int_den)}。効果 ${ai.effect?.measure && ai.effect.measure !== "null" ? `${esc(ai.effect.measure)} ${nz(ai.effect.value)} [${nz(ai.effect.ci_low)}, ${nz(ai.effect.ci_high)}]` : "記載なし"}。
+            根拠 ${(ai.numbers?.evidence || []).map((e) => `<a href="#" data-para="${esc(e)}">${esc(e)}</a>`).join(" ") || "なし"} ${esc(ai.numbers?.quote || "")}</p>` : ""}
           <div class="row"><label class="small">測定尺度 <input id="instrument" value="${esc(mine.instrument || ai?.study?.instrument || "")}" size="24"></label>
             <label class="small">対照 分子/分母 <input id="cnum" value="${esc(mine.counts?.ctrl_num ?? "")}" size="4">/<input id="cden" value="${esc(mine.counts?.ctrl_den ?? "")}" size="4"></label>
             <label class="small">介入 分子/分母 <input id="inum" value="${esc(mine.counts?.int_num ?? "")}" size="4">/<input id="iden" value="${esc(mine.counts?.int_den ?? "")}" size="4"></label>
@@ -223,7 +226,12 @@
         try { await api(path, "PUT", { ...b, submitted: true }); toast("提出しました"); render(); } catch (e) { toast(e.message, true); } });
       $("#final45")?.addEventListener("click", async () => { try { await api(path + "/final", "PUT", collect("final")); toast("確定しました"); render(); } catch (e) { toast(e.message, true); } });
       $("#draftBtn")?.addEventListener("click", async () => { try { await api(path + "/draft", "POST", {}); toast("下書きを作成中です(1〜2分後に再読み込み)"); setTimeout(render, 60000); } catch (e) { toast(e.message, true); } });
-      $("#copyAi")?.addEventListener("click", () => { K.forEach((k) => { const it = ai.items[k] || {}; const g = (f) => m.querySelector(`td[data-col="mine"] [data-k="${k}"][data-f="${f}"]`); if (g("v")) g("v").value = it.v === null ? "" : it.v; if (g("evidence")) g("evidence").value = (it.evidence || []).join(","); if (g("quote")) g("quote").value = it.quote || ""; }); toast("取り込みました。本文で確認し、修正して提出してください"); });
+      $("#copyAi")?.addEventListener("click", () => { K.forEach((k) => { const it = ai.items[k] || {}; const g = (f) => m.querySelector(`td[data-col="mine"] [data-k="${k}"][data-f="${f}"]`); if (g("v")) g("v").value = it.v === null ? "" : it.v; if (g("evidence")) g("evidence").value = (it.evidence || []).join(","); if (g("quote")) g("quote").value = it.quote || ""; });
+        // 測定尺度・人数・効果も取り込む(下書きに値があるものだけ)
+        const put = (id, v) => { if (v !== null && v !== undefined && v !== "" && v !== "null") $(id).value = v; };
+        put("#instrument", ai.study?.instrument); put("#cnum", ai.counts?.ctrl_num); put("#cden", ai.counts?.ctrl_den); put("#inum", ai.counts?.int_num); put("#iden", ai.counts?.int_den);
+        put("#emeas", ai.effect?.measure); put("#eval", ai.effect?.value); put("#elo", ai.effect?.ci_low); put("#ehi", ai.effect?.ci_high);
+        toast("判定、測定尺度、人数、効果を取り込みました。本文で確認し、修正して提出してください"); });
     },
 
     async sr8(m) {

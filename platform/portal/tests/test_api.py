@@ -294,3 +294,14 @@ def test_seed_sets_outcome_cipn(env):
     cqs = call("GET", "/cq")[1]
     assert len(cqs) == 15 and all(c["outcomes"] == ["CIPN"] for c in cqs if c["id"] != "P1")  # P1 は試験の準備で書き換えている
     assert next(c for c in cqs if c["id"] == "N1")["pico"]["O"] == "CIPN"
+
+
+def test_draft_normalize_keeps_only_existing_paragraph_ids():
+    """下書きの検査: 存在しない段落IDを捨てる。盲検化の -2 は -1。人数・効果の根拠の段落IDも同じ扱い"""
+    import draft45 as D
+    paras = [{"id": "1-p001"}, {"id": "1-p002"}]
+    out = D.normalize({"items": {"randomization": {"v": 0, "evidence": ["1-p001", "1-p999"], "quote": "q"}, "blinding_assessors": {"v": -2, "evidence": [], "quote": "open label"}, "itt": {"v": 5}},
+                       "counts": {"ctrl_num": 35, "ctrl_den": 60, "int_num": 20, "int_den": 60}, "numbers": {"evidence": ["1-p002", "x"], "quote": "20 of 60 versus 35 of 60"}}, paras)
+    assert out["items"]["randomization"]["evidence"] == ["1-p001"] and out["items"]["blinding_assessors"]["v"] == -1 and out["items"]["itt"]["v"] is None
+    assert out["numbers"] == {"evidence": ["1-p002"], "quote": "20 of 60 versus 35 of 60"} and out["counts"]["int_num"] == 20
+    assert "症状の有無" in D.PROMPT and "計算や推測で作らない" in D.PROMPT

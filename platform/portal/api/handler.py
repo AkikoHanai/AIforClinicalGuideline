@@ -524,7 +524,7 @@ def run_draft45(ev):
         if not paras: return resp(400, {"error": "本文の段落がありません(画像PDF)。OCR で本文を入れてから下書きを作ります"})
         out = draft45.draft(c["title"], c["pico"].get("P"), c["pico"].get("I") or c["title"], outcome, paras)
         rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "下書き", "items": out["items"], "study": out.get("study") or {}, "design": out.get("design"),
-               "counts": out.get("counts") or {}, "effect": out.get("effect") or {}, "model": draft45.MODEL_ID, "paragraphs_used": [x["id"] for x in paras], "at": now()}
+               "counts": out.get("counts") or {}, "effect": out.get("effect") or {}, "numbers": out.get("numbers") or {}, "model": draft45.MODEL_ID, "paragraphs_used": [x["id"] for x in paras], "at": now()}
         put("F45", key, rec); audit(user, "様式4-5の下書きを作成", f"{cqid} / PMID {pmid} / {outcome}", f"段落 {len(paras)}件を根拠に。" + summarize_items(out["items"]))
         return {"ok": True}
     except Exception as e:
