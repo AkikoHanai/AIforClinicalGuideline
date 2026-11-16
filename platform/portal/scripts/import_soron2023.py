@@ -30,7 +30,7 @@ def main(email, use_docx=False):
         for u in units:
             key = u["key"]
             if key not in plan:
-                print(f"{key}: 2028年版の企画書に対応する項目がないため、取り込まない(参考の docx は platform/soron/out にある)"); continue
+                print(f"{key}: 2028年版の企画書に対応する項目がないため、取り込まない"); continue
             paras = [p for p in u["paras"] if not p.startswith("#")]  # 見出し行(#)と文献(##文献)の印を除く。本文・表図・文献の段落
             docx = glob.glob(os.path.join(SRC, f"総論{key}_*.docx"))
             items.append({"key": key, "title": u["title"], "paragraphs": [{"id": f"GL2023-総論{key.replace('_', '-')}-p{i + 1:03d}", "text": p} for i, p in enumerate(paras)], "filename": os.path.basename(docx[0]) if docx else ""})

@@ -26,12 +26,13 @@ OFFSET = 12  # 本のページ = PDF のページ - 12
 
 # 章(2023年版の A〜M)。(2023年版の記号, PDF の開始ページ, 終了ページ)
 CHAPTERS = [("A", 22, 24), ("B", 25, 25), ("C", 26, 26), ("D", 27, 28), ("E", 29, 30), ("F", 31, 31), ("G", 32, 34), ("H", 35, 39),
-            ("I", 40, 49), ("J", 50, 62), ("K", 63, 64), ("L", 65, 66), ("M", 67, 68)]
+            ("I", 40, 49), ("J", 50, 62), ("L", 65, 66), ("M", 67, 68)]
 # 2028年版の担当単位(企画書の総論の記号) ← 2023年版の章と、章の中の節(見出しの正規表現)。
-# 2023年版の K(海外ガイドラインの紹介)は、2028年版に対応する項目がない。2028年版の K(漢方・鍼灸治療)と N(小児患者のCIPN対策)は新設で、2023年版に本文がない。
+# 2023年版の K(海外ガイドラインの紹介、pp.51–52)は、2028年版では扱わない(統括委員長の決定 2026-11-16)。切り出さない。
+# 2028年版の K(漢方・鍼灸治療)と N(小児患者のCIPN対策)は新設で、2023年版に本文がない。
 UNITS = [("A", "A", None), ("B", "B", None), ("C", "C", None), ("D", "D", None), ("E", "E", None), ("F", "F", None), ("G", "G", None), ("H", "H", None),
          ("I_1", "I", r"^1．"), ("I_2", "I", r"^2．"), ("J_1", "J", r"^1．"), ("J_2", "J", r"^2．"), ("J_3", "J", r"^3．"), ("J_4", "J", r"^4．"), ("J_5", "J", r"^5．"),
-         ("L", "L", None), ("M", "M", None), ("2023K", "K", None)]
+         ("L", "L", None), ("M", "M", None)]
 
 JP = r"　-ヿ㐀-鿿＀-￯"
 AN = "A-Za-z0-9α-ωΑ-Ω"
@@ -122,12 +123,188 @@ def crop(pn, top, bottom, name):
     return {"file": os.path.relpath(out, HERE), "w": int(wh[0]), "h": int(wh[1])} if len(wh) == 2 else None
 
 
+# ---------- 表を、編集できる表として組み立てる(罫線と文字の位置から) ----------
+def _mul(m, n):
+    a, b, c, d, e, f = m; A, B, C, D, E, F = n
+    return (a * A + b * C, a * B + b * D, c * A + d * C, c * B + d * D, e * A + f * C + E, e * B + f * D + F)
+
+
+_SEGS, _WORDS = {}, {}
+
+
+def page_segments(reader, pn):
+    """ページの罫線と塗り: (種類 S=線/f=塗り, x0, y0, x1, y1)。y は上から。ページの中の部品(Form XObject)も読む。"""
+    if pn in _SEGS: return _SEGS[pn]
+    from pypdf.generic import ContentStream
+    pg = reader.pages[pn - 1]; H = float(pg.mediabox.height); segs = []
+
+    def walk(stream, resources, ctm, depth):
+        try: cs = ContentStream(stream, reader)
+        except Exception: return
+        stack = []; path = []; cur = None
+        for operands, op in cs.operations:
+            op = op.decode() if isinstance(op, bytes) else op
+            tp = lambda x, y: (ctm[0] * x + ctm[2] * y + ctm[4], H - (ctm[1] * x + ctm[3] * y + ctm[5]))
+            if op == "q": stack.append(ctm)
+            elif op == "Q": ctm = stack.pop() if stack else ctm
+            elif op == "cm": ctm = _mul(tuple(float(x) for x in operands), ctm)
+            elif op == "re":
+                x, y, w, h = [float(v) for v in operands]; p1 = tp(x, y); p2 = tp(x + w, y + h)
+                path.append((min(p1[0], p2[0]), min(p1[1], p2[1]), max(p1[0], p2[0]), max(p1[1], p2[1])))
+            elif op == "m": cur = tp(float(operands[0]), float(operands[1]))
+            elif op == "l":
+                q = tp(float(operands[0]), float(operands[1]))
+                if cur: path.append((min(cur[0], q[0]), min(cur[1], q[1]), max(cur[0], q[0]), max(cur[1], q[1])))
+                cur = q
+            elif op in ("S", "s", "f", "F", "f*", "B", "B*", "b", "b*"):
+                segs.extend(("S" if op in ("S", "s") else "f",) + t for t in path); path = []
+            elif op == "n": path = []
+            elif op == "Do" and depth < 4:
+                xo = (resources.get("/XObject") or {}).get(operands[0]) if resources else None
+                xo = xo.get_object() if xo is not None else None
+                if xo is not None and xo.get("/Subtype") == "/Form":
+                    walk(xo, xo.get("/Resources") or resources, _mul(tuple(float(v) for v in xo.get("/Matrix", [1, 0, 0, 1, 0, 0])), ctm), depth + 1)
+
+    walk(pg.get_contents(), pg.get("/Resources"), (1, 0, 0, 1, 0, 0), 0)
+    _SEGS[pn] = segs
+    return segs
+
+
+def page_words(pn):
+    """ページの語と位置: (x0, y0, x1, y1, 文字)。柱、つめ、透かしは除く。"""
+    if pn in _WORDS: return _WORDS[pn]
+    import html
+    x = subprocess.run(["pdftotext", "-bbox-layout", "-f", str(pn), "-l", str(pn), PDF, "-"], capture_output=True, text=True).stdout
+    out = []
+    for m in re.finditer(r'<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">(.*?)</word>', x):
+        w = (float(m.group(1)), float(m.group(2)), float(m.group(3)), float(m.group(4)), html.unescape(m.group(5)).replace("\x07", " ").strip())
+        if w[4] and w[3] > 52 and w[0] < 462 and "無断転載禁止" not in w[4] and "©JASCC" not in w[4]: out.append(w)
+    _WORDS[pn] = out
+    return out
+
+
+def _uniq(vals, tol):
+    out = []
+    for v in sorted(vals):
+        if not out or v - out[-1] > tol: out.append(v)
+    return out
+
+
+def _cell_text(words):
+    """セルの中の語を、行ごとに並べてつなぐ。小さい上付き(＊1 など)は、直後の行の該当位置に入れる。"""
+    normal = [w for w in words if w[3] - w[1] > 9.5]; tiny = [w for w in words if w[3] - w[1] <= 9.5]
+    lines = []
+    for w in sorted(normal, key=lambda w: (w[3], w[0])):
+        if lines and abs(w[3] - lines[-1][0]) <= 4: lines[-1][1].append(w)
+        else: lines.append([w[3], [w]])
+    for t in tiny:
+        host = next((ln for ln in lines if -1 <= ln[0] - t[3] <= 9), None)
+        if host: host[1].append(t)
+        else: lines.append([t[3], [t]])
+    text = ""
+    for _, ws in sorted(lines, key=lambda ln: ln[0]):
+        line = ""
+        for w in sorted(ws, key=lambda w: w[0]):
+            line += (" " if re.search(r"[A-Za-z0-9,.;:%)]$", line) and re.match(r"[A-Za-z0-9(]", w[4]) else "") + w[4]
+        a, b = glue(text, line); text = a + b
+    return norm(text)
+
+
+def band_tables(reader, pn, top, bottom, captions, continued):
+    """表・図の範囲から、表を組み立てる。captions: [(y, 文字)]。continued: 前のページから続く表か。
+    戻り値: (表の一覧, 表が占める縦の範囲の一覧)。表: {caption, widths, rows[[{text, span, shade}]], notes, continued}"""
+    segs = [s for s in page_segments(reader, pn) if top - 2 <= s[2] <= bottom + 4 and 60 <= s[1] and s[3] <= 466]
+    hs = [(s[2], s[1], s[3]) for s in segs if s[4] - s[2] < 1.6 and s[3] - s[1] > 12]
+    if not hs: return [], []
+    def grids_in(r0, r1):
+        """縦の範囲 r0〜r1 にある横線を、横につながるまとまり(表の本体)に分ける"""
+        sel = [h for h in hs if r0 <= h[0] <= r1]; spans = []; out = []
+        for _, x0, x1 in sorted(sel, key=lambda h: h[1]):
+            if spans and x0 <= spans[-1][1] + 6: spans[-1][1] = max(spans[-1][1], x1)
+            else: spans.append([x0, x1])
+        for X0, X1 in spans:
+            mine = [h for h in sel if h[1] >= X0 - 1 and h[2] <= X1 + 1]
+            ys = _uniq([h[0] for h in mine], 1.0)
+            if len(ys) >= 2: out.append({"x0": X0, "x1": X1, "ys": ys, "cols": _uniq([v for h in mine for v in (h[1], h[2])], 2.5)})
+        return out
+
+    caps = sorted(captions)
+    regions = []   # (開始 y, 終了 y, 表の題)
+    for n, (cy, ct) in enumerate(caps):
+        if ct.startswith("表"): regions.append((cy - 12, caps[n + 1][0] - 12 if n + 1 < len(caps) else bottom + 4, ct))
+    if not caps and continued: regions.append((top - 2, bottom + 4, ""))
+    words = [w for w in page_words(pn) if top - 2 <= (w[1] + w[3]) / 2 <= bottom + 4]
+    tables, used = [], []
+    for r0, r1, cap in regions:
+        gs = [g for g in grids_in(r0 + (10 if cap else 0), r1) if not cap or g["ys"][0] - (r0 + 12) < 40]
+        if not gs: continue
+        gs.sort(key=lambda g: g["x0"]); table_rows = []; ncols = None; widths = None; g_bottom = max(g["ys"][-1] for g in gs)
+        for g in gs:
+            cols = g["cols"]; n = len(cols) - 1
+            if ncols is None: ncols, widths = n, [cols[k + 1] - cols[k] for k in range(n)]
+            elif n != ncols: continue            # 列の数が違う本体は、別の表として扱わず、この表には入れない
+            vs = [s for s in segs if s[3] - s[1] < 1.6 and s[4] - s[2] > 6 and g["x0"] + 3 < s[1] < g["x1"] - 3]
+            fills = [s for s in segs if s[0] == "f" and s[4] - s[2] >= 1.6 and s[1] >= g["x0"] - 1.5 and s[3] <= g["x1"] + 1.5]
+            gw = [w for w in words if g["x0"] - 2 <= (w[0] + w[2]) / 2 <= g["x1"] + 2]
+            col_of = lambda w: max(0, min(n - 1, sum(1 for c in cols[1:-1] if (w[0] + min(w[2], w[0] + 12)) / 2 >= c)))
+            for k in range(len(g["ys"]) - 1):
+                y0, y1 = g["ys"][k], g["ys"][k + 1]
+                bw = [w for w in gw if y0 - 0.5 <= (w[1] + w[3]) / 2 < y1 - 0.5]
+                if not bw: continue
+                shade = any(abs(f[2] - y0) < 1.5 and abs(f[4] - y1) < 1.5 for f in fills)
+                # 結合セル: この行の塗りが、列より少ない数で表の幅を埋めている場合
+                cellsx = _uniq([v for f in fills if abs(f[2] - y0) < 1.5 and abs(f[4] - y1) < 1.5 for v in (f[1], f[3])], 2.5)
+                merged = None
+                if len(cellsx) >= 2 and abs(cellsx[0] - cols[0]) < 3 and abs(cellsx[-1] - cols[-1]) < 3 and len(cellsx) - 1 < n:
+                    merged = [(cellsx[j], cellsx[j + 1], sum(1 for c in cols[:-1] if cellsx[j] - 2.5 <= c < cellsx[j + 1] - 2.5)) for j in range(len(cellsx) - 1)]
+                single = merged is not None or any(min(v[4], y1) - max(v[2], y0) >= 0.8 * (y1 - y0) for v in vs)
+                if single:
+                    if merged: row = [{"text": _cell_text([w for w in bw if a - 2 <= (w[0] + w[2]) / 2 < b + 2]), "span": sp, "shade": shade} for a, b, sp in merged if sp > 0]
+                    else: row = [{"text": _cell_text([w for w in bw if col_of(w) == c]), "span": 1, "shade": shade} for c in range(n)]
+                    table_rows.append(row); continue
+                # 罫線のない範囲: 1 列目に文字がある行が、行の始まり。1 列目が空の行は、前の行の続き
+                lines = []
+                for w in sorted([w for w in bw if w[3] - w[1] > 9.5], key=lambda w: w[3]):
+                    if lines and w[3] - lines[-1][0] <= 9: lines[-1][1].append(w); lines[-1][0] = max(lines[-1][0], w[3]) if w[3] - lines[-1][2] <= 9 else lines[-1][0]
+                    else: lines.append([w[3], [w], w[3]])
+                groups = []
+                for _, ws, _ in lines:
+                    if groups and not any(col_of(w) == 0 for w in ws): groups[-1].extend(ws)
+                    else: groups.append(list(ws))
+                for t in [w for w in bw if w[3] - w[1] <= 9.5]:       # 上付きは、直後の行に入れる
+                    host = next((gr for gr in groups if any(-1 <= w[3] - t[3] <= 9 for w in gr)), groups[-1] if groups else None)
+                    if host is not None: host.append(t)
+                for gr in groups:
+                    table_rows.append([{"text": _cell_text([w for w in gr if col_of(w) == c]), "span": 1, "shade": shade} for c in range(n)])
+        # 表の下の注
+        notes = []
+        g_top = min(g["ys"][0] for g in gs)
+        inside = lambda w: any(g["x0"] - 2 <= (w[0] + w[2]) / 2 <= g["x1"] + 2 and g["ys"][0] - 1 <= (w[1] + w[3]) / 2 <= g["ys"][-1] + 1 for g in gs)
+        nw = [w for w in words if g_top < (w[1] + w[3]) / 2 <= r1 and not inside(w)]     # 表の本体の外(下、または短い側の下)にある文字
+        nl = []
+        for w in sorted([w for w in nw if w[3] - w[1] > 9.5], key=lambda w: (w[3], w[0])):
+            if nl and abs(w[3] - nl[-1][0]) <= 4: nl[-1][1].append(w)
+            else: nl.append([w[3], [w]])
+        for t in [w for w in nw if w[3] - w[1] <= 9.5]:
+            host = next((ln for ln in nl if -1 <= ln[0] - t[3] <= 9), None)
+            if host: host[1].append(t)
+        for _, ws in nl:
+            line = ""
+            for w in sorted(ws, key=lambda w: w[0]):
+                line += (" " if re.search(r"[A-Za-z0-9,.;:%)]$", line) and re.match(r"[A-Za-z0-9(]", w[4]) else "") + w[4]
+            notes.append(norm(line))
+        if table_rows:
+            tables.append({"caption": norm(cap), "widths": widths, "rows": table_rows, "notes": notes, "continued": not cap})
+            used.append((r0, max([g_bottom + 3] + [w[3] + 2 for w in nw])))
+    return tables, used
+
+
 def chapter_blocks(reader, letter, p0, p1):
     """1章を、原文の順のブロックにする。"""
     blocks = []
     cur = {"t": None, "runs": [], "indent": False, "x0": None, "hang": False}   # 作成中の段落(本文 p、文献 ref、注 note)
     pending = []                                      # 段落の途中に現れた表・図(段落の終わりに置く)
-    st = {"last_y": None, "block_left": None}
+    st = {"last_y": None, "block_left": None, "tail_table": False}
 
     def text_so_far():
         return "".join(r[0] for r in cur["runs"])
@@ -165,22 +342,36 @@ def chapter_blocks(reader, letter, p0, p1):
             if bands and bands[-1]["lo"] == lo and bands[-1]["hi"] == hi: bands[-1]["chunks"].append(c)
             else: bands.append({"lo": lo, "hi": hi, "chunks": [c]})
         items = [(c[0], c[1], "chunk", c) for c in ch if c[6] != "band"]
+        tail_next = False
         for n, b in enumerate(bands):
             top = (b["lo"] + 5) if b["lo"] is not None else 52
             bottom = (b["hi"] - (20 if b["hi"] in heads else 11.5)) if b["hi"] is not None else 704
-            rows = []; last_y = None
+            rows = []; rows_y = []; last_y = None
             for c in b["chunks"]:
                 for piece in c[5].split("\n"):
                     piece = re.sub(r"[ \t]+", " ", piece).strip()
                     if not piece: continue
                     if last_y is not None and abs(c[0] - last_y) < 1.5 and rows: rows[-1] = rows[-1] + ("" if rows[-1].endswith(("：", "，", "（")) or piece.startswith(("，", "）", "：")) else " ") + piece
-                    else: rows.append(piece)
+                    else: rows.append(piece); rows_y.append(c[0])
                     last_y = c[0]
             rows = [fix_dash(r) for r in rows]
             caps = [norm(r) for r in rows if re.match(r"^(表|図)\s*\d+", r)]
+            cap_pos = [(y_, norm(r)) for y_, r in zip(rows_y, rows) if re.match(r"^(表|図)\s*\d+", r)]
             img = crop(pn, top, bottom, f"{letter}_p{pn - OFFSET:02d}_{n + 1}.png")
-            items.append((min(c[0] for c in b["chunks"]), -1, "band", {"t": "fig", "page": pn - OFFSET, "caption": caps, "rows": rows, "img": img}))
-        st["last_y"] = None
+            # 題の直前にある上付き(題に付く文献番号)は、題に含める
+            for y_, r_ in zip(rows_y, rows):
+                for ci, (cy_, ct_) in enumerate(cap_pos):
+                    if 0 < cy_ - y_ <= 9 and len(r_) <= 6 and not re.match(r"^(表|図)", r_): cap_pos[ci] = (cy_, ct_ + norm(r_))
+            caps = [ct_ for _, ct_ in cap_pos]
+            tables, used = band_tables(reader, pn, top, bottom, cap_pos, continued=(not cap_pos and b["lo"] is None and st["tail_table"]))
+            if n == len(bands) - 1: tail_next = bool(tables) and b["hi"] is None    # ページの下端まで続く表
+            fig_rows = [r for y_, r in zip(rows_y, rows) if not any(a_ - 9 <= y_ <= b_ for a_, b_ in used)]   # 表に入らなかった文字(図の中の文字)
+            key_ = lambda t: collections.Counter(re.sub(r"[\s\-—‒–]", "", t))
+            got = key_("".join(c_["text"] for t_ in tables for row in t_["rows"] for c_ in row) + "".join(n_ for t_ in tables for n_ in t_["notes"]) + "".join(t_["caption"] for t_ in tables) + "".join(fig_rows))
+            want_ = key_("".join(norm(r) for r in rows))
+            diff = sum((want_ - got).values()) + sum((got - want_).values())
+            items.append((min(c[0] for c in b["chunks"]), -1, "band", {"t": "fig", "page": pn - OFFSET, "caption": caps, "rows": rows, "img": img, "tables": tables, "fig_rows": fig_rows, "table_diff": diff if tables else 0}))
+        st["last_y"] = None; st["tail_table"] = tail_next
         for y, _, kind, c in sorted(items, key=lambda it: (it[0], it[1])):
             if kind == "band":
                 if cur["t"] == "p" and not re.search(r"[。）：]$", text_so_far().rstrip()): pending.append(c)   # 段落の途中: 段落の終わりに置く
@@ -340,14 +531,14 @@ def main():
                       "title": (f"{key.replace('_', '-')}. {title28}" if title28 else f"2023年版 {ctitle}(2028年版に対応する項目なし)"),
                       "who": who28, "author2023": "、".join(signs), "pages": f"{p0 - OFFSET}–{p1 - OFFSET}" if not start else "", "chapter_pages": f"{p0 - OFFSET}–{p1 - OFFSET}",
                       "blocks": sub, "paras": as_paras(sub), "images": [b["img"] for b in sub if b["t"] == "fig" and b["img"]],
-                      "corrections": [f for f in report[letter].get("corrections", []) if any(b.get("corrected") == f["where"] for b in sub)], "counts": {"paragraphs": sum(1 for b in sub if b["t"] == "p"), "refs": sum(1 for b in sub if b["t"] == "ref"), "figs": sum(1 for b in sub if b["t"] == "fig"),
+                      "corrections": [f for f in report[letter].get("corrections", []) if any(b.get("corrected") == f["where"] for b in sub)], "counts": {"paragraphs": sum(1 for b in sub if b["t"] == "p"), "refs": sum(1 for b in sub if b["t"] == "ref"), "figs": sum(1 for b in sub if b["t"] == "fig"), "tables": sum(len(b.get("tables", [])) for b in sub if b["t"] == "fig"), "table_diff": sum(b.get("table_diff", 0) for b in sub if b["t"] == "fig"),
                                  "chars": len(chars_of(sub))}, "verify": report[letter], "fig_pages": pages})
     json.dump(units, open(os.path.join(HERE, "units.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     slim = [{k: v for k, v in u.items() if k not in ("blocks", "images")} for u in units]
     json.dump(slim, open(os.path.join(HERE, "..", "data", "gl2023", "units.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     json.dump(report, open(os.path.join(HERE, "verify.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     for u in units:
-        c = u["counts"]; print(f"{u['key']:6s} 章{u['letter2023']} p.{u['chapter_pages']:6s} 段落 {c['paragraphs']:3d} 文献 {c['refs']:3d} 表図 {c['figs']:2d} 文字 {c['chars']:6d}  著者(2023) {u['author2023']}")
+        c = u["counts"]; print(f"{u['key']:6s} 章{u['letter2023']} p.{u['chapter_pages']:6s} 段落 {c['paragraphs']:3d} 文献 {c['refs']:3d} 表図 {c['figs']:2d} 表(編集用) {c['tables']:2d} 表の文字の差 {c['table_diff']:3d} 文字 {c['chars']:6d}  著者(2023) {u['author2023']}")
     print("\n照合(章ごと。pdftotext の文字に対して落ちた文字の数):")
     for k, r in report.items(): print(f"  {k}: PDF {r['pdf_chars']} 字 / 切り出し {r['docx_chars']} 字 / 落ち {r['missing']} 字 {r['missing_chars'][:60]!r} / 余り {r['extra']} 字 {r['extra_chars'][:40]!r}")
 

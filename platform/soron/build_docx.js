@@ -25,17 +25,34 @@ function memoTable() {
 // 本文の段落: 文献番号は上付き、「表1」「図1」は太字
 const runsOf = (b, size = 21) => b.runs.map(([t, bold, sup]) => run(t, { bold: !!bold, font: bold ? GO : MIN, superScript: !!sup, size }));
 
+// 表(編集できる表)。列の幅は紙面の比率。結合セルと、見出し行の網かけを再現する
+function editableTable(t) {
+  const total = t.widths.reduce((a, b) => a + b, 0), tw = Math.min(W, Math.max(5200, Math.round(total * 20 * 1.15)));
+  const widths = t.widths.map((w) => Math.round(w / total * tw));
+  const out = [new Paragraph({ children: [run((t.caption || "(前のページから続く表)") + "　［編集用の表］", { size: 18, bold: true, font: GO })], spacing: { before: 60, after: 40 }, keepNext: true })];
+  out.push(new Table({ columnWidths: widths, width: { size: widths.reduce((a, b) => a + b, 0), type: WidthType.DXA }, alignment: AlignmentType.CENTER,
+    rows: t.rows.map((r) => { let c = 0; return new TableRow({ cantSplit: true, children: r.map((cellv) => { const w = widths.slice(c, c + cellv.span).reduce((a, b) => a + b, 0); c += cellv.span;
+      return new TableCell({ width: { size: w, type: WidthType.DXA }, columnSpan: cellv.span > 1 ? cellv.span : undefined, borders, margins: { top: 30, bottom: 30, left: 80, right: 80 },
+        shading: cellv.shade ? { type: ShadingType.CLEAR, fill: "E8EEF7", color: "auto" } : undefined, children: [new Paragraph({ children: [run(cellv.text, { size: 17, font: GO })] })] }); }) }); }) }));
+  t.notes.forEach((n) => out.push(new Paragraph({ children: [run(n, { size: 16, font: GO })], spacing: { after: 20 } })));
+  return out;
+}
+
 function figure(b, key) {
   const out = [];
   if (b.img) {
     const natural = b.img.w * 96 / 200, scale = Math.min(1, 630 / natural);
     out.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 120, after: 60 }, keepNext: true,
       children: [new ImageRun({ type: "png", data: fs.readFileSync(path.join(__dirname, b.img.file)), transformation: { width: Math.round(natural * scale), height: Math.round(b.img.h * 96 / 200 * scale) } })] }));
+    out.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [run(`上: 2023年版 p.${b.page} の紙面(原文の体裁)`, { size: 15, font: GO })], spacing: { after: 60 } }));
   }
-  // 表と図の文字(紙面の画像と同じ内容。変更するときに書き換える)
-  const lines = [new Paragraph({ children: [run(`表・図の文字(2023年版 p.${b.page}。上の画像と同じ内容)`, { size: 16, bold: true, font: GO })] }),
-    ...b.rows.map((r) => new Paragraph({ children: [run(r, { size: 16, font: GO })] }))];
-  out.push(new Table({ columnWidths: [W], width: { size: W, type: WidthType.DXA }, rows: [new TableRow({ children: [cell(lines, W, false)] })] }));
+  (b.tables || []).forEach((t) => out.push(...editableTable(t)));
+  // 図の中の文字、注(表に入らない文字)
+  if ((b.fig_rows || []).length) {
+    const lines = [new Paragraph({ children: [run(`図の中の文字・注(2023年版 p.${b.page}。紙面と同じ内容)`, { size: 16, bold: true, font: GO })] }),
+      ...b.fig_rows.map((r) => new Paragraph({ children: [run(r, { size: 16, font: GO })] }))];
+    out.push(new Table({ columnWidths: [W], width: { size: W, type: WidthType.DXA }, rows: [new TableRow({ children: [cell(lines, W, false)] })] }));
+  }
   out.push(para("", { spacing: { after: 60 } }));
   return out;
 }
@@ -81,17 +98,19 @@ async function main() {
       para("「2. 2023年版の全文」は、2023年版(刊行版)の該当箇所を、原文のまま全文引用したものである。改訂は、この全文を直接書き換えて行う。", { indent: { firstLine: 210 } }),
       new Paragraph({ children: [run("1. Word の「変更履歴の記録」をオンにして書き換える(追加、削除、変更の箇所を残す)。")], indent: { left: 420, hanging: 420 }, spacing: { after: 60 } }),
       new Paragraph({ children: [run("2. 追加する文献には PMID を付ける。")], indent: { left: 420, hanging: 420 }, spacing: { after: 60 } }),
-      new Paragraph({ children: [run("3. 表と図は、2023年版の紙面を画像で示している。変更する場合は、画像の下の「表・図の文字」を書き換えるか、新しい表・図を挿入する。")], indent: { left: 420, hanging: 420 }, spacing: { after: 60 } }),
+      new Paragraph({ children: [run("3. 表は、2023年版の紙面の画像と、その下の編集用の表の両方で示している。表を変更する場合は、編集用の表を書き換える。図は紙面の画像で示している。図を変更する場合は、新しい図を挿入する。")], indent: { left: 420, hanging: 420 }, spacing: { after: 60 } }),
       new Paragraph({ children: [run("4. 下の表に、改訂の要点を記入する。")], indent: { left: 420, hanging: 420 }, spacing: { after: 120 } }),
       memoTable(),
       head("2. 2023年版の全文(原文のまま)", HeadingLevel.HEADING_1, 26),
       new Paragraph({ children: [run(`段落 ${c.paragraphs}、文献 ${c.refs}、表・図 ${c.figs}。文字は刊行版 PDF の文字層から取り出し、別の方法で取り出した文字と照合した(2023年版の章 ${u.letter2023}: ${v.pdf_chars} 字のうち、落ちた文字 ${v.missing} 字)。` +
         "和文と英数字の間の空白(組版上のアキ)は入れていない。英数字に接する「—」は「-」とした。文献番号は上付きにした。表と図は紙面から切り出した画像である。" +
+        (c.tables ? `表 ${c.tables} 件は、罫線と文字の位置から編集用の表にした(紙面の文字との差 ${c.table_diff} 字)。` : "") +
         (u.corrections.length ? u.corrections.map((x) => `${x.where} は、PDF の文字層が壊れているため、紙面の画像から読み取った文字を入れた。紙面で確認すること。`).join("") : ""), { size: 16, font: GO })],
         spacing: { after: 160 }, border: { left: { style: BorderStyle.SINGLE, size: 12, color: "888888", space: 6 } } }),
       ...body(u),
     ];
-    const name = is2028 ? `総論${u.key}_${safe(plan["総論"][u.key].split(":")[0])}.docx` : `参考_2023年版${u.letter2023}_2028年版に対応する項目なし.docx`;
+    if (!is2028) continue;   // 企画書にない項目は作らない
+    const name = `総論${u.key}_${safe(plan["総論"][u.key].split(":")[0])}.docx`;
     const doc = new Document({ styles: { default: { document: { run: { font: MIN, size: 21 } } } },
       sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } }, footers: { default: footer(is2028 ? `総論 ${label}　2023年版の全文と改訂の依頼` : `2023年版 ${u.letter2023}(参考)`) }, children }] });
     fs.writeFileSync(path.join(outDir, name), await Packer.toBuffer(doc)); made.push(name);

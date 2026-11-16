@@ -43,14 +43,21 @@ def test_roles_by_font():
 
 def test_full_quotation_is_verified_and_mapped_to_the_plan():
     report = json.load(open(os.path.join(ROOT, "soron", "verify.json"), encoding="utf-8"))
-    assert set(report) == set("ABCDEFGHIJKLM") and all(r["missing"] == 0 and r["extra"] == 0 for r in report.values())   # 落ちた文字、余分な文字がない
+    assert set(report) == set("ABCDEFGHIJLM") and all(r["missing"] == 0 and r["extra"] == 0 for r in report.values())   # 落ちた文字、余分な文字がない
     keys = {u["key"] for u in UNITS}
-    assert keys == (set(PLAN) - {"K", "N"}) | {"2023K"}          # 2028年版の K・N は新設。2023年版の K は対応する項目がない
+    assert keys == set(PLAN) - {"K", "N"}          # 2028年版の K・N は新設。2023年版の K(海外ガイドラインの紹介)は扱わない(統括委員長の決定)
     for u in UNITS:
         assert u["counts"]["paragraphs"] > 0 and u["paras"] and u["author2023"]
-    assert next(u for u in UNITS if u["key"] == "2023K")["who"] == ""
+    assert sum(u["counts"]["tables"] for u in UNITS) == 9 and all(u["counts"]["table_diff"] == 0 for u in UNITS)   # 編集用の表 9 件。紙面の文字との差がない
     out = [os.path.basename(f) for f in glob.glob(os.path.join(ROOT, "soron", "out", "*.docx"))]
     for k in PLAN:
         assert sum(1 for f in out if f.startswith(f"総論{k}_")) == 1, k
     assert any(f.startswith("総論K_") and f.endswith("_新設.docx") for f in out) and any(f.startswith("総論N_") and f.endswith("_新設.docx") for f in out)
-    assert sum(1 for f in out if f.startswith("参考_2023年版K")) == 1 and len(out) == len(PLAN) + 1
+    assert not any("2023年版K" in f for f in out) and len(out) == len(PLAN)
+
+
+def test_cell_text_and_table_note_rules():
+    w = lambda x0, y1, t, h=13: (x0, y1 - h, x0 + 8 * len(t), y1, t)
+    assert X._cell_text([w(81, 542, "パクリタキセル"), w(77, 554, "（アルブミン懸濁型）")]) == "パクリタキセル（アルブミン懸濁型）"     # セルの中の 2 行をつなぐ
+    assert X._cell_text([w(118, 145, "メトトレキサート"), w(250, 140, "＊1", 8)]) == "メトトレキサート＊1"                         # 上付きは直後の行に入れる
+    assert X._cell_text([w(300, 100, "Grade"), w(345, 100, "2")]) == "Grade 2"
