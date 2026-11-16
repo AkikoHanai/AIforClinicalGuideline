@@ -2,6 +2,8 @@
   python3 platform/portal/scripts/admin_user.py <メールアドレス> <氏名>           招待メールを送る
   python3 platform/portal/scripts/admin_user.py --seed <メールアドレス>            その利用者として POST /admin/seed を実行(仮パスワードの入力を求める)
   python3 platform/portal/scripts/admin_user.py --gl2023 <etd_2023.json> <メールアドレス>   2023年版の記述(run_jascc.sh first が作る)を取り込む
+  python3 platform/portal/scripts/admin_user.py --outcomes <メールアドレス> [アウトカム名]   全CQ・FRQにアウトカムを登録する(既定は CIPN。統括委員長の決定 2026-11-16)。
+      アウトカムが未登録の CQ だけに登録する。別のアウトカムが登録済みの CQ は変えずに一覧に出す
 展開の出力(platform/portal/out/outputs.json)から、利用者プールと API の URL を読む。
 """
 import getpass, json, os, sys, urllib.error, urllib.request
@@ -88,10 +90,25 @@ def gl2023(path, email):
     post("/gl2023", token(email), {"items": items})
 
 
+def outcomes(email, name="CIPN"):
+    tok = token(email); done, same, other = [], [], []
+    for c in tok.call("GET", "/cq"):
+        cur = c.get("outcomes") or []
+        if cur == [name]: same.append(c["id"]); continue
+        if cur: other.append(f"{c['id']}({'、'.join(cur)})"); continue
+        r = tok.call("PUT", "/cq/" + c["id"], {"outcomes": [name], "pico": {**c.get("pico", {}), "O": c.get("pico", {}).get("O") or name}})
+        (done if "error" not in r else other).append(c["id"] if "error" not in r else f"{c['id']}: {r['error']}")
+    print(f"アウトカム「{name}」を登録: {len(done)} 件 {' '.join(done)}")
+    print(f"登録済み(変更なし): {len(same)} 件 {' '.join(same)}")
+    if other: print("別のアウトカムが登録済み、または失敗(変更していない):\n  " + "\n  ".join(other))
+
+
 if __name__ == "__main__":
     a = sys.argv[1:]
     if a[:1] == ["--seed"]:
         seed(a[1])
+    elif a[:1] == ["--outcomes"] and len(a) >= 2:
+        outcomes(a[1], *(a[2:3]))
     elif a[:1] == ["--gl2023"]:
         gl2023(a[1], a[2])
     elif len(a) == 2:

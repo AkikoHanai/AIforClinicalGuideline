@@ -29,6 +29,7 @@ ROLE_ADMIN = {"統括委員会", "事務局"}
 ROLE_LEAD = ROLE_ADMIN | {"SR委員長"}
 ROLE_GROUP = {"統括委員会", "作成グループ"}  # 推奨作成(EtD・投票)
 GROUPS = ["統括委員会", "事務局", "SR委員長", "作成グループ", "SR委員", "総説執筆者", "外部評価委員"]
+DEFAULT_OUTCOME = "CIPN"  # 統括委員長の決定(2026-11-16): 今回の改訂では、全CQ・FRQのアウトカムを CIPN とする
 CQ_STAGES = ["CQ確定", "論文登録", "様式4-5", "様式SR-8", "EtD"]  # 表示は記録された件数だけ。推測の状態は出さない
 SORON_STATES = ["原稿未提出", "執筆中", "査読中", "修正中", "完了"]  # 記録に基づく状態だけ
 PHASES = ["STEP 1 Scope・体制", "STEP 2 検索・スクリーニング", "STEP 3 システマティックレビュー実施中", "STEP 4 推奨作成", "STEP 5 解説・総論執筆", "STEP 6 外部評価・パブリックコメント", "STEP 7 公開"]
@@ -144,7 +145,7 @@ def seed(user):
     for it in plan["SR項目"] + plan["FRQ項目"]:
         if not get("CQ", it["id"]):
             put("CQ", it["id"], {"id": it["id"], "kind": "SR" if it["id"][0] != "F" else "FRQ", "category": it.get("区分", "FRQ"), "title": it["名称"], "assignees": it["担当"], "dirs": it["dir"],
-                                 "approved": "統括委員長承認済み(企画書 Ver1 2026-06-17)", "pico": {"P": "", "I": it["名称"], "C": "", "O": ""}, "outcomes": [], "note": ""}); n += 1
+                                 "approved": "統括委員長承認済み(企画書 Ver1 2026-06-17)", "pico": {"P": "", "I": it["名称"], "C": "", "O": DEFAULT_OUTCOME}, "outcomes": [DEFAULT_OUTCOME], "note": ""}); n += 1
     for k, v in plan["総論"].items():
         if not get("SORON", k):
             title, _, author = v.rpartition(":")

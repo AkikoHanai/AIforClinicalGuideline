@@ -287,3 +287,10 @@ def test_extract_does_not_stop_at_front_matter_or_references():
     assert secs.count("methods") == 1 and secs.count("results") == 2 and "references" in secs  # 文献のあとの本文の見出しで節が戻る
     assert X.quality(pages, paras) == "本文抽出済"
     assert all(p["section"] != "references" for p in X.relevant([p for p in paras if p["section"] not in ("methods", "results")]))  # 文献一覧は LLM の入力にしない
+
+
+def test_seed_sets_outcome_cipn(env):
+    """統括委員長の決定(2026-11-16): 全CQ・FRQのアウトカムは CIPN。初期データの作成でこの値を入れる"""
+    cqs = call("GET", "/cq")[1]
+    assert len(cqs) == 15 and all(c["outcomes"] == ["CIPN"] for c in cqs if c["id"] != "P1")  # P1 は試験の準備で書き換えている
+    assert next(c for c in cqs if c["id"] == "N1")["pico"]["O"] == "CIPN"

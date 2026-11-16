@@ -69,3 +69,9 @@ Method・Result の見出しを判定できない PDF は「本文抽出済(節�
 2. 白抜き文字(濃い地に白い字)を使わない。
 3. 承認(確定)が必要な箇所は、橙色の枠(`.approve`)で示す。
 `tests/test_api.py` の `test_web_style_rules` が、1〜3 を検査する。
+
+## アウトカム(統括委員長の決定 2026-11-16)
+今回の改訂では、全CQ・FRQのアウトカムを「CIPN」とする。初期データの作成は、この値で CQ を作る。既にある CQ には次で登録する(未登録の CQ だけ):
+```bash
+python3 platform/portal/scripts/admin_user.py --outcomes <メールアドレス>
+```
