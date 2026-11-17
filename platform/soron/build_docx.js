@@ -17,7 +17,7 @@ const W = 9638; // A4、余白 20mm の本文幅
 
 function memoTable() {
   const w = [3200, W - 3200];
-  const rows = [["項目", "記入欄(担当委員)"], ["改訂の要点(2023年版から変える点)", ""], ["追加・変更する表と図", ""], ["追加する文献(PMID)", ""], ["2023年版から削除する記述", ""]];
+  const rows = [["項目", "ご記入欄"], ["改訂の要点(2023年版から変える点)", ""], ["追加・変更する表と図", ""], ["追加する文献(PMID)", ""], ["2023年版から削除する記述", ""]];
   return new Table({ columnWidths: w, width: { size: W, type: WidthType.DXA },
     rows: rows.map((r, i) => new TableRow({ children: r.map((c, j) => cell([new Paragraph({ children: [run(c, { bold: i === 0 || j === 0, font: i === 0 || j === 0 ? GO : MIN })] })], w[j], i === 0 || j === 0)) })) });
 }
@@ -78,6 +78,9 @@ function body(u) {
 }
 
 const footer = (t) => new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [run(t + "　", { size: 16 }), new TextRun({ children: [PageNumber.CURRENT], font: MIN, size: 16 })] })] });
+// 敬称: 企画書の担当(姓)に「先生」を付ける。委員会への依頼は、そのまま書く
+const honor = (who) => /委員会/.test(who) ? who.replace(/に依頼$/, "") + "(ご依頼先)" : who.split("・").map((n) => n + " 先生").join("、");
+const polite = (items) => items.map((t, i) => new Paragraph({ children: [run(`${i + 1}. ${t}`)], indent: { left: 420, hanging: 420 }, spacing: { after: 60 } }));
 const safe = (s) => s.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, "");
 
 async function main() {
@@ -90,29 +93,32 @@ async function main() {
     const src = `2023年版 ${u.chapter_title}` + (u.section_title ? ` の「${u.section_title}」` : "") + `(第2章 総論、章のページ pp.${u.chapter_pages}、執筆 ${u.author2023 || "記載なし"})`;
     const v = u.verify, c = u.counts;
     const children = [
-      new Paragraph({ children: [run(plan["タイトル"] + "　第2章 総論　改訂の依頼", { size: 18 })] }),
+      new Paragraph({ children: [run(plan["タイトル"] + "　第2章 総論　改訂原稿のご執筆のお願い", { size: 18 })] }),
       new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun({ text: is2028 ? `総論 ${u.title}` : u.title, font: GO, bold: true, size: 32 })], spacing: { before: 100, after: 100 } }),
-      para(is2028 ? `2028年版の担当: ${u.who}` : "2028年版の企画書に、対応する項目はない。参考として 2023年版の全文を示す。"),
+      para(`ご担当: ${honor(u.who)}`),
       para(`引用元: ${src}`),
-      head("1. 依頼事項", HeadingLevel.HEADING_1, 26),
-      para("「2. 2023年版の全文」は、2023年版(刊行版)の該当箇所を、原文のまま全文引用したものである。改訂は、この全文を直接書き換えて行う。", { indent: { firstLine: 210 } }),
-      new Paragraph({ children: [run("1. Word の「変更履歴の記録」をオンにして書き換える(追加、削除、変更の箇所を残す)。")], indent: { left: 420, hanging: 420 }, spacing: { after: 60 } }),
-      new Paragraph({ children: [run("2. 追加する文献には PMID を付ける。")], indent: { left: 420, hanging: 420 }, spacing: { after: 60 } }),
-      new Paragraph({ children: [run("3. 表は、2023年版の紙面の画像と、その下の編集用の表の両方で示している。表を変更する場合は、編集用の表を書き換える。図は紙面の画像で示している。図を変更する場合は、新しい図を挿入する。")], indent: { left: 420, hanging: 420 }, spacing: { after: 60 } }),
-      new Paragraph({ children: [run("4. 下の表に、改訂の要点を記入する。")], indent: { left: 420, hanging: 420 }, spacing: { after: 120 } }),
+      head("1. ご依頼の内容", HeadingLevel.HEADING_1, 26),
+      para(`総論「${u.title.replace(/^[A-N](?:-\d)?\. /, "")}」の改訂原稿のご執筆を、お願い申し上げます。`, { indent: { firstLine: 210 } }),
+      para("「2. 2023年版の全文」に、2023年版(刊行版)の該当箇所を、原文のまま全文掲載しております。改訂は、この全文を直接ご修正いただく形でお願いいたします。", { indent: { firstLine: 210 } }),
+      ...polite(["Word の「変更履歴の記録」をオンにしてご修正ください。追加、削除、変更の箇所が記録されます。",
+        "追加される文献には、PMID をお書き添えください。",
+        "表は、紙面の画像の下に、編集できる表をお付けしております。表を変更される場合は、編集用の表をご修正ください。図を変更される場合は、新しい図を挿入してください。",
+        "下の表に、改訂の要点をご記入ください。",
+        "原稿は、GL作成ポータルの「総論の執筆・査読」の画面からご提出ください。提出の時期と書き方は、同じポータルの「手順書」にある「総説執筆者の手順書」に記載しております。"]),
+      para("ご不明の点は、統括委員長(華井)までお問い合わせください。ご多用のところ恐れ入りますが、よろしくお願い申し上げます。", { indent: { firstLine: 210 }, spacing: { before: 80, after: 160 } }),
       memoTable(),
       head("2. 2023年版の全文(原文のまま)", HeadingLevel.HEADING_1, 26),
-      new Paragraph({ children: [run(`段落 ${c.paragraphs}、文献 ${c.refs}、表・図 ${c.figs}。文字は刊行版 PDF の文字層から取り出し、別の方法で取り出した文字と照合した(2023年版の章 ${u.letter2023}: ${v.pdf_chars} 字のうち、落ちた文字 ${v.missing} 字)。` +
-        "和文と英数字の間の空白(組版上のアキ)は入れていない。英数字に接する「—」は「-」とした。文献番号は上付きにした。表と図は紙面から切り出した画像である。" +
-        (c.tables ? `表 ${c.tables} 件は、罫線と文字の位置から編集用の表にした(紙面の文字との差 ${c.table_diff} 字)。` : "") +
-        (u.corrections.length ? u.corrections.map((x) => `${x.where} は、PDF の文字層が壊れているため、紙面の画像から読み取った文字を入れた。紙面で確認すること。`).join("") : ""), { size: 16, font: GO })],
+      new Paragraph({ children: [run(`事務局からの注記: 段落 ${c.paragraphs}、文献 ${c.refs}、表・図 ${c.figs}。文字は刊行版 PDF から取り出し、別の方法で取り出した文字と照合しております(2023年版の章 ${u.letter2023}: ${v.pdf_chars} 字のうち、欠落 ${v.missing} 字)。` +
+        "和文と英数字の間の空白(組版上のアキ)は入れておりません。英数字に接する「—」は「-」としております。文献番号は上付きにしております。" +
+        (c.tables ? `表 ${c.tables} 件は、紙面の画像に加えて、編集できる表をお付けしております(紙面の文字との差 ${c.table_diff} 字)。` : "") +
+        (u.corrections.length ? u.corrections.map((x) => `${x.where} は、PDF の文字情報に欠損があるため、紙面の画像から読み取った文字を入れております。お手数ですが、刊行版でご確認ください。`).join("") : ""), { size: 16, font: GO })],
         spacing: { after: 160 }, border: { left: { style: BorderStyle.SINGLE, size: 12, color: "888888", space: 6 } } }),
       ...body(u),
     ];
     if (!is2028) continue;   // 企画書にない項目は作らない
     const name = `総論${u.key}_${safe(plan["総論"][u.key].split(":")[0])}.docx`;
     const doc = new Document({ styles: { default: { document: { run: { font: MIN, size: 21 } } } },
-      sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } }, footers: { default: footer(is2028 ? `総論 ${label}　2023年版の全文と改訂の依頼` : `2023年版 ${u.letter2023}(参考)`) }, children }] });
+      sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } }, footers: { default: footer(is2028 ? `総論 ${label}　2023年版の全文と改訂のお願い` : `2023年版 ${u.letter2023}(参考)`) }, children }] });
     fs.writeFileSync(path.join(outDir, name), await Packer.toBuffer(doc)); made.push(name);
   }
   // 2028年版で新設の項目(2023年版に本文がない)
@@ -120,18 +126,21 @@ async function main() {
     if (units.some((u) => u.key === key)) continue;
     const [title, who] = [v.slice(0, v.lastIndexOf(":")), v.slice(v.lastIndexOf(":") + 1)];
     const children = [
-      new Paragraph({ children: [run(plan["タイトル"] + "　第2章 総論　執筆の依頼", { size: 18 })] }),
+      new Paragraph({ children: [run(plan["タイトル"] + "　第2章 総論　原稿のご執筆のお願い", { size: 18 })] }),
       new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun({ text: `総論 ${key}. ${title}`, font: GO, bold: true, size: 32 })], spacing: { before: 100, after: 100 } }),
-      para(`2028年版の担当: ${who}`),
-      head("1. 依頼事項", HeadingLevel.HEADING_1, 26),
-      para("この項目は 2028年版で新設する。2023年版の第2章 総論に、該当する節はない。引用する前版の本文はない。", { indent: { firstLine: 210 } }),
-      new Paragraph({ children: [run("1. 文献には PMID を付ける。")], indent: { left: 420, hanging: 420 }, spacing: { after: 60 } }),
-      new Paragraph({ children: [run("2. 下の表に、執筆の要点を記入する。")], indent: { left: 420, hanging: 420 }, spacing: { after: 120 } }),
+      para(`ご担当: ${honor(who)}`),
+      head("1. ご依頼の内容", HeadingLevel.HEADING_1, 26),
+      para(`総論「${title}」の原稿のご執筆を、お願い申し上げます。`, { indent: { firstLine: 210 } }),
+      para("この項目は、2028年版で新設いたします。2023年版の第2章 総論には該当する節がないため、前版の本文の掲載はございません。", { indent: { firstLine: 210 } }),
+      ...polite(["引用される文献には、PMID をお書き添えください。",
+        "下の表に、執筆の要点をご記入ください。",
+        "原稿は、GL作成ポータルの「総論の執筆・査読」の画面からご提出ください。提出の時期と書き方は、同じポータルの「手順書」にある「総説執筆者の手順書」に記載しております。"]),
+      para("ご不明の点は、統括委員長(華井)までお問い合わせください。ご多用のところ恐れ入りますが、よろしくお願い申し上げます。", { indent: { firstLine: 210 }, spacing: { before: 80, after: 160 } }),
       memoTable(),
     ];
     const name = `総論${key}_${safe(title)}_新設.docx`;
     const doc = new Document({ styles: { default: { document: { run: { font: MIN, size: 21 } } } },
-      sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } }, footers: { default: footer(`総論 ${key}　執筆の依頼(新設)`) }, children }] });
+      sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } }, footers: { default: footer(`総論 ${key}　ご執筆のお願い(新設)`) }, children }] });
     fs.writeFileSync(path.join(outDir, name), await Packer.toBuffer(doc)); made.push(name);
   }
   made.sort().forEach((n) => console.log(n));

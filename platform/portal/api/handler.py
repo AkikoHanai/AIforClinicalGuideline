@@ -257,8 +257,8 @@ def handler(event, context=None):
         return resp(400, {"error": f"項目がありません: {e}"})
 
 
-SORON_ONLY = {"me", "meta", "dashboard", "soron", "audit"}  # 総説執筆者だけの利用者が使える範囲(SRの流れとは分離)
-SR_ONLY = {"me", "meta", "dashboard", "cq", "papers", "f45", "sr8", "etd", "gl2023", "screening", "audit", "export"}
+SORON_ONLY = {"me", "meta", "dashboard", "soron", "audit", "docs"}  # 総説執筆者だけの利用者が使える範囲(SRの流れとは分離)
+SR_ONLY = {"me", "meta", "dashboard", "cq", "papers", "f45", "sr8", "etd", "gl2023", "screening", "audit", "export", "docs"}
 
 
 def route(method, parts, body, user):
@@ -303,6 +303,8 @@ def route(method, parts, body, user):
         return export(method, parts, body, user)
     if head == "soron":
         return soron(method, parts, body, user)
+    if head == "docs":
+        return docs(method, parts, body, user)
     if head == "screening":
         return screening(method, parts, body, user)
     if head == "audit":
@@ -746,6 +748,37 @@ def soron(method, parts, body, user):
             if s.get("status") == "査読中": s["status"] = "修正中"
         put("SORON", s["key"], s); audit(user, "総論の更新", f"総論{s['label']}", "、".join(ch)); return resp(200, s)
     return resp(405, {"error": "方法が不正です"})
+
+# ---------- 手順書(委員がポータルから受け取る。個別に送らない) ----------
+# (ファイル名に含む語, 対象, 閲覧できる役割。None は全員)
+DOCS = [("操作マニュアル", "全委員", None), ("SR委員の手順書", "SR委員", {"統括委員会", "事務局", "SR委員長", "SR委員", "作成グループ"}), ("SR委員長の業務手順", "SR委員長", ROLE_LEAD),
+        ("論文PDFの入手", "SR委員", {"統括委員会", "事務局", "SR委員長", "SR委員"}), ("推奨作成会議手順書", "作成グループ", ROLE_GROUP | ROLE_LEAD),
+        ("総説執筆者の手順書", "総論の執筆者", {"統括委員会", "事務局", "総説執筆者"}), ("用語の定義", "全委員", None), ("統括委員会へのお願い", "統括委員会", ROLE_ADMIN)]
+
+
+def docs(method, parts, body, user):
+    # GET  /docs               自分の役割で閲覧できる手順書の一覧(取得用の署名付きURL)
+    # POST /docs/upload-url    統括委員会・事務局が手順書を置く(scripts/upload_docs.py)
+    g = set(user["groups"])
+    if method == "POST" and parts[1:2] == ["upload-url"]:
+        require(user, ROLE_ADMIN)
+        name = re.sub(r"[^\w.\-一-龥ぁ-んァ-ン（）()]", "_", str(body.get("filename", "")))[:80]
+        if not name.endswith(".docx") or not any(k in name for k, _, _ in DOCS): return resp(400, {"error": "手順書のファイル名ではありません"})
+        url = s3().generate_presigned_url("put_object", Params={"Bucket": BUCKET, "Key": f"docs/{name}", "ContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}, ExpiresIn=900)
+        audit(user, "手順書の登録", name); return resp(200, {"url": url, "key": f"docs/{name}"})
+    if method == "GET":
+        objs = s3().list_objects_v2(Bucket=BUCKET, Prefix="docs/").get("Contents", []) if BUCKET else []
+        out = []
+        for k, target, roles in DOCS:
+            if roles is not None and not (g & roles): continue
+            o = next((x for x in objs if k in x["Key"]), None)
+            if not o: continue
+            name = o["Key"].split("/", 1)[1]
+            out.append({"name": name, "target": target, "updated": o["LastModified"].isoformat()[:10],
+                        "url": s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": o["Key"]}, ExpiresIn=900)})
+        return resp(200, out)
+    return resp(405, {"error": "方法が不正です"})
+
 
 # ---------- スクリーニング ----------
 def screening_progress(d):

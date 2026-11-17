@@ -47,7 +47,7 @@ python3 platform/portal/scripts/admin_user.py <メールアドレス> 華井明�
 python3 platform/portal/scripts/admin_user.py --seed <メールアドレス>       # 企画書の CQ・総論を入れる
 ```
 Bedrock のモデルは環境変数 `BEDROCK_MODEL_ID`(省略時 `anthropic.claude-sonnet-4-5`)で指定し、`cdk deploy` の前に設定する。
-2023年版の記述(CQ)は、`run_jascc.sh first` が作る `etd_2023.json` を `scripts/admin_user.py --gl2023 <json> <メールアドレス>` で取り込む。2023年版の総論は `scripts/import_soron2023.py <メールアドレス>` で取り込む(platform/soron/out の docx から)。
+2023年版の記述(CQ)は、`run_jascc.sh first` が作る `etd_2023.json` を `scripts/admin_user.py --gl2023 <json> <メールアドレス>` で取り込む。2023年版の総論は `scripts/import_soron2023.py <メールアドレス>` で取り込む(`platform/data/gl2023/units.json` の段落と、`platform/soron/out` の依頼書(Word)。新設の K・N は依頼書だけを置く)。
 
 ## 試験
 ```bash
@@ -75,3 +75,16 @@ Method・Result の見出しを判定できない PDF は「本文抽出済(節�
 ```bash
 python3 platform/portal/scripts/admin_user.py --outcomes <メールアドレス>
 ```
+
+## 手順書と依頼書の受け渡し(個別に送付しない)
+
+委員は、ポータルで手順書と依頼書を受け取る。統括委員長が行う操作は、委員の招待(「利用者」の画面。手動)と、次の 2 つのコマンドである。
+
+```
+python3 platform/portal/scripts/upload_docs.py <メールアドレス>        # 手順書(platform/manuals/out、procedures/out の 2 件)を「手順書」の画面に置く
+python3 platform/portal/scripts/import_soron2023.py <メールアドレス>   # 総論の依頼書 19 件を「総論の執筆・査読」の各行に置く
+```
+
+- 「手順書」の画面は、ログインした委員の役割に応じた手順書だけを表示する(SR委員: 操作マニュアル、SR委員の手順書、論文PDFの入手、用語の定義。総説執筆者: 操作マニュアル、総説執筆者の手順書、用語の定義)。
+- 総論の依頼書は、その総論の執筆者、統括委員会、事務局だけが開ける。
+- 手順書を置けるのは、統括委員会と事務局に限る。

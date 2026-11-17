@@ -84,7 +84,7 @@
         <div class="card"><h3>作業手順(SRの流れ)</h3>
           <div class="scroll"><table><tr><th class="nw">手順</th><th>作業</th><th>行う人</th><th>承認(確定)</th><th>画面</th></tr>
           ${STEPS.map(([n, what, who, ap, page, label]) => `<tr><td class="num">${n}</td><td>${esc(what)}</td><td>${esc(who)}</td><td>${ap ? need("承認") + " " + esc(ap) : "承認なし"}</td><td class="nw"><a href="#${page}">${esc(label)}</a></td></tr>`).join("")}</table></div>
-          <p class="note">CQ・FRQ は、統括委員長が承認済み(企画書 Ver1)。Claude 下書きは出発点であり、判定は委員が行う。本文を抽出できない論文では下書きを作らない。</p></div>
+          <p class="note">手順の詳細は、左の「手順書」にある「SR委員の手順書」を参照。CQ・FRQ は、統括委員長が承認済み(企画書 Ver1)。Claude 下書きは出発点であり、判定は委員が行う。本文を抽出できない論文では下書きを作らない。</p></div>
         <div class="card"><h3>CQごとの記録</h3>
           <p class="note">記録された件数だけを示す。列の番号は作業手順の番号。「a / b」は、記録 a 件 / 必要 b 件(手順2 は 本文抽出済 / 登録、手順4 は 確定 / 論文×アウトカム、手順5 は 確実性の記入 / アウトカム)。自分が担当の行は淡い青。${need("要承認")} は、確定の記録がない件。名称を押すと、その CQ の論文の画面を開く。</p>
           <div class="scroll"><table><tr><th>ID</th><th>名称</th><th>担当</th><th>手順1<br>アウトカム</th><th>手順2<br>論文</th><th>手順3<br>様式4-5 提出</th><th>手順4<br>様式4-5 確定</th><th>手順5<br>様式SR-8</th><th>手順6・7<br>EtD・推奨</th></tr>
@@ -297,7 +297,7 @@
       const mineOnly = !admin && !isLead();
       const rows = list.filter((s) => !mineOnly || (S.me.name && s.author.split("・").some((a) => a && S.me.name.startsWith(a))));
       m.innerHTML = `<h2>総説の流れ: 総論(A〜N)の執筆・査読</h2>
-        <ol class="steps"><li>執筆者が原稿(Word)をこの画面で提出し、状態を「査読中」にして保存する</li><li>統括委員会・事務局が査読コメントを書く(状態は「修正中」になる)</li><li>執筆者が修正版を提出する</li><li><span class="approve">承認</span> 統括委員会が「完了」にする</li></ol>
+        <ol class="steps"><li>執筆者が、各行の「依頼書・2023年版」から依頼書(Word。2023年版の全文入り)を開く</li><li>執筆者が、依頼書を直接修正した原稿(Word)をこの画面で提出し、状態を「査読中」にして保存する</li><li>統括委員会・事務局が査読コメントを書く(状態は「修正中」になる)</li><li>執筆者が修正版を提出する</li><li><span class="approve">承認</span> 統括委員会が「完了」にする</li></ol>
         <p class="note">企画書の総論18項目と担当。原稿は版ごとに保存される。SRの流れ(CQ)とは独立している。</p>
         <table><tr><th>項目</th><th>題名</th><th>担当</th><th>状態</th><th>期限</th><th>最新の原稿</th><th>査読コメント(統括委員会)</th><th>備考</th><th></th></tr>
         ${rows.map((s) => { const o = S.me.name && s.author.split("・").some((a) => a && S.me.name.startsWith(a)); const ed = o || admin;
@@ -306,7 +306,7 @@
             <td>${ed ? `<input type="date" data-due value="${esc(s.due || "")}">` : esc(s.due || "")}</td>
             <td class="small">${s.file ? `<a href="#" data-dl="${esc(s.key)}">${esc(s.file)}</a><br>${esc((s.file_at || "").slice(0, 16))} ${esc(s.file_by || "")}` : "—"}${ed ? `<br><input type="file" data-up accept=".docx,.doc,.pdf"> <button data-act="upload">提出</button>` : ""}</td>
             <td>${admin ? `<textarea data-review rows="2" cols="24">${esc(s.review || "")}</textarea>` : esc(s.review || "")}${s.review_by ? `<div class="small">${esc(s.review_by)} ${esc((s.review_at || "").slice(0, 16))}</div>` : ""}</td>
-            <td>${ed ? `<input data-note value="${esc(s.note || "")}" size="14">` : esc(s.note || "")}</td><td>${ed ? '<button data-act="save">保存</button> ' : ""}<button data-gl="${esc(s.key)}">2023年版</button></td></tr>`; }).join("") || "<tr><td colspan=9 class='muted'>担当の総論はありません</td></tr>"}</table><div id="gl2023Box"></div>`;
+            <td>${ed ? `<input data-note value="${esc(s.note || "")}" size="14">` : esc(s.note || "")}</td><td>${ed ? '<button data-act="save">保存</button> ' : ""}<button data-gl="${esc(s.key)}">依頼書・2023年版</button></td></tr>`; }).join("") || "<tr><td colspan=9 class='muted'>担当の総論はありません</td></tr>"}</table><div id="gl2023Box"></div>`;
       m.querySelectorAll("button[data-act=save]").forEach((b) => b.addEventListener("click", async () => { const tr = b.closest("tr"); const body = { status: tr.querySelector("[data-status]").value, due: tr.querySelector("[data-due]").value, note: tr.querySelector("[data-note]").value };
         const rv = tr.querySelector("[data-review]"); if (rv) body.review = rv.value;
         try { await api("/soron/" + tr.dataset.key, "PUT", body); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } }));
@@ -317,9 +317,10 @@
       m.querySelectorAll("a[data-dl]").forEach((a) => a.addEventListener("click", async (ev) => { ev.preventDefault(); try { const r = await api("/soron/" + a.dataset.dl + "/download-url"); window.open(r.url, "_blank"); } catch (e) { toast(e.message, true); } }));
       m.querySelectorAll("button[data-gl]").forEach((b) => b.addEventListener("click", async () => {
         try { const g = await api("/soron/" + b.dataset.gl + "/gl2023"); const box = $("#gl2023Box");
-          if (!g.paragraphs) { box.innerHTML = '<p class="muted">この総論の 2023年版の本文は未取り込みです(新設の節、または事務局の取り込み待ち)。</p>'; return; }
-          box.innerHTML = `<div class="card" style="margin-top:12px"><h3>2023年版 総論${esc(b.dataset.gl.replace("_", "-"))} ${esc(g.title)} <span class="small">${g.paragraphs.length}段落</span> ${g.docx_url ? `<a href="${esc(g.docx_url)}" target="_blank" rel="noopener">Word(原文)</a>` : ""}</h3>
-            <p class="small">段落 ID を、原稿の根拠や変更箇所の指示に使う。</p><div class="paras">${g.paragraphs.map((p) => `<div class="para"><span class="pid">${esc(p.id)}</span><div>${esc(p.text)}</div></div>`).join("")}</div></div>`;
+          if (!g.paragraphs) { box.innerHTML = '<p class="note need">この総論の依頼書は、まだ登録されていません(事務局が登録します)。</p>'; return; }
+          box.innerHTML = `<div class="card" style="margin-top:12px"><h3>総論${esc(b.dataset.gl.replace("_", "-"))} ${esc(g.title)}</h3>
+            <p>${g.docx_url ? `<a href="${esc(g.docx_url)}" target="_blank" rel="noopener"><b>依頼書(Word)を開く</b></a>。` : ""}${g.paragraphs.length ? `依頼書には、2023年版の全文(${g.paragraphs.length} 段落。表は編集できる表)が入っています。この Word を直接修正し、上の表の「提出」から原稿として提出します。` : "新設の項目です。2023年版に該当する節はありません。依頼書に執筆の要点の記入欄があります。"}</p>
+            ${g.paragraphs.length ? '<p class="small">下は 2023年版の本文です。段落 ID を、変更箇所の指示に使えます。</p>' : ""}<div class="paras">${g.paragraphs.map((p) => `<div class="para"><span class="pid">${esc(p.id)}</span><div>${esc(p.text)}</div></div>`).join("")}</div></div>`;
           box.scrollIntoView({ behavior: "smooth" }); } catch (e) { toast(e.message, true); } }));
     },
 
@@ -344,6 +345,13 @@
         try { const r = await api("/users", "POST", { email: $("#uEmail").value, name: $("#uName").value, roles, invite: true }); toast(r.invited ? "招待メールを送りました" : "登録しました"); render(); } catch (e) { toast(e.message, true); } });
       $("#seedBtn")?.addEventListener("click", async () => { try { const r = await api("/admin/seed", "POST", {}); toast(`${r.created}件を作成しました`); S.cqs = await api("/cq"); render(); } catch (e) { toast(e.message, true); } });
       m.querySelectorAll("button[data-del]").forEach((b) => b.addEventListener("click", async () => { if (!confirm(`${b.dataset.del} を削除しますか`)) return; try { await api("/users/" + encodeURIComponent(b.dataset.del), "DELETE"); toast("削除しました"); render(); } catch (e) { toast(e.message, true); } }));
+    },
+
+    async docs(m) {
+      const list = await api("/docs");
+      m.innerHTML = `<h2>手順書</h2><p class="note">自分の役割に必要な手順書を、ここから開きます。総論の依頼書(2023年版の全文)は、「総論の執筆・査読」の画面の各行にあります。</p>
+        <table><tr><th>手順書</th><th>対象</th><th>更新日</th><th>操作</th></tr>
+        ${list.map((d) => `<tr><td>${esc(d.name.replace(/\.docx$/, ""))}</td><td>${esc(d.target)}</td><td class="nw">${esc(d.updated)}</td><td class="nw"><a href="${esc(d.url)}" target="_blank" rel="noopener">Word を開く</a></td></tr>`).join("") || '<tr><td colspan="4" class="muted">登録された手順書はありません(事務局が登録します)</td></tr>'}</table>`;
     },
 
     async audit(m) { const list = await api("/audit"); m.innerHTML = `<h2>作成経過の記録</h2><p class="small">全ての操作が追記される。更新・削除の操作はない。${list.length}件</p>${auditTable(list)}`; },

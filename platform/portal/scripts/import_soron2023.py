@@ -35,6 +35,11 @@ def main(email, use_docx=False):
             docx = glob.glob(os.path.join(SRC, f"総論{key}_*.docx"))
             items.append({"key": key, "title": u["title"], "paragraphs": [{"id": f"GL2023-総論{key.replace('_', '-')}-p{i + 1:03d}", "text": p} for i, p in enumerate(paras)], "filename": os.path.basename(docx[0]) if docx else ""})
             print(f"総論{key}: {len(paras)}段落 (2023年版 章{u['letter2023']} pp.{u['chapter_pages']}。照合: 落ちた文字 {u['verify']['missing']} 字)")
+        for key, v in plan.items():      # 新設の項目(2023年版に本文がない)。依頼書だけを置く
+            if any(it["key"] == key for it in items): continue
+            docx = glob.glob(os.path.join(SRC, f"総論{key}_*.docx"))
+            items.append({"key": key, "title": v.rpartition(":")[0], "paragraphs": [], "filename": os.path.basename(docx[0]) if docx else ""})
+            print(f"総論{key}: 新設(2023年版の本文なし。依頼書 {'あり' if docx else 'なし'})")
     for f in (sorted(glob.glob(os.path.join(SRC, "総論*.docx"))) if use_docx else []):
         name = os.path.basename(f)
         m = re.match(r"総論([A-N](?:_\d)?)_(.+)\.docx$", name)

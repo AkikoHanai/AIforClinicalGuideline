@@ -194,6 +194,9 @@ def test_export_and_gl2023_soron(env):
     c, r2 = call("POST", "/gl2023/soron", items2); assert c == 200 and r2["imported"] == 1 and r2["upload_urls"][0]
     call("POST", "/users", {"email": "hanai@example.org", "name": "華井明子", "roles": ["総説執筆者"]})
     c, g = call("GET", "/soron/H/gl2023", who=dict(email="hanai@example.org", groups=("総説執筆者",))); assert c == 200 and g["paragraphs"][0]["id"] == "GL2023-総論H-p001"
+    # 新設の項目(2023年版の本文なし)は、依頼書(Word)だけを置く。画面から開ける
+    c, r3 = call("POST", "/gl2023/soron", {"items": [{"key": "N", "title": "小児患者のCIPN対策", "paragraphs": [], "filename": "総論N_小児患者のCIPN対策_新設.docx"}]}); assert c == 200 and r3["upload_urls"][0]
+    c, g = call("GET", "/soron/N/gl2023"); assert c == 200 and g["paragraphs"] == [] and g["docx_url"]
     # EtD下書きは SR-8 がなければ作らない(P2)。P1 では作成中になる(Bedrock は呼ばれない環境では失敗として記録される)
     assert call("POST", "/etd/P2/draft", {}, dict(email="g@example.org", groups=("作成グループ",)))[0] == 409
     assert call("POST", "/etd/P1/draft", {}, dict(email="g@example.org", groups=("作成グループ",)))[0] == 202
@@ -305,3 +308,16 @@ def test_draft_normalize_keeps_only_existing_paragraph_ids():
     assert out["items"]["randomization"]["evidence"] == ["1-p001"] and out["items"]["blinding_assessors"]["v"] == -1 and out["items"]["itt"]["v"] is None
     assert out["numbers"] == {"evidence": ["1-p002"], "quote": "20 of 60 versus 35 of 60"} and out["counts"]["int_num"] == 20
     assert "症状の有無" in D.PROMPT and "計算や推測で作らない" in D.PROMPT
+
+
+def test_docs_are_listed_by_role(env):
+    """手順書は、ポータルから役割に応じて受け取る"""
+    for n in ("1_操作マニュアル.docx", "4_SR委員の手順書.docx", "5_総説執筆者の手順書.docx", "2_統括委員会へのお願い_スケジュールとアプリの精査.docx"):
+        c, r = call("POST", "/docs/upload-url", {"filename": n}); assert c == 200
+        boto3.client("s3").put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"x")
+    assert call("POST", "/docs/upload-url", {"filename": "4_SR委員の手順書.docx"}, R1)[0] == 403            # 置けるのは統括委員会・事務局
+    assert call("POST", "/docs/upload-url", {"filename": "任意のファイル.docx"})[0] == 400
+    names = lambda who: [d["name"] for d in call("GET", "/docs", who=who)[1]]
+    assert names(R1) == ["1_操作マニュアル.docx", "4_SR委員の手順書.docx"]                                    # SR委員
+    assert names(dict(email="w@example.org", groups=("総説執筆者",))) == ["1_操作マニュアル.docx", "5_総説執筆者の手順書.docx"]
+    assert len(names(CHAIR)) == 4
