@@ -331,7 +331,14 @@
 
     async search(m) {
       const q = Q(); const cqid = q.cq || S.cqs[0]?.id; const c = S.cqs.find((x) => x.id === cqid); const ed = own(c) || isLead();
-      const list = await api("/search/" + cqid); const cur = list.find((r) => r.id === q.edit) || {};
+      const [list, ref] = await Promise.all([api("/search/" + cqid), api(`/search/${cqid}/reference`)]); const cur = list.find((r) => r.id === q.edit) || {};
+      const refCard = !(ref.formula || []).length && !(ref.prior || []).length ? "" : `<div class="card"><h3>参考: 検索式の案と、2023年版の検索過程</h3>
+        <p class="note">この枠は参考資料であり、検索の記録には数えない。検索式の案は、前回Scopeの式(P・C は全CQで共通、I は本CQの介入語)である。検索期間と検索式の変更は、統括委員会の承認が必要である。2023年版の検索過程は、当時の担当者の Word から取り出した記録であり、欠けや誤りがありうる。</p>
+        ${(ref.last_search_end_2023 || []).length ? `<p>2023年版の検索の終了日: <b>${esc(ref.last_search_end_2023.join("、"))}</b>(今回の検索期間は、この翌月から)</p>` : '<p>2023年版の検索の終了日: 記録なし(SR委員長に確認する)</p>'}
+        ${(ref.formula || []).map((f, i) => `<p><b>検索式の案(${esc(f.dir)})</b>。本CQの介入語: ${esc(f.terms)}<br><span class="mono">${esc(f.query)}</span>${ed ? `<br><button data-fill="${i}">この式を検索式の欄に写す(日付の条件は自分で加える)</button>` : ""}</p>`).join("")}
+        ${(ref.prior || []).length ? `<details><summary>2023年版の検索過程(${ref.prior.length} 件)</summary><table><tr><th>CQ</th><th>文書</th><th>データベース</th><th>検索期間(原文)</th><th>検索式(原文)</th><th>件数・除外の記載(原文)</th></tr>
+          ${ref.prior.map((p) => `<tr><td>${esc(p.dir)}</td><td>${esc(p.file)}</td><td>${esc(p.database)}</td><td>${esc(p.period_text)}</td><td class="w">${esc(p.query)}</td><td class="w">${esc((p.flow_lines || []).join(" / "))}</td></tr>`).join("")}</table></details>` : ""}
+        ${(ref.notes || []).map((n) => `<p class="small">${esc(n)}</p>`).join("")}</div>`;
       const total = list.reduce((a, r) => a + Number(r.hits || 0), 0);
       m.innerHTML = `<h2>検索の記録</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
         <p class="note">検索を実行するたびに、1 行を記録する(更新検索も 1 行)。検索式は、PubMed の検索窓に入れた文字列を、そのまま貼り付ける。日付の条件は、検索式の中に書く。記録の修正は、作成経過の記録に残る。</p>
@@ -341,6 +348,7 @@
             <label>件数 <input id="sHits" type="number" min="0" size="8" value="${esc(cur.hits ?? "")}"></label></div>
           <div class="row"><label>検索式<br><textarea id="sQuery" rows="4" cols="90">${esc(cur.query || "")}</textarea></label></div>
           <div class="row"><label>備考 <input id="sNote" size="70" value="${esc(cur.note || "")}"></label><button id="sSave" class="primary">${cur.id ? "修正を保存" : "記録する"}</button>${cur.id ? ` <a href="#search?cq=${esc(cqid)}">修正をやめる</a>` : ""}</div></div>` : ""}
+        ${refCard}
         <div class="card"><h3>記録(${list.length} 件。件数の合計 ${total} 件)</h3>
           <table><tr><th>検索日</th><th>データベース</th><th>検索者</th><th>検索期間</th><th>検索式</th><th>件数</th><th>備考</th><th>操作</th></tr>
           ${list.map((r) => `<tr><td class="nw">${esc(r.date)}</td><td>${esc(r.database)}</td><td>${esc(r.searcher)}</td><td>${esc(r.period)}</td><td class="w">${esc(r.query)}</td><td class="num">${esc(r.hits)}</td><td>${esc(r.note)}</td>
@@ -350,6 +358,7 @@
       $("#sSave")?.addEventListener("click", async () => {
         const b = { database: $("#sDb").value, date: $("#sDate").value, searcher: $("#sWho").value, period: $("#sPeriod").value, query: $("#sQuery").value, hits: $("#sHits").value, note: $("#sNote").value };
         try { await api("/search/" + cqid + (cur.id ? "/" + cur.id : ""), cur.id ? "PUT" : "POST", b); toast("記録しました"); if (cur.id) go("search", { cq: cqid }); else render(); } catch (e) { toast(e.message, true); } });
+      m.querySelectorAll("button[data-fill]").forEach((b) => b.addEventListener("click", () => { $("#sQuery").value = ref.formula[Number(b.dataset.fill)].query; $("#sQuery").scrollIntoView({ behavior: "smooth" }); }));
       m.querySelectorAll("button[data-del]").forEach((b) => b.addEventListener("click", async () => { if (!confirm("この検索の記録を削除しますか(削除は作成経過の記録に残ります)")) return;
         try { await api(`/search/${cqid}/${b.dataset.del}`, "DELETE"); render(); } catch (e) { toast(e.message, true); } }));
     },

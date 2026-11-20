@@ -11,6 +11,7 @@ DynamoDB 1テーブル(pk, sk):
   GL2023/<cq>                 2023年版の記述(推奨文・解説・投票。build_etd.py の etd_2023.json を取り込む)
   SORON/<key>                 総論A〜N(企画書)
   SEARCH/<cq>#<id>            検索の記録(データベース、検索日、検索者、検索期間、検索式、件数)
+  SEARCHREF/<cq>              検索の参考資料(2023年版の検索過程、検索式の案)。検索の記録には数えない
   CAND/<cq>#<pmid>            スクリーニングの対象の文献(出典、題名、抄録)。協議の結論(final)
   SCR/<cq>#<pmid>#<担当>      担当委員ごとの判定(一次・二次の可否、除外理由、全文の状態、変更の履歴)
   SCRMETA/<cq>                取り込みのときに重複として除いた件数
@@ -821,6 +822,13 @@ def search(method, parts, body, user):
     if len(parts) < 2: return resp(400, {"error": "CQ が必要です"})
     cqid = parts[1]; c = get("CQ", cqid)
     if not c: return resp(404, {"error": "ありません"})
+    if parts[2:3] == ["reference"]:
+        # 参考: 2023年版の検索過程と、検索式の案(platform/data/search_reference.json。scripts/import_search_reference.py が置く)
+        if method == "GET": return resp(200, get("SEARCHREF", cqid) or {})
+        if method == "POST":
+            require(user, ROLE_ADMIN)
+            ref = {k: body.get(k) or [] for k in ("formula", "prior", "last_search_end_2023", "notes")}
+            put("SEARCHREF", cqid, {"cq": cqid, **ref}); audit(user, "検索の参考資料の登録", cqid, f"検索式の案 {len(ref['formula'])}件、2023年版の検索過程 {len(ref['prior'])}件"); return resp(200, {"ok": True})
     if method == "GET":
         return resp(200, sorted(query("SEARCH", f"{cqid}#"), key=lambda r: (r.get("date", ""), r["sk"])))
     if not can_edit_cq(user, c): raise Forbidden("この CQ の担当委員、SR委員長、統括委員会、事務局に限ります")

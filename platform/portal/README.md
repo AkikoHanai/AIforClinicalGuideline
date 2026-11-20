@@ -89,3 +89,16 @@ python3 platform/portal/scripts/import_soron2023.py <メールアドレス>   # 
 - 「手順書」の画面は、ログインした委員の役割に応じた手順書だけを表示する(SR委員: 操作マニュアル、SR委員の手順書、論文PDFの入手、用語の定義。総説執筆者: 操作マニュアル、総説執筆者の手順書、用語の定義)。
 - 総論の依頼書は、その総論の執筆者、統括委員会、事務局だけが開ける。
 - 手順書を置けるのは、統括委員会と事務局に限る。
+
+## 保存済みの検索の資料(参考)
+
+リポジトリに保存してある検索の資料を、「検索の記録」の画面の参考の枠に置く。検索の記録・流れ図の件数には数えない。
+
+```
+python3 platform/portal/scripts/import_search_reference.py <メールアドレス>
+python3 platform/portal/scripts/check_pubmed.py        # PubMed からの題名・抄録の取得を、Mac から実際の PubMed で確認する(AWS は不要)
+```
+
+- `platform/data/search_reference.json`: CQ ごとの検索式の案(前回Scopeの式。`core/prepare_review_workspace.py` の P節・C節・I節)と、2023年版の検索過程(`platform/prior_worksheets/search_*.json`。12 件)。
+- 2023年版の検索過程の記録がない CQ: P2(プレガバリン・予防)、T2(アミトリプチリン)、F3(オピオイド)、F4(併用療法)。
+- 今回(2028年版)の検索結果の一覧(検索式ごとの全件)は、リポジトリに保存されていない。`platform/literature_update/records.json` は、2026-10-26 に題名と RCT に限定して確認した 64 件であり、前回Scopeの式による検索ではない。

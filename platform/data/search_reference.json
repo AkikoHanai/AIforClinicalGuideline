@@ -1,0 +1,456 @@
+{
+ "_source": "検索式: core/prepare_review_workspace.py(委員会から提示された式。P節・C節は共通、I節はCQごと)。2023年版の検索過程: prior_worksheets/search_*.json(SR担当者の検索過程のWordから自動で取り出した記録)。式の先頭の閉じていない括弧 1 つを除いた(意味は同じ)",
+ "cq": {
+  "P1": {
+   "formula": [
+    {
+     "dir": "CQ1-牛車腎気丸",
+     "terms": "Goshajinkigan",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (Goshajinkigan)"
+    }
+   ],
+   "prior": [
+    {
+     "dir": "CQ1-牛車腎気丸",
+     "file": "検索過程.docx",
+     "database": "PubMed",
+     "period_text": "[ 検索期間 ] ~ 2016 年 5 月 31 日",
+     "last_search_end": "2016-05-31",
+     "query": "goshajinkigan (neuropathy OR neurotoxi *) (prevent* OR management* OR effect*)",
+     "flow_lines": [
+      "40 件",
+      "以下除外",
+      "•他の疾患や基礎研究など内容が合致しないもの 19 件",
+      "•総説など2件",
+      "•英語以外6件(症例報告)",
+      "記述研究(症例報告やケースシリーズなど) 9 件",
+      "RCT 4 件"
+     ]
+    }
+   ],
+   "last_search_end_2023": [
+    "CQ1-牛車腎気丸: 2021-06"
+   ],
+   "notes": [
+    "下の検索過程の文書は、2017年手引き時点(~2016.5, 40件)の記録。2023年版の検索(PubMed 2020~2021.6, 53件)は、2023年版の作業記録(事務局が保管)にある"
+   ]
+  },
+  "P2": {
+   "formula": [
+    {
+     "dir": "CQ1-プレガバリン",
+     "terms": "Pregabalin",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (Pregabalin)"
+    }
+   ],
+   "prior": [],
+   "last_search_end_2023": [],
+   "notes": []
+  },
+  "P3": {
+   "formula": [
+    {
+     "dir": "CQ1-カルニチン-アセチル‒L‒カルニチン",
+     "terms": "Acetyl-L-carnitine",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (Acetyl-L-carnitine)"
+    }
+   ],
+   "prior": [
+    {
+     "dir": "CQ1-カルニチン-アセチル‒L‒カルニチン",
+     "file": "カルニチン　平山検索過程.docx",
+     "database": "PubMed",
+     "period_text": "[ 検索期間 ] 2019 年 9 月 1 日 〜 2021 年 6 月 30 日",
+     "last_search_end": "2021-06-30",
+     "query": "1 S urvivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Acetyl-L-carnitine",
+     "flow_lines": [
+      "カルニチンに関しては ASCO ,ESMO のガイドラインをそのまま利用することとなった。それらの公表以降の 2019.9-2021.6 に関して ASCO で用いられた検索式 1 の他 ( 0 件 ) に検索式 2 ( 2 件) でも検索した。",
+      "2 件",
+      "以下除外",
+      "•他の疾患や基礎研究など内容が合致しないもの 2 件",
+      "0件"
+     ]
+    }
+   ],
+   "last_search_end_2023": [
+    "CQ1-カルニチン-アセチル‒L‒カルニチン: 2021-06-30"
+   ],
+   "notes": []
+  },
+  "N1": {
+   "formula": [
+    {
+     "dir": "CQ1-冷却・圧迫",
+     "terms": "cryotherapy OR \"Compression Bandages\"[Mesh]",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (cryotherapy OR \"Compression Bandages\"[Mesh])"
+    }
+   ],
+   "prior": [
+    {
+     "dir": "CQ1-冷却・圧迫",
+     "file": "検索過程_冷却_20211231.docx",
+     "database": "PubMed",
+     "period_text": "検索 August 3, 2021",
+     "last_search_end": "2021-08-03",
+     "query": "BEIJERS, A. J. M., et al. Multicenter randomized controlled trial to evaluate the efficacy and tolerability of frozen gloves for the prevention of chemotherapy-induced peripheral neuropathy. Annals of Oncology , 2020, 31.1: 131-136.",
+     "flow_lines": []
+    },
+    {
+     "dir": "CQ1-冷却・圧迫",
+     "file": "検索過程_冷却_山田華井.docx",
+     "database": "PubMed",
+     "period_text": "検索期間: 2020 .2 - 2021.6",
+     "last_search_end": "2021-06",
+     "query": "Cryotherapy for the prevention of chemotherapy-induced peripheral neuropathy: A systematic review",
+     "flow_lines": [
+      "→11件",
+      "検索式: ASCO 検索式 ( C ryotherapy のみ)",
+      "65 件",
+      "以下除外",
+      "•他の疾患や基礎研究など内容が合致しないもの 59 件",
+      "(1件はすでに上記11件内に包含)",
+      "観察研究 3 件",
+      "RCT 2 件"
+     ]
+    }
+   ],
+   "last_search_end_2023": [
+    "CQ1-冷却・圧迫: 2021-08-03"
+   ],
+   "notes": []
+  },
+  "N2": {
+   "formula": [
+    {
+     "dir": "CQ1-運動",
+     "terms": "\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh]",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh])"
+    }
+   ],
+   "prior": [
+    {
+     "dir": "CQ1-運動",
+     "file": "【運動】検索過程.docx",
+     "database": "PubMed",
+     "period_text": "[ 検索期間 ] 2019年 9月 1日 ~ 20 21 年 9 月 4 日",
+     "last_search_end": "2021-09-04",
+     "query": "neuropathy or \"neuropathies\" or \"chemotherapy-induced\" or \"chemotherapy-induced neuropathy\" or \"chemotherapy-induced peripheral neuropathy\" or \"CIPN\" or \"peripheral nervous system/drug effects\" or \"peripheral nerve diseases/chemically induced\" or \"antineoplastic agents/adverse effects\" or \"neoplasms/drug therapy\" or \"neoplasms/complications\"",
+     "flow_lines": [
+      "867件該当 → 一次スクリーニングで 29 件 に",
+      "以下除外",
+      "• wrong study design (SR ・RCT 以外) 1 3 件",
+      "• wrong outcome (CIPN以外) 7 件",
+      "• その他 (MAなしSR)4 件",
+      "うち2件は運動療法に限定しない介入、1件はCIPNに限定しない末梢神経障害",
+      "SR&amp;MA 1 件 (治療)",
+      "RCT 4 件 (予防2件・治療2件)"
+     ]
+    }
+   ],
+   "last_search_end_2023": [
+    "CQ1-運動: 2021-09-04"
+   ],
+   "notes": []
+  },
+  "N3": {
+   "formula": [
+    {
+     "dir": "CQ1-鍼灸",
+     "terms": "\"Acupuncture Therapy\"[Mesh]",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (\"Acupuncture Therapy\"[Mesh])"
+    }
+   ],
+   "prior": [
+    {
+     "dir": "CQ1-鍼灸",
+     "file": "検索式.docx",
+     "database": "PubMed",
+     "period_text": "Pubmed で 検索 、2019,9から2021",
+     "last_search_end": "2021",
+     "query": "(((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND acupuncture",
+     "flow_lines": [
+      "除外基準"
+     ]
+    }
+   ],
+   "last_search_end_2023": [
+    "CQ1-鍼灸: 2021"
+   ],
+   "notes": []
+  },
+  "T1": {
+   "formula": [
+    {
+     "dir": "CQ2-デュロキセチン",
+     "terms": "duloxetine",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (duloxetine)"
+    }
+   ],
+   "prior": [
+    {
+     "dir": "CQ2-デュロキセチン",
+     "file": "検索過程 武井_デュロキセチン.docx",
+     "database": "PubMed",
+     "period_text": "[ 検索期間 ] ~ 20 21 年 7 月 3 1 日 (新規文献 : 2019/9/1 〜 2021/7/31)",
+     "last_search_end": "2021-07-31",
+     "query": "(((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (duloxetine))",
+     "flow_lines": [
+      "31 件 ( + ASCO,ESMO, 手引きの掲載論文 : 3件 )",
+      "以下除外",
+      "•他の疾患や基礎研究など内容が合致しないもの 1 4 件",
+      "•総説 11 件",
+      "• 横断研究・後方視的研究 4件",
+      "• コホート研究 1件",
+      "RCT 1 件 (+ ASCO,ESMO, 手引きの掲載論文RCT:3件)",
+      "(残ったRCT1件もASCO2020に掲載されている)"
+     ]
+    },
+    {
+     "dir": "CQ2-デュロキセチン",
+     "file": "検索過程 神林＿デュロキセチン.docx",
+     "database": "PubMed",
+     "period_text": "[ 検索期間 ] ~ 20 21 年 1 2 月 1 2 日 (新規文献 : 2019/9/1 〜 2021/ 12/1 2 )",
+     "last_search_end": "2021-12-12",
+     "query": "(((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (duloxetine))",
+     "flow_lines": [
+      "3 8 件",
+      "Filters applied: Meta-Analysis, Randomized Controlled Trial, English, from 2019/9 - 3000/12/12. 5件",
+      "Excludes patients other than CIPN RCT 1件",
+      "RCT 1 件 (+ ASCO,ESMO, 手引きの掲載論文RCT:3件) の4論文抽出"
+     ]
+    }
+   ],
+   "last_search_end_2023": [
+    "CQ2-デュロキセチン: 2021-12-12"
+   ],
+   "notes": []
+  },
+  "T2": {
+   "formula": [
+    {
+     "dir": "CQ2-アミトリプチリン",
+     "terms": "amitriptyline/ketamine",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (amitriptyline/ketamine)"
+    }
+   ],
+   "prior": [],
+   "last_search_end_2023": [],
+   "notes": []
+  },
+  "T3": {
+   "formula": [
+    {
+     "dir": "CQ2-プレガバリン",
+     "terms": "Pregabalin OR gabapentin",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (Pregabalin OR gabapentin)"
+    },
+    {
+     "dir": "CQ2-ミロガバリン",
+     "terms": "\"Mirogabalin\"[Supplementary Concept]",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (\"Mirogabalin\"[Supplementary Concept])"
+    }
+   ],
+   "prior": [
+    {
+     "dir": "CQ2-プレガバリン",
+     "file": "検索過程 プレガバリン・ミロガバリン.docx",
+     "database": "PubMed",
+     "period_text": "検索期間: 2019.9-2021.8 .12",
+     "last_search_end": "2021-08-12",
+     "query": "((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin AND 2019/9:2021 [DP]",
+     "flow_lines": [
+      "29 件",
+      "以下除外",
+      "• 他の疾患や基礎研究など内容が合致しないもの 2 8 件",
+      "RCT1 件",
+      "ASCO ガイドライン 2020 RCT1 件 (上記 RCT と同一)",
+      "ハンドサーチ RCT 3 件",
+      "RCT 4 件",
+      "1 件",
+      "計 61 件",
+      "以下除外",
+      "他の疾患や基礎研究など内容が合致しないもの 57 件",
+      "前向き 単群臨床試験 1 件",
+      "後向き観察研究 3 件",
+      "ハンドサーチより後向き観察研究 2 件追加"
+     ]
+    },
+    {
+     "dir": "CQ2-ミロガバリン",
+     "file": "検索過程 プレガバリン・ミロガバリン.docx",
+     "database": "PubMed",
+     "period_text": "検索期間: 2019.9-2021.8 .12",
+     "last_search_end": "2021-08-12",
+     "query": "((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin AND 2019/9:2021 [DP]",
+     "flow_lines": [
+      "29 件",
+      "以下除外",
+      "• 他の疾患や基礎研究など内容が合致しないもの 2 8 件",
+      "RCT1 件",
+      "ASCO ガイドライン 2020 RCT1 件 (上記 RCT と同一)",
+      "ハンドサーチ RCT 3 件",
+      "RCT 4 件",
+      "1 件",
+      "計 61 件",
+      "以下除外",
+      "他の疾患や基礎研究など内容が合致しないもの 57 件",
+      "前向き 単群臨床試験 1 件",
+      "後向き観察研究 3 件",
+      "ハンドサーチより後向き観察研究 2 件追加"
+     ]
+    }
+   ],
+   "last_search_end_2023": [
+    "CQ2-プレガバリン: 2021-08-12",
+    "CQ2-ミロガバリン: 2021-08-12"
+   ],
+   "notes": []
+  },
+  "N4": {
+   "formula": [
+    {
+     "dir": "CQ2-運動",
+     "terms": "\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh]",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh])"
+    }
+   ],
+   "prior": [
+    {
+     "dir": "CQ2-運動",
+     "file": "【運動】検索過程.docx",
+     "database": "PubMed",
+     "period_text": "[ 検索期間 ] 2019年 9月 1日 ~ 20 21 年 9 月 4 日",
+     "last_search_end": "2021-09-04",
+     "query": "neuropathy or \"neuropathies\" or \"chemotherapy-induced\" or \"chemotherapy-induced neuropathy\" or \"chemotherapy-induced peripheral neuropathy\" or \"CIPN\" or \"peripheral nervous system/drug effects\" or \"peripheral nerve diseases/chemically induced\" or \"antineoplastic agents/adverse effects\" or \"neoplasms/drug therapy\" or \"neoplasms/complications\"",
+     "flow_lines": [
+      "867件該当 → 一次スクリーニングで 29 件 に",
+      "以下除外",
+      "• wrong study design (SR ・RCT 以外) 1 3 件",
+      "• wrong outcome (CIPN以外) 7 件",
+      "• その他 (MAなしSR)4 件",
+      "うち2件は運動療法に限定しない介入、1件はCIPNに限定しない末梢神経障害",
+      "SR&amp;MA 1 件 (治療)",
+      "RCT 4 件 (予防2件・治療2件)"
+     ]
+    }
+   ],
+   "last_search_end_2023": [
+    "CQ2-運動: 2021-09-04"
+   ],
+   "notes": []
+  },
+  "N5": {
+   "formula": [
+    {
+     "dir": "CQ2-鍼灸",
+     "terms": "\"Acupuncture Therapy\"[Mesh]",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (\"Acupuncture Therapy\"[Mesh])"
+    }
+   ],
+   "prior": [
+    {
+     "dir": "CQ2-鍼灸",
+     "file": "検索式.docx",
+     "database": "PubMed",
+     "period_text": "Pubmed で 検索 、2019,9から2021",
+     "last_search_end": "2021",
+     "query": "(((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND acupuncture",
+     "flow_lines": [
+      "除外基準"
+     ]
+    }
+   ],
+   "last_search_end_2023": [
+    "CQ2-鍼灸: 2021"
+   ],
+   "notes": []
+  },
+  "F1": {
+   "formula": [
+    {
+     "dir": "CQ2-ビタミン-B12",
+     "terms": "\"Vitamin B 12\"[Mesh]",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (\"Vitamin B 12\"[Mesh])"
+    }
+   ],
+   "prior": [
+    {
+     "dir": "CQ2-ビタミン-B12",
+     "file": "CIPN SR_VB12　検索過程.docx",
+     "database": "",
+     "period_text": "2016年6月-2021年6月",
+     "last_search_end": "2021-06",
+     "query": "Effects of the publication of Clinical Guidelines for the Management of Chemotherapy-Induced Peripheral Neuropathy on the Administration Preferences of Oncology Specialists: Japanese Association of Supportive Care in Cancer. Hirayama Y, Yoshida Y, Mori M, Tamura K. Jpn J Clin Oncol. 2020 Aug 4;50(8):897-902. doi : 10.1093/ jjco /hyaa056.",
+     "flow_lines": []
+    }
+   ],
+   "last_search_end_2023": [
+    "CQ2-ビタミン-B12: 2021-06"
+   ],
+   "notes": []
+  },
+  "F2": {
+   "formula": [
+    {
+     "dir": "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs",
+     "terms": "\"Anti-Inflammatory Agents, Non-Steroidal\"[Mesh]",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (\"Anti-Inflammatory Agents, Non-Steroidal\"[Mesh])"
+    }
+   ],
+   "prior": [
+    {
+     "dir": "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs",
+     "file": "NSAIDs　松坂　検索式記録.docx",
+     "database": "PubMed",
+     "period_text": "[ 検索期間 ] 2016 年 6 月 1 日 ~ 2021 年 6 月 3 0 日",
+     "last_search_end": "2021-06-30",
+     "query": "s Cancer peripheral (neuropathy OR neurotoxi * ) (“non steroidal anti inflammatory drugs” OR NSAIDs OR Aspirin OR Acemetacin OR Ampiroxicam OR Ibuprofen OR Indometacin OR Ethenzamide OR Etodolac OR Oxaprozin OR Zaltoprofen OR Diclofenac OR Sulindac OR Celecoxib OR Tiaprofenic acid OR Nabumetone OR Naproxen OR Piroxicam OR Pranoprofen OR Flufenamic acid OR Mefenamic acid OR Meloxicam OR Loxoprofen OR Lornoxicam OR Ketoprofen OR Sodium salicylate) (effect OR management OR treat * OR therapy) NOT diabet *",
+     "flow_lines": [
+      "139065 177800 16 件",
+      "以下除外",
+      "・動物実験、違う薬剤など、本 CQ に合致しない 14 件",
+      "2 件",
+      "ASCO ガイドラインに NSAID s の 記載なし。",
+      "ESMO ガイドラインにて nonsteroidal anti-inflammatory drugs (NSAIDs) の メリットを裏付ける データ無しとの記載。",
+      "アセメタシン Acemetacin",
+      "インドメタシン I ndometacin",
+      "検索結果 13 件",
+      "除外(動物実験)",
+      "除外 (臨床試験では無い)",
+      "除外(動物実験)",
+      "除外(アルツハイマーに関する内容、本 CQ に合致しない)",
+      "除外( 神経ブロックに 関する内容、本 CQ に合致しない)"
+     ]
+    }
+   ],
+   "last_search_end_2023": [
+    "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs: 2021-06-30"
+   ],
+   "notes": []
+  },
+  "F3": {
+   "formula": [
+    {
+     "dir": "CQ2-オピオイド",
+     "terms": "\"Analgesics, Opioid\"[Mesh]",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (\"Analgesics, Opioid\"[Mesh])"
+    }
+   ],
+   "prior": [],
+   "last_search_end_2023": [],
+   "notes": []
+  },
+  "F4": {
+   "formula": [
+    {
+     "dir": "CQ2-薬物の併用療法",
+     "terms": "\"Drug Therapy, Combination\"[Mesh]",
+     "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications) AND (\"Drug Therapy, Combination\"[Mesh])"
+    }
+   ],
+   "prior": [],
+   "last_search_end_2023": [],
+   "notes": []
+  }
+ }
+}

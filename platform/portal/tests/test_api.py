@@ -398,3 +398,15 @@ def test_pubmed_xml_is_parsed(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", lambda url, timeout=0: io.BytesIO(xml))
     m = H.pubmed_meta(["123456"])["123456"]
     assert m == {"title": "A trial of cooling.", "authors": "Hanai A, Ito B, Sato C, et al", "journal": "J Test", "year": "2020", "abstract": "METHODS: Randomized. RESULTS: Fewer events."}
+
+
+def test_search_reference_is_separate_from_records(env):
+    """保存済みの検索の資料(検索式の案、2023年版の検索過程)は参考として置く。検索の記録・流れ図の件数には数えない"""
+    ref = json.load(open(os.path.join(HERE, "..", "..", "data", "search_reference.json"), encoding="utf-8"))["cq"]
+    assert set(ref) == {c["id"] for c in call("GET", "/cq")[1]} and all(r["formula"] for r in ref.values())
+    assert all(f["query"].count("(") == f["query"].count(")") and "survivor" in f["query"] for r in ref.values() for f in r["formula"])
+    assert call("POST", "/search/N1/reference", ref["N1"], R1)[0] == 403
+    assert call("POST", "/search/N1/reference", ref["N1"])[0] == 200
+    c, r = call("GET", "/search/N1/reference", who=R2); assert c == 200 and "cryotherapy" in r["formula"][0]["query"] and len(r["prior"]) == 2 and r["last_search_end_2023"] == ["CQ1-冷却・圧迫: 2021-08-03"]
+    assert call("GET", "/search/N1", who=R2)[1] == [] and call("GET", "/screening/N1")[1]["flow"]["db_hits"] == 0
+    assert call("GET", "/search/P2/reference", who=R2)[1] == {}
