@@ -10,7 +10,10 @@ DynamoDB 1テーブル(pk, sk):
   ETD/<cq>                    EtD(2023年版の体裁: 推奨文、強さ、確実性、4つの考慮事項、投票)
   GL2023/<cq>                 2023年版の記述(推奨文・解説・投票。build_etd.py の etd_2023.json を取り込む)
   SORON/<key>                 総論A〜N(企画書)
-  SCREEN/<cq>#<担当>          スクリーニング管理シートの JSON
+  SEARCH/<cq>#<id>            検索の記録(データベース、検索日、検索者、検索期間、検索式、件数)
+  CAND/<cq>#<pmid>            スクリーニングの対象の文献(出典、題名、抄録)。協議の結論(final)
+  SCR/<cq>#<pmid>#<担当>      担当委員ごとの判定(一次・二次の可否、除外理由、全文の状態、変更の履歴)
+  SCRMETA/<cq>                取り込みのときに重複として除いた件数
   AUDIT/<時刻>#<id>           作成経過の記録。追記のみ
   PHASE/current               現在の段階
 """
@@ -30,7 +33,7 @@ ROLE_LEAD = ROLE_ADMIN | {"SR委員長"}
 ROLE_GROUP = {"統括委員会", "作成グループ"}  # 推奨作成(EtD・投票)
 GROUPS = ["統括委員会", "事務局", "SR委員長", "作成グループ", "SR委員", "総説執筆者", "外部評価委員"]
 DEFAULT_OUTCOME = "CIPN"  # 統括委員長の決定(2026-11-16): 今回の改訂では、全CQ・FRQのアウトカムを CIPN とする
-CQ_STAGES = ["CQ確定", "論文登録", "様式4-5", "様式SR-8", "EtD"]  # 表示は記録された件数だけ。推測の状態は出さない
+CQ_STAGES = ["CQ確定", "検索", "スクリーニング", "論文登録", "様式4-5", "様式SR-8", "EtD"]  # 表示は記録された件数だけ。推測の状態は出さない
 SORON_STATES = ["原稿未提出", "執筆中", "査読中", "修正中", "完了"]  # 記録に基づく状態だけ
 PHASES = ["STEP 1 Scope・体制", "STEP 2 検索・スクリーニング", "STEP 3 システマティックレビュー実施中", "STEP 4 推奨作成", "STEP 5 解説・総論執筆", "STEP 6 外部評価・パブリックコメント", "STEP 7 公開"]
 ITEM_KEYS = ["randomization", "concealment", "blinding_participants", "blinding_assessors", "itt", "incomplete_outcome", "selective_reporting", "early_stopping", "other_bias", "bias_summary",
@@ -173,13 +176,16 @@ def cq_records(cq):
     counts = {"outcomes": len(outs), "papers": len(papers), "extracted": sum(1 for p in papers if str(p.get("status", "")).startswith("本文抽出済")),
               "f45_need": len(papers) * len(outs), "f45_submitted": sum(len(u["submitted"]) for u in units.values()), "f45_fixed": sum(1 for u in units.values() if u["final"]),
               "f45_wait": wait, "sr8": sum(1 for r in query("SR8", f"{cqid}#") if r.get("certainty")),
-              "etd_status": (etd.get("status", "下書き") if etd else ""), "etd_agreement": ((etd.get("vote") or {}).get("agreement") if etd else None)}
+              "etd_status": (etd.get("status", "下書き") if etd else ""), "etd_agreement": ((etd.get("vote") or {}).get("agreement") if etd else None), "flow": flow(cqid)}
     return counts, units, papers
 
 
 def stage_text(n):
     """件数(cq_records)を、段階ごとの文字にする。"""
+    f = n["flow"]
     return {"CQ確定": "承認済み(統括委員長)",
+            "検索": f"{f['searches']}件(検索結果の合計 {f['db_hits']}件)" if f["searches"] else "記録なし",
+            "スクリーニング": (f"対象 {f['cands']}件。一次 結果あり {f['s1_target'] - f['s1_open']}/{f['s1_target']}、二次 結果あり {f['s2_target'] - f['s2_open']}/{f['s2_target']}(採用 {f['s2_include']}件)" if f["cands"] else "記録なし"),
             "論文登録": f"{n['papers']}件(本文抽出済 {n['extracted']}件)" if n["papers"] else "記録なし",
             "様式4-5": (f"確定 {n['f45_fixed']}/{n['f45_need']}(提出 {n['f45_submitted']})" if n["f45_need"] else ("アウトカム未登録" if n["papers"] else "記録なし")),
             "様式SR-8": (f"確実性 記入 {n['sr8']}/{n['outcomes']}" if n["outcomes"] else "記録なし"),
@@ -215,6 +221,10 @@ def dashboard(user):
             for w in wait:
                 approvals.append({"kind": "様式4-5の照合・確定", "target": f"{c['id']} PMID {w['pmid']} / {w['outcome']}", "record": "2名が提出済(" + "・".join(w["submitted"]) + ")。確定の記録なし",
                                   "approver": "評価した2名、またはSR委員長", "can": lead or name in w["submitted"], "page": "f45", "q": {"cq": c["id"], "pmid": w["pmid"], "outcome": w["outcome"]}})
+        nc = n["flow"]["s1_conflict"] + n["flow"]["s2_conflict"]
+        if nc and (lead or mine):
+            approvals.append({"kind": "スクリーニングの協議の結論", "target": f"{c['id']} {c['title']}", "record": f"2名の判定が不一致の文献 {nc}件(一次 {n['flow']['s1_conflict']}件、二次 {n['flow']['s2_conflict']}件)。協議の結論の記録なし",
+                              "approver": "担当委員(協議)、またはSR委員長", "can": True, "page": "screening", "q": {"cq": c["id"], "show": "conflict"}})
         if n["etd_status"] == "協議中":
             approvals.append({"kind": "EtD・推奨の確定", "target": f"{c['id']} {c['title']}", "record": "状態 協議中。" + (f"投票 合意率 {n['etd_agreement']}%" if n["etd_agreement"] is not None else "投票の記録なし"),
                               "approver": "統括委員会", "can": "統括委員会" in g, "page": "etd", "q": {"cq": c["id"]}})
@@ -258,7 +268,7 @@ def handler(event, context=None):
 
 
 SORON_ONLY = {"me", "meta", "dashboard", "soron", "audit", "docs"}  # 総説執筆者だけの利用者が使える範囲(SRの流れとは分離)
-SR_ONLY = {"me", "meta", "dashboard", "cq", "papers", "f45", "sr8", "etd", "gl2023", "screening", "audit", "export", "docs"}
+SR_ONLY = {"me", "meta", "dashboard", "cq", "papers", "f45", "sr8", "etd", "gl2023", "screening", "search", "audit", "export", "docs"}
 
 
 def route(method, parts, body, user):
@@ -307,6 +317,8 @@ def route(method, parts, body, user):
         return docs(method, parts, body, user)
     if head == "screening":
         return screening(method, parts, body, user)
+    if head == "search":
+        return search(method, parts, body, user)
     if head == "audit":
         return resp(200, sorted(query("AUDIT"), key=lambda a: a["sk"], reverse=True))
     return resp(404, {"error": "ありません"})
@@ -685,14 +697,22 @@ def export(method, parts, body, user):
     import export_minds
     papers = query("PAPER", f"{cqid}#"); finals = [r for r in query("F45", f"{cqid}#") if r["sk"].endswith("#確定")]
     aud = [a for a in sorted(query("AUDIT"), key=lambda a: a["sk"]) if cqid in str(a.get("target", ""))]
-    data = export_minds.build(c, papers, finals, query("SR8", f"{cqid}#"), get("ETD", cqid), get("GL2023", cqid), aud)
+    cands, recs = screen_data(cqid); rows = []
+    for cd in cands:
+        rs = recs.get(cd["pmid"], []); fin = cd.get("final") or {}
+        who = lambda st: "、".join(f"{r['reviewer']}: {r[st]['decision']}" + (f"({r[st]['reason']})" if r[st].get("reason") else "") for r in rs if (r.get(st) or {}).get("decision"))
+        rows.append({"pmid": cd["pmid"], "title": cd.get("title", ""), "citation": ". ".join(x for x in (cd.get("authors"), cd.get("journal"), cd.get("year")) if x), "source": cd.get("source", ""), "added_why": cd.get("added_why", ""),
+                     "s1": {"decision": "一次を経ない"} if cd.get("direct") else stage_result(cd, rs, "s1"), "s2": stage_result(cd, rs, "s2"), "s1_reviewers": who("s1"), "s2_reviewers": who("s2"),
+                     "why": " / ".join(f"{STAGE_JA[st]}: {fin[st].get('why', '')}({fin[st].get('by', '')})" for st in ("s1", "s2") if fin.get(st))})
+    scr = {"searches": sorted(query("SEARCH", f"{cqid}#"), key=lambda r: r.get("date", "")), "flow": flow(cqid, cands, recs), "rows": rows}
+    data = export_minds.build(c, papers, finals, query("SR8", f"{cqid}#"), get("ETD", cqid), get("GL2023", cqid), aud, screening=scr)
     key = f"exports/{cqid}/Minds書類_{cqid}_{now()[:19].replace(':', '')}.xlsx"
     if BUCKET:
         s3().put_object(Bucket=BUCKET, Key=key, Body=data, ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         url = s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": key, "ResponseContentDisposition": f"attachment; filename*=UTF-8''Minds_{cqid}.xlsx"}, ExpiresIn=900)
     else:
         url = ""
-    audit(user, "Minds書類の出力", cqid, key); return resp(200, {"url": url, "key": key, "sheets": ["CQ", "研究特性", "様式4-5", "様式SR-8", "SoF表", "EtD・推奨", "作成経過"], "bytes": len(data)})
+    audit(user, "Minds書類の出力", cqid, key); return resp(200, {"url": url, "key": key, "sheets": ["CQ", "検索の記録", "文献選択の流れ図", "スクリーニング", "研究特性", "様式4-5", "様式SR-8", "SoF表", "EtD・推奨", "作成経過"], "bytes": len(data)})
 
 
 # ---------- 総説(総論A〜N)。SRの流れとは独立した流れ ----------
@@ -780,32 +800,217 @@ def docs(method, parts, body, user):
     return resp(405, {"error": "方法が不正です"})
 
 
-# ---------- スクリーニング ----------
-def screening_progress(d):
-    P = d.get("papers", [])
-    s1 = lambda p: (p.get("s1") or {}).get("decision", ""); s2 = lambda p: (p.get("s2") or {}).get("decision", "")
-    need2 = lambda p: (s1(p) in ("採用", "保留") or p.get("direct")) and not s2(p)
-    targ = lambda p: s2(p) == "採用" or need2(p)
-    return {"reviewer": d.get("reviewer", ""), "saved_at": d.get("saved_at", ""), "papers": len(P), "s1_done": sum(1 for p in P if s1(p)), "s1_todo": sum(1 for p in P if not s1(p) and not p.get("direct")),
-            "s2_done": sum(1 for p in P if s2(p)), "s2_todo": sum(1 for p in P if need2(p)), "ft_missing": sum(1 for p in P if targ(p) and (p.get("ft") or "未入手") == "未入手"),
-            "ft_read": sum(1 for p in P if targ(p) and p.get("ft") == "読了"),
-            "no_reason": sum(1 for p in P if (s1(p) == "除外" and not (p.get("s1") or {}).get("reason", "").strip()) or (s2(p) == "除外" and not (p.get("s2") or {}).get("reason", "").strip()))}
+# ---------- 検索の記録、スクリーニング(2名独立の可否)、文献選択の流れ図 ----------
+SCREEN_REASONS = ["18歳未満が対象", "がん患者でない", "英語でない", "国内で施行できない方法・薬物", "研究デザインが対象外(総説・症例報告など)", "CIPNに関する研究でない", "本CQの介入を評価していない",
+                  "予防・治療の目的が本CQと異なる", "対象の化学療法が本CQと異なる", "重複", "計画書のみ", "副次解析", "主要評価が本CQのアウトカムでない", "全文が入手できない", "その他(備考に記載)"]  # 前回Scopeの選択基準に対応
+SCREEN_SOURCES = ["検索(PubMed)", "更新検索", "既存ガイドラインの引用文献", "ハンドサーチ", "作成委員のサーベイランス", "その他"]
+DB_SOURCES = {"検索(PubMed)", "更新検索"}  # データベース検索。他は「その他の情報源」
+S1_DEC = ["採用", "除外", "保留"]; S2_DEC = ["採用", "除外"]
+STAGE_JA = {"s1": "一次", "s2": "二次"}
+
+
+def can_edit_cq(user, c):
+    return is_assignee(user, c) or bool(set(user["groups"]) & ROLE_LEAD)
+
+
+def search(method, parts, body, user):
+    # GET /search/<cq>            検索の記録の一覧
+    # POST /search/<cq>           追加(担当委員、SR委員長、統括委員会、事務局)
+    # PUT /search/<cq>/<id>       修正(変更は作成経過の記録に残る)
+    # DELETE /search/<cq>/<id>    削除(SR委員長、統括委員会、事務局)
+    if len(parts) < 2: return resp(400, {"error": "CQ が必要です"})
+    cqid = parts[1]; c = get("CQ", cqid)
+    if not c: return resp(404, {"error": "ありません"})
+    if method == "GET":
+        return resp(200, sorted(query("SEARCH", f"{cqid}#"), key=lambda r: (r.get("date", ""), r["sk"])))
+    if not can_edit_cq(user, c): raise Forbidden("この CQ の担当委員、SR委員長、統括委員会、事務局に限ります")
+    if method == "DELETE" and len(parts) > 2:
+        require(user, ROLE_LEAD)
+        r = get("SEARCH", f"{cqid}#{parts[2]}")
+        if r: table().delete_item(Key={"pk": "SEARCH", "sk": r["sk"]}); audit(user, "検索の記録の削除", cqid, f"{r.get('database', '')} {r.get('date', '')} {r.get('hits', '')}件")
+        return resp(200, {"ok": True})
+    if method in ("POST", "PUT"):
+        old = get("SEARCH", f"{cqid}#{parts[2]}") if method == "PUT" and len(parts) > 2 else None
+        if method == "PUT" and not old: return resp(404, {"error": "ありません"})
+        r = {k: str(body.get(k, "")).strip() for k in ("database", "date", "searcher", "period", "query", "note")}
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", r["date"]): return resp(400, {"error": "検索日は 年-月-日(例: 2026-12-01)で入力してください"})
+        miss = [ja for k, ja in (("database", "データベース"), ("searcher", "検索者"), ("query", "検索式")) if not r[k]]
+        if miss: return resp(400, {"error": "・".join(miss) + " が必要です"})
+        try: r["hits"] = int(body.get("hits"))
+        except (TypeError, ValueError): return resp(400, {"error": "件数は数で入力してください"})
+        if r["hits"] < 0: return resp(400, {"error": "件数は 0 以上です"})
+        sid = old["id"] if old else new_id()
+        r.update({"cq": cqid, "id": sid, "created_by": (old or {}).get("created_by") or user["name"] or user["email"]})
+        put("SEARCH", f"{cqid}#{sid}", r)
+        audit(user, "検索の記録の修正" if old else "検索の記録", cqid, f"{r['database']} {r['date']} 検索者 {r['searcher']} {r['hits']}件 期間 {r['period']} 式: {r['query']}"[:1000])
+        return resp(200, r)
+    return resp(405, {"error": "方法が不正です"})
+
+
+def pubmed_meta(pmids):
+    """PubMed(E-utilities の efetch)から、題名・著者・誌名・年・抄録を取る。取れなかった PMID は結果に含めない。"""
+    import urllib.parse, urllib.request
+    import xml.etree.ElementTree as ET
+    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?" + urllib.parse.urlencode({"db": "pubmed", "retmode": "xml", "id": ",".join(pmids)})
+    root = ET.fromstring(urllib.request.urlopen(url, timeout=20).read())
+    text = lambda e: re.sub(r"\s+", " ", "".join(e.itertext())).strip() if e is not None else ""
+    out = {}
+    for a in root.findall(".//PubmedArticle"):
+        pmid = text(a.find("./MedlineCitation/PMID")); art = a.find("./MedlineCitation/Article")
+        if not pmid or art is None: continue
+        au = [text(x.find("LastName")) + " " + text(x.find("Initials")) for x in art.findall("./AuthorList/Author") if x.find("LastName") is not None]
+        year = text(art.find("./Journal/JournalIssue/PubDate/Year")) or (re.findall(r"\d{4}", text(art.find("./Journal/JournalIssue/PubDate/MedlineDate"))) or [""])[0]
+        ab = " ".join(((x.get("Label") + ": ") if x.get("Label") else "") + text(x) for x in art.findall("./Abstract/AbstractText"))
+        out[pmid] = {"title": text(art.find("ArticleTitle")), "authors": ", ".join(au[:3]) + (", et al" if len(au) > 3 else ""), "journal": text(art.find("./Journal/ISOAbbreviation")) or text(art.find("./Journal/Title")),
+                     "year": year, "abstract": ab[:6000]}
+    return out
+
+
+def stage_result(c, recs, stage):
+    """1つの文献・1つの段階の結果。協議の結論があればそれ。なければ、2名の判定が一致したときだけ結果になる。記録にない結果は作らない。"""
+    fin = (c.get("final") or {}).get(stage)
+    ds = [(r["reviewer"], r[stage]) for r in recs if (r.get(stage) or {}).get("decision")]
+    if fin: return {"decision": fin["decision"], "reason": fin.get("reason", ""), "by": "協議の結論", "n": len(ds)}
+    vals = {d["decision"] for _, d in ds}
+    if len(ds) >= 2 and len(vals) == 1:
+        return {"decision": vals.pop(), "reason": next((d.get("reason") for _, d in ds if d.get("reason")), ""), "by": "2名の一致", "n": len(ds)}
+    return {"decision": "", "state": "不一致" if len(vals) > 1 else "", "n": len(ds)}
+
+
+def screen_data(cqid):
+    cands = sorted(query("CAND", f"{cqid}#"), key=lambda c: int(c["pmid"]))
+    recs = {}
+    for r in query("SCR", f"{cqid}#"): recs.setdefault(r["pmid"], []).append(r)
+    return cands, recs
+
+
+def to_s2(c, r1):
+    """二次(全文)の対象。一次を経ずに追加した文献、または一次の結果が 採用・保留 の文献。"""
+    return bool(c.get("direct")) or r1["decision"] in ("採用", "保留")
+
+
+def flow(cqid, cands=None, recs=None):
+    """文献選択の流れ図の件数。検索の記録と、スクリーニングの記録(2名の一致、または協議の結論)だけを数える。"""
+    if cands is None: cands, recs = screen_data(cqid)
+    searches = query("SEARCH", f"{cqid}#")
+    by_db = {}
+    for s_ in searches: by_db[s_.get("database", "")] = by_db.get(s_.get("database", ""), 0) + int(s_.get("hits") or 0)
+    f = {"searches": len(searches), "db_hits": sum(by_db.values()), "by_db": by_db, "duplicates": int((get("SCRMETA", cqid) or {}).get("duplicates", 0)),
+         "cand_db": sum(1 for c in cands if c.get("source") in DB_SOURCES), "cand_other": sum(1 for c in cands if c.get("source") not in DB_SOURCES), "cands": len(cands),
+         "s1_target": 0, "s1_include": 0, "s1_hold": 0, "s1_exclude": 0, "s1_open": 0, "s1_conflict": 0, "direct": 0,
+         "s2_target": 0, "s2_include": 0, "s2_exclude": 0, "s2_open": 0, "s2_conflict": 0, "s2_reasons": {}, "registered": 0}
+    papers = {p["pmid"] for p in query("PAPER", f"{cqid}#")}
+    for c in cands:
+        rs = recs.get(c["pmid"], []); r1 = stage_result(c, rs, "s1"); r2 = stage_result(c, rs, "s2")
+        if c.get("direct"): f["direct"] += 1
+        else:
+            f["s1_target"] += 1
+            k = {"採用": "s1_include", "保留": "s1_hold", "除外": "s1_exclude"}.get(r1["decision"], "s1_open"); f[k] += 1
+            if r1.get("state") == "不一致": f["s1_conflict"] += 1
+        if to_s2(c, r1):
+            f["s2_target"] += 1
+            k = {"採用": "s2_include", "除外": "s2_exclude"}.get(r2["decision"], "s2_open"); f[k] += 1
+            if r2.get("state") == "不一致": f["s2_conflict"] += 1
+            if r2["decision"] == "除外": f["s2_reasons"][r2.get("reason") or "理由の記録なし"] = f["s2_reasons"].get(r2.get("reason") or "理由の記録なし", 0) + 1
+            if r2["decision"] == "採用" and c["pmid"] in papers: f["registered"] += 1
+    return f
 
 
 def screening(method, parts, body, user):
-    if method == "GET":
-        if len(parts) > 2 and parts[1] == "raw":
-            it = get("SCREEN", parts[2]); return resp(200, it["data"] if it else {})
-        out = {}
-        for it in query("SCREEN"):
-            out.setdefault(it["cq"], []).append({**screening_progress(it["data"]), "sk": it["sk"], "uploaded_by": it.get("uploaded_by", "")})
-        return resp(200, out)
-    if method == "POST" and len(parts) > 1:
-        d = body
-        if not isinstance(d.get("papers"), list) or not d.get("reviewer"): return resp(400, {"error": "スクリーニング管理シートの JSON(reviewer, papers)が必要です"})
-        if d["reviewer"] != user["name"]: require(user, ROLE_LEAD)
-        sk = f"{parts[1]}#{d['reviewer']}"; old = get("SCREEN", sk)
-        if old and (old["data"].get("saved_at") or "") > (d.get("saved_at") or ""): return resp(409, {"error": "保存済みの方が新しいため、取り込みません"})
-        put("SCREEN", sk, {"cq": parts[1], "reviewer": d["reviewer"], "uploaded_by": user["name"] or user["email"], "data": d})
-        pr = screening_progress(d); audit(user, "スクリーニングJSONの取り込み", f"{parts[1]} / {d['reviewer']}", f"文献{pr['papers']}件、一次判定済{pr['s1_done']}、二次判定済{pr['s2_done']}"); return resp(200, pr)
+    # GET /screening                          全CQの流れ図の件数
+    # GET /screening/<cq>                     候補文献、自分の判定、照合、流れ図の件数
+    # POST /screening/<cq>/candidates         候補文献の取り込み(検索結果、その他の情報源)
+    # POST /screening/<cq>/fetch              題名・抄録を PubMed から取得する(未取得の文献。1回に100件まで)
+    # PUT /screening/<cq>/<pmid>              自分の判定(一次・二次の可否、除外理由、全文の状態、備考)
+    # PUT /screening/<cq>/<pmid>/final        協議の結論(不一致の解消、または結果の修正)
+    if len(parts) < 2:
+        return resp(200, {c["id"]: flow(c["id"]) for c in query("CQ")})
+    cqid = parts[1]; c = get("CQ", cqid)
+    if not c: return resp(404, {"error": "ありません"})
+    name = user["name"]; mine = is_assignee(user, c); lead = bool(set(user["groups"]) & ROLE_LEAD)
+    sub = parts[2] if len(parts) > 2 else ""
+    if method == "GET" and not sub:
+        cands, recs = screen_data(cqid); out = []
+        for cd in cands:
+            rs = recs.get(cd["pmid"], []); my = next((r for r in rs if r["reviewer"] == name), None) or {}
+            row = {k: cd.get(k, "") for k in ("pmid", "title", "authors", "journal", "year", "abstract", "source", "added_by", "added_why")}
+            row.update({"direct": bool(cd.get("direct")), "final": cd.get("final") or {}, "mine": {k: my.get(k) for k in ("s1", "s2", "ft", "note", "history")}})
+            for st in ("s1", "s2"):
+                res = stage_result(cd, rs, st); row[st] = res
+                # 2名独立: 担当委員には、自分がこの段階を判定するまで、他の委員の判定を返さない
+                show = (lead and not mine) or bool((my.get(st) or {}).get("decision"))
+                row[st + "_others"] = [{"reviewer": r["reviewer"], **(r.get(st) or {})} for r in rs if r["reviewer"] != name and (r.get(st) or {}).get("decision")] if show else []
+            out.append(row)
+        return resp(200, {"cq": cqid, "can_edit": mine or lead, "reviewer": mine, "candidates": out, "flow": flow(cqid, cands, recs), "reasons": SCREEN_REASONS, "sources": SCREEN_SOURCES})
+    if not (mine or lead): raise Forbidden("この CQ の担当委員、SR委員長、統括委員会、事務局に限ります")
+    if method == "POST" and sub == "candidates":
+        src = str(body.get("source", "")); direct = bool(body.get("direct")); why = str(body.get("why", "")).strip()
+        if src not in SCREEN_SOURCES: return resp(400, {"error": "出典は " + " / ".join(SCREEN_SOURCES)})
+        if src not in DB_SOURCES and not why: return resp(400, {"error": "データベース検索以外の文献は、追加の理由が必要です"})
+        if direct and src in DB_SOURCES: return resp(400, {"error": "データベース検索の文献は、一次スクリーニングを経ます"})
+        added, dup, bad = 0, 0, 0
+        for it in (body.get("items") or [])[:3000]:
+            pmid = re.sub(r"\D", "", str(it.get("pmid", "")))
+            if not 5 <= len(pmid) <= 9: bad += 1; continue
+            if get("CAND", f"{cqid}#{pmid}"): dup += 1; continue
+            put("CAND", f"{cqid}#{pmid}", {"cq": cqid, "pmid": pmid, "title": str(it.get("title", ""))[:500], "authors": str(it.get("authors", ""))[:300], "journal": str(it.get("journal", ""))[:200], "year": str(it.get("year", ""))[:10],
+                                         "abstract": "", "source": src, "search_id": str(body.get("search_id", "")), "direct": direct, "added_by": name or user["email"], "added_why": why}); added += 1
+        if dup:
+            m_ = get("SCRMETA", cqid) or {"duplicates": 0}; put("SCRMETA", cqid, {"duplicates": int(m_.get("duplicates", 0)) + dup})
+        audit(user, "スクリーニング対象の取り込み", cqid, f"出典 {src}。追加 {added}件、登録済みのため除いた重複 {dup}件、PMIDでない行 {bad}件" + ("。一次を経ない(二次の対象)" if direct else "") + (f"。理由: {why}" if why else ""))
+        return resp(200, {"added": added, "duplicates": dup, "invalid": bad})
+    if method == "POST" and sub == "fetch":
+        todo = [cd for cd in query("CAND", f"{cqid}#") if not cd.get("abstract") and not cd.get("meta_fetched")][:100]
+        if not todo: return resp(200, {"fetched": 0, "remaining": 0})
+        try: meta = pubmed_meta([cd["pmid"] for cd in todo])
+        except Exception as e: return resp(502, {"error": f"PubMed から取得できませんでした({type(e).__name__})。時間をおいて、もう一度実行してください"})
+        for cd in todo:
+            m_ = meta.get(cd["pmid"]) or {}
+            cd.update({k: v for k, v in m_.items() if v}); cd["meta_fetched"] = now(); put("CAND", cd["sk"], cd)
+        rest = sum(1 for cd in query("CAND", f"{cqid}#") if not cd.get("abstract") and not cd.get("meta_fetched"))
+        audit(user, "題名・抄録の取得(PubMed)", cqid, f"{len(todo)}件のうち {len(meta)}件を取得"); return resp(200, {"fetched": len(meta), "asked": len(todo), "remaining": rest})
+    pmid = re.sub(r"\D", "", sub); cd = get("CAND", f"{cqid}#{pmid}") if pmid else None
+    if not cd: return resp(404, {"error": "この文献は、スクリーニングの対象に登録されていません"})
+    rs = query("SCR", f"{cqid}#{pmid}#")
+    if method == "PUT" and parts[3:4] == ["final"]:
+        st = body.get("stage"); dec = str(body.get("decision", "")); reason = str(body.get("reason", "")); why = str(body.get("why", "")).strip()
+        if st not in ("s1", "s2") or dec not in (S1_DEC if st == "s1" else S2_DEC): return resp(400, {"error": "段階または判定の値が不正です"})
+        if dec == "除外" and reason not in SCREEN_REASONS: return resp(400, {"error": "除外には、除外理由が必要です"})
+        if not why: return resp(400, {"error": "協議の内容(結論の理由)が必要です"})
+        if sum(1 for r in rs if (r.get(st) or {}).get("decision")) < 2 and not lead: return resp(409, {"error": "2名の判定がそろってから、協議の結論を記録します"})
+        if st == "s2" and not to_s2(cd, stage_result(cd, rs, "s1")): return resp(409, {"error": "一次の結果が 採用・保留 の文献だけが、二次の対象です"})
+        before = stage_result(cd, rs, st)
+        cd.setdefault("final", {})[st] = {"decision": dec, "reason": reason if dec == "除外" else "", "why": why, "by": name or user["email"], "at": now()}
+        put("CAND", cd["sk"], cd)
+        audit(user, f"スクリーニングの協議の結論({STAGE_JA[st]})", f"{cqid} / PMID {pmid}", f"{before['decision'] or before.get('state') or '結果なし'} → {dec}" + (f"(除外理由: {reason})" if dec == "除外" else "") + f"。協議: {why}")
+        return resp(200, {"ok": True, **stage_result(cd, rs, st)})
+    if method == "PUT":
+        if not mine or not name: raise Forbidden("判定を入力できるのは、この CQ の担当委員です(SR委員長は協議の結論を記録できます)")
+        r = next((x for x in rs if x["reviewer"] == name), None) or {"cq": cqid, "pmid": pmid, "reviewer": name, "s1": {}, "s2": {}, "ft": "未入手", "note": "", "history": []}
+        log = lambda field, old, new_, why_: r["history"].append({"at": now(), "field": field, "from": old, "to": new_, "reason": why_})
+        if "ft" in body:
+            if body["ft"] not in ("未入手", "入手済", "読了"): return resp(400, {"error": "全文の状態は 未入手 / 入手済 / 読了"})
+            if body["ft"] != r.get("ft"): log("全文", r.get("ft", ""), body["ft"], ""); r["ft"] = body["ft"]
+        if "note" in body: r["note"] = str(body["note"])[:1000]
+        st = body.get("stage")
+        if st:
+            dec = str(body.get("decision", "")); reason = str(body.get("reason", ""))
+            if st not in ("s1", "s2") or dec not in (S1_DEC if st == "s1" else S2_DEC): return resp(400, {"error": "段階または判定の値が不正です"})
+            if st == "s1" and cd.get("direct"): return resp(409, {"error": "一次を経ずに追加した文献です。二次の判定を入力してください"})
+            if st == "s2" and not (cd.get("direct") or (r.get("s1") or {}).get("decision") in ("採用", "保留") or to_s2(cd, stage_result(cd, rs, "s1"))):
+                return resp(409, {"error": "二次の対象は、一次が 採用・保留 の文献です"})
+            if dec == "除外" and reason not in SCREEN_REASONS: return resp(400, {"error": "除外には、除外理由が必要です"})
+            cur = r.get(st) or {}
+            if cur.get("decision") and (cur["decision"] != dec or cur.get("reason", "") != (reason if dec == "除外" else "")):
+                # 他の委員の判定が見える状態になった後(2名がそろった後)は、自分の判定を変えない。協議の結論で記録する
+                if any((x.get(st) or {}).get("decision") for x in rs if x["reviewer"] != name) or (cd.get("final") or {}).get(st):
+                    return resp(409, {"error": "2名の判定がそろった後は、判定を変更できません。「協議の結論」で記録してください"})
+                why = str(body.get("change_reason", "")).strip()
+                if not why: return resp(400, {"error": "判定の変更には、変更の理由が必要です"})
+                log(STAGE_JA[st] + "の判定", cur["decision"] + (f"({cur['reason']})" if cur.get("reason") else ""), dec + (f"({reason})" if dec == "除外" else ""), why)
+            r[st] = {"decision": dec, "reason": reason if dec == "除外" else "", "at": now()}
+        put("SCR", f"{cqid}#{pmid}#{name}", r)
+        if st: audit(user, f"スクリーニングの判定({STAGE_JA[st]})", f"{cqid} / PMID {pmid}", "判定を記録")   # 2名独立のため、作成経過の記録に判定の値を出さない
+        rs = [x for x in rs if x["reviewer"] != name] + [r]
+        return resp(200, {"mine": {k: r.get(k) for k in ("s1", "s2", "ft", "note", "history")}, "s1": stage_result(cd, rs, "s1"), "s2": stage_result(cd, rs, "s2")})
     return resp(405, {"error": "方法が不正です"})

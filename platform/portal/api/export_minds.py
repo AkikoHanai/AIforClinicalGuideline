@@ -1,5 +1,5 @@
 """ポータルの記録から、CQ ごとの Minds 書類(xlsx)を作る。
-シート: 研究特性 / 様式4-5(確定。アウトカムごとのブロック) / 様式SR-8 / SoF表 / EtD・推奨 / 作成経過
+シート: CQ / 検索の記録 / 文献選択の流れ図 / スクリーニング / 研究特性 / 様式4-5(確定。アウトカムごとのブロック) / 様式SR-8 / SoF表 / EtD・推奨 / 作成経過
 数値は記録のまま。統合値(メタアナリシス)は計算しない(確定は SR チームの協議による)。"""
 import io
 import openpyxl
@@ -28,7 +28,7 @@ def v(x):
     return "" if x is None else x
 
 
-def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None):
+def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None, screening=None):
     """cq: CQ item。papers: PAPER items。finals: 様式4-5の確定レコード。sr8_rows: SR8 items。etd: ETD item。gl2023: GL2023 item。audit: 作成経過"""
     wb = openpyxl.Workbook()
     ws = wb.active; ws.title = "CQ"
@@ -37,6 +37,36 @@ def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None):
                    ("P", cq["pico"].get("P", "")), ("I", cq["pico"].get("I", "")), ("C", cq["pico"].get("C", "")), ("O", cq["pico"].get("O", "")), ("アウトカム", "\n".join(cq.get("outcomes") or []))]:
         ws.append([k, val])
     style(ws, widths=[14, 90])
+
+    sc = screening or {"searches": [], "flow": None, "rows": []}
+    ws = wb.create_sheet("検索の記録")
+    ws.append(["検索日", "データベース", "検索者", "検索期間", "検索式", "件数", "備考"])
+    for r in sc["searches"]:
+        ws.append([r.get("date", ""), r.get("database", ""), r.get("searcher", ""), r.get("period", ""), r.get("query", ""), v(r.get("hits")), r.get("note", "")])
+    style(ws, widths=[12, 12, 12, 24, 80, 8, 30])
+
+    ws = wb.create_sheet("文献選択の流れ図")
+    ws.append(["段階", "件数", "内訳"])
+    f = sc["flow"]
+    if f:
+        for row in [("データベース検索で得た文献(検索の記録の件数の合計)", f["db_hits"], "、".join(f"{k} {n}件" for k, n in f["by_db"].items())),
+                    ("その他の情報源から加えた文献", f["cand_other"], ""),
+                    ("スクリーニングの対象として登録した文献", f["cands"], f"データベース検索 {f['cand_db']}件、その他の情報源 {f['cand_other']}件。取り込みのときに登録済みのため除いた重複 {f['duplicates']}件"),
+                    ("一次スクリーニング(題名・抄録)の対象", f["s1_target"], f"採用 {f['s1_include']}件、保留 {f['s1_hold']}件、除外 {f['s1_exclude']}件。結果の記録がない文献 {f['s1_open']}件(うち 2名の判定が不一致 {f['s1_conflict']}件)"),
+                    ("一次で除外した文献", f["s1_exclude"], ""),
+                    ("二次スクリーニング(全文)の対象", f["s2_target"], f"一次を経ずに加えた文献 {f['direct']}件を含む。結果の記録がない文献 {f['s2_open']}件(うち 2名の判定が不一致 {f['s2_conflict']}件)"),
+                    ("二次で除外した文献", f["s2_exclude"], "、".join(f"{k} {n}件" for k, n in f["s2_reasons"].items())),
+                    ("採用した文献", f["s2_include"], f"うち論文(PDF)を登録済み {f['registered']}件")]:
+            ws.append(list(row))
+    ws.append([]); ws.append(["注", "", "件数は、検索の記録とスクリーニングの記録(2名の判定の一致、または協議の結論)から数えた値"])
+    style(ws, widths=[46, 8, 90])
+
+    ws = wb.create_sheet("スクリーニング")
+    ws.append(["PMID", "題名", "著者・誌名・年", "出典", "追加の理由", "一次の結果", "一次の除外理由", "一次の決め方", "二次の結果", "二次の除外理由", "二次の決め方", "担当委員の判定(一次)", "担当委員の判定(二次)", "協議の内容"])
+    for r in sc["rows"]:
+        ws.append([r["pmid"], r.get("title", ""), r.get("citation", ""), r.get("source", ""), r.get("added_why", ""), r["s1"].get("decision", ""), r["s1"].get("reason", ""), r["s1"].get("by", "") or r["s1"].get("state", ""),
+                   r["s2"].get("decision", ""), r["s2"].get("reason", ""), r["s2"].get("by", "") or r["s2"].get("state", ""), r.get("s1_reviewers", ""), r.get("s2_reviewers", ""), r.get("why", "")])
+    style(ws, widths=[11, 44, 30, 16, 20, 8, 22, 12, 8, 22, 12, 30, 30, 30])
 
     ws = wb.create_sheet("研究特性")
     ws.append(["PMID", "題名", "デザイン", "がん腫", "化学療法の分類", "薬剤名", "全症例数", "介入群症例数", "介入", "対照", "評価時点", "本文"])

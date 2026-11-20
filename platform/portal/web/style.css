@@ -93,5 +93,15 @@ label { max-width:100%; }
 .para.hl { background:#fff7d6; }
 .para.flash { outline:2px solid var(--accent); }
 
+/* 文献選択の流れ図: 左に流れ、右に除外。枠と矢印で示す */
+.flow { display:grid; grid-template-columns: minmax(260px, 1.4fr) 2.5em minmax(200px, 1fr); gap:4px 0; align-items:center; max-width:980px; }
+.fbox { border:1px solid var(--ink); border-radius:6px; padding:8px 10px; background:var(--card); }
+.farrow { text-align:center; font-weight:700; }
+.fwide { grid-column: 1 / -1; }
+table.scr { table-layout:fixed; min-width:760px; } table.scr th:first-child { width:6.5em; } table.scr td { overflow-wrap:anywhere; }
+table.scr select { max-width:100%; }
+details summary { cursor:pointer; color:var(--accent); }
+a.tag { text-decoration:none; }
+
 @media (max-width: 1100px) { .split { grid-template-columns: 1fr; } }
 @media (max-width: 800px) { .app { grid-template-columns:1fr; } .side { border-right:none; border-bottom:1px solid var(--line); } .side .me { margin:0; } main { padding:14px; } }

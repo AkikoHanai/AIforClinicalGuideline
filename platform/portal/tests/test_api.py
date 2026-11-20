@@ -181,7 +181,7 @@ def test_export_and_gl2023_soron(env):
     items = {k: {"v": 0, "evidence": ["11111111-p002"], "quote": "x"} for k in H.ITEM_KEYS}
     call("PUT", f"/f45/P1/11111111/{o}/final", {"items": items, "counts": {"ctrl_num": 30, "ctrl_den": 60, "int_num": 20, "int_den": 60}, "effect": {"measure": "RR", "value": 0.67}}, LEAD)
     call("PUT", f"/sr8/P1/{o}", {"rob": "0", "inconsistency": "0", "imprecision": "-1", "indirectness": "0", "publication_bias": "0", "upgrade": "0", "certainty": "B(中)"}, R1)
-    c, r = call("GET", "/export/P1", who=R1); assert c == 200 and r["sheets"] == ["CQ", "研究特性", "様式4-5", "様式SR-8", "SoF表", "EtD・推奨", "作成経過"] and r["bytes"] > 5000
+    c, r = call("GET", "/export/P1", who=R1); assert c == 200 and r["sheets"] == ["CQ", "検索の記録", "文献選択の流れ図", "スクリーニング", "研究特性", "様式4-5", "様式SR-8", "SoF表", "EtD・推奨", "作成経過"] and r["bytes"] > 5000
     import openpyxl, io
     data = boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read()
     wb = openpyxl.load_workbook(io.BytesIO(data))
@@ -251,6 +251,7 @@ def test_dashboard_counts_and_approvals(env):
     items = {k: {"v": 0, "evidence": [], "quote": "x"} for k in H.ITEM_KEYS}
     call("PUT", path, {"items": items, "submitted": True}, R1)
     d = call("GET", "/dashboard", who=R1)[1]; p1 = next(c for c in d["cq"] if c["id"] == "P1")
+    fl = p1["counts"].pop("flow"); assert fl["searches"] == 0 and fl["cands"] == 0
     assert p1["counts"] == {"outcomes": 2, "papers": 1, "extracted": 1, "f45_need": 2, "f45_submitted": 1, "f45_fixed": 0, "f45_wait": 0, "sr8": 0, "etd_status": "", "etd_agreement": None}
     assert d["approvals"] == [] and d["my_f45_todo_count"] == 1  # R1 の未提出は QOL の 1 件
     call("PUT", path, {"items": items, "submitted": True}, R2)
@@ -321,3 +322,79 @@ def test_docs_are_listed_by_role(env):
     assert names(R1) == ["1_操作マニュアル.docx", "4_SR委員の手順書.docx"]                                    # SR委員
     assert names(dict(email="w@example.org", groups=("総説執筆者",))) == ["1_操作マニュアル.docx", "5_総説執筆者の手順書.docx"]
     assert len(names(CHAIR)) == 4
+
+
+def test_search_record_screening_and_flow(env, monkeypatch):
+    """検索の記録、スクリーニングの可否の入力(2名独立)、協議の結論、文献選択の流れ図の件数"""
+    # 検索の記録
+    rec = {"database": "PubMed", "date": "2026-12-01", "searcher": "元雄良治", "period": "2021-07-01〜2026-10-31", "query": "(neuropathy) AND (goshajinkigan)", "hits": 5}
+    assert call("POST", "/search/P1", rec, dict(email="x@example.org", groups=("SR委員",)))[0] == 403       # 担当でない委員
+    assert call("POST", "/search/P1", {**rec, "date": "12/1"}, R1)[0] == 400 and call("POST", "/search/P1", {**rec, "query": ""}, R1)[0] == 400
+    c, s = call("POST", "/search/P1", rec, R1); assert c == 200 and s["hits"] == 5
+    assert call("PUT", f"/search/P1/{s['id']}", {**rec, "hits": 6}, R1)[1]["hits"] == 6
+    assert [x["hits"] for x in call("GET", "/search/P1", who=R2)[1]] == [6]
+    assert call("DELETE", f"/search/P1/{s['id']}", who=R1)[0] == 403
+    # 対象の取り込み(重複は除き、件数を記録する)
+    items = [{"pmid": str(30000000 + i), "title": f"Trial {i}"} for i in range(1, 6)] + [{"pmid": "30000001"}, {"pmid": "abc"}]
+    c, r = call("POST", "/screening/P1/candidates", {"source": "検索(PubMed)", "search_id": s["id"], "items": items}, R1); assert c == 200 and (r["added"], r["duplicates"], r["invalid"]) == (5, 1, 1)
+    assert call("POST", "/screening/P1/candidates", {"source": "ハンドサーチ", "items": [{"pmid": "30000009"}]}, R1)[0] == 400                 # 理由が必要
+    assert call("POST", "/screening/P1/candidates", {"source": "検索(PubMed)", "direct": True, "items": []}, R1)[0] == 400
+    assert call("POST", "/screening/P1/candidates", {"source": "既存ガイドラインの引用文献", "direct": True, "why": "ASCO 2020 の引用文献", "items": [{"pmid": "30000009", "title": "Cited trial"}]}, R2)[1]["added"] == 1
+    # 題名・抄録の取得(PubMed は模擬)
+    monkeypatch.setattr(H, "pubmed_meta", lambda pmids: {pm: {"title": "T" + pm, "authors": "A B", "journal": "J", "year": "2024", "abstract": "Background: x"} for pm in pmids if pm != "30000005"})
+    c, r = call("POST", "/screening/P1/fetch", {}, R1); assert c == 200 and r["fetched"] == 5 and r["remaining"] == 0
+    put = lambda who, pmid, **b: call("PUT", f"/screening/P1/{pmid}", b, who)
+    # 一次: 除外は理由が必要。変更は理由が必要。相手の判定は、自分が判定するまで返らない
+    assert put(R1, "30000001", stage="s1", decision="除外")[0] == 400
+    assert put(R1, "30000001", stage="s1", decision="除外", reason="CIPNに関する研究でない")[0] == 200
+    assert put(R1, "30000001", stage="s1", decision="採用")[0] == 400
+    c, r = put(R1, "30000001", stage="s1", decision="採用", change_reason="抄録を読み直した"); assert c == 200 and r["mine"]["history"][0]["to"] == "採用" and r["s1"]["decision"] == ""
+    row = lambda who, pmid: next(x for x in call("GET", "/screening/P1", who=who)[1]["candidates"] if x["pmid"] == pmid)
+    assert row(R2, "30000001")["s1_others"] == [] and row(R2, "30000001")["abstract"] == "Background: x"
+    assert put(R2, "30000001", stage="s1", decision="採用")[1]["s1"] == {"decision": "採用", "reason": "", "by": "2名の一致", "n": 2}
+    assert row(R2, "30000001")["s1_others"][0]["reviewer"] == "元雄良治"
+    assert put(R1, "30000001", stage="s1", decision="除外", reason="重複", change_reason="x")[0] == 409                                   # 2名がそろった後は変更できない
+    assert put(dict(email="x@example.org", groups=("SR委員",)), "30000002", stage="s1", decision="採用")[0] == 403
+    assert put(LEAD, "30000002", stage="s1", decision="採用")[0] == 403                                                                   # SR委員長は判定を入力しない(P1 の担当でない)
+    # 不一致 → 協議の結論
+    put(R1, "30000002", stage="s1", decision="採用"); assert put(R2, "30000002", stage="s1", decision="除外", reason="がん患者でない")[1]["s1"]["state"] == "不一致"
+    fin = lambda who, pmid, **b: call("PUT", f"/screening/P1/{pmid}/final", b, who)
+    assert fin(R1, "30000002", stage="s1", decision="採用")[0] == 400                                                                     # 協議の内容が必要
+    assert fin(R1, "30000003", stage="s1", decision="採用", why="x")[0] == 409                                                            # 2名の判定がそろっていない
+    assert fin(R1, "30000002", stage="s1", decision="採用", why="全文で確認する")[1]["by"] == "協議の結論"
+    for pm in ("30000003", "30000004"):
+        for who in (R1, R2): assert put(who, pm, stage="s1", decision="除外", reason="CIPNに関する研究でない")[0] == 200
+    assert put(R1, "30000005", stage="s1", decision="保留")[0] == 200                                                                     # 1名だけ: 結果にしない
+    # 二次: 一次が 採用・保留 の文献と、一次を経ない文献だけ
+    assert put(R1, "30000003", stage="s2", decision="採用")[0] == 409 and put(R1, "30000009", stage="s1", decision="採用")[0] == 409
+    for who in (R1, R2): assert put(who, "30000001", stage="s2", decision="採用", ft="読了")[0] == 200
+    for who in (R1, R2): assert put(who, "30000002", stage="s2", decision="除外", reason="計画書のみ")[0] == 200
+    assert put(R1, "30000009", stage="s2", decision="採用")[0] == 200
+    f = call("GET", "/screening/P1", who=CHAIR)[1]["flow"]
+    assert (f["db_hits"], f["cand_db"], f["cand_other"], f["duplicates"], f["cands"]) == (6, 5, 1, 1, 6)
+    assert (f["s1_target"], f["s1_include"], f["s1_exclude"], f["s1_open"], f["direct"]) == (5, 2, 2, 1, 1)
+    assert (f["s2_target"], f["s2_include"], f["s2_exclude"], f["s2_open"], f["s2_reasons"]) == (3, 1, 1, 1, {"計画書のみ": 1})
+    assert call("GET", "/screening", who=CHAIR)[1]["P1"]["s2_include"] == 1
+    st = call("GET", "/cq/P1")[1]["stages"]; assert st["検索"] == "1件(検索結果の合計 6件)" and st["スクリーニング"].startswith("対象 6件。一次 結果あり 4/5、二次 結果あり 2/3")
+    # Minds 書類の出力に、検索の記録・流れ図の件数・スクリーニングの一覧が入る
+    import openpyxl
+    c, r = call("GET", "/export/P1"); wb = openpyxl.load_workbook(io.BytesIO(boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read()))
+    assert [x for x in wb["検索の記録"].iter_rows(min_row=2, values_only=True)][0][5] == 6
+    fl = {x[0]: x[1] for x in wb["文献選択の流れ図"].iter_rows(min_row=2, values_only=True) if x[0]}; assert fl["採用した文献"] == 1 and fl["一次で除外した文献"] == 2 and fl["スクリーニングの対象として登録した文献"] == 6
+    sc = {x[0]: x for x in wb["スクリーニング"].iter_rows(min_row=2, values_only=True)}
+    assert sc["30000002"][5:8] == ("採用", None, "協議の結論") and sc["30000002"][8:11] == ("除外", "計画書のみ", "2名の一致") and "全文で確認する" in sc["30000002"][13] and sc["30000009"][5] == "一次を経ない"
+    # 進捗ボード: 不一致は、協議の結論が必要な記録として出る
+    put(R1, "30000005", stage="s2", decision="採用"); put(R2, "30000005", stage="s1", decision="除外", reason="重複")
+    a = [x for x in call("GET", "/dashboard", who=R1)[1]["approvals"] if x["kind"] == "スクリーニングの協議の結論"]; assert len(a) == 1 and "1件" in a[0]["record"]
+    assert any(x["action"] == "スクリーニングの協議の結論(一次)" for x in call("GET", "/audit")[1])
+    assert not any("除外" in x["detail"] for x in call("GET", "/audit")[1] if x["action"].startswith("スクリーニングの判定"))          # 2名独立: 判定の値を記録に出さない
+
+
+def test_pubmed_xml_is_parsed(monkeypatch):
+    xml = b"""<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>123456</PMID><Article><Journal><JournalIssue><PubDate><MedlineDate>2020 Jan-Feb</MedlineDate></PubDate></JournalIssue><ISOAbbreviation>J Test</ISOAbbreviation></Journal>
+      <ArticleTitle>A <i>trial</i> of cooling.</ArticleTitle><Abstract><AbstractText Label="METHODS">Randomized.</AbstractText><AbstractText Label="RESULTS">Fewer events.</AbstractText></Abstract>
+      <AuthorList><Author><LastName>Hanai</LastName><Initials>A</Initials></Author><Author><LastName>Ito</LastName><Initials>B</Initials></Author><Author><LastName>Sato</LastName><Initials>C</Initials></Author><Author><LastName>Abe</LastName><Initials>D</Initials></Author></AuthorList></Article></MedlineCitation></PubmedArticle></PubmedArticleSet>"""
+    import urllib.request
+    monkeypatch.setattr(urllib.request, "urlopen", lambda url, timeout=0: io.BytesIO(xml))
+    m = H.pubmed_meta(["123456"])["123456"]
+    assert m == {"title": "A trial of cooling.", "authors": "Hanai A, Ito B, Sato C, et al", "journal": "J Test", "year": "2020", "abstract": "METHODS: Randomized. RESULTS: Fewer events."}
