@@ -3,11 +3,10 @@
 PMID を省くと、2023年版の引用文献 1 件と、2026-10-26 の確認で保存した文献 2 件で確認する。"""
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "api"))
-os.environ.setdefault("AWS_DEFAULT_REGION", "ap-northeast-1")
-import handler as H  # noqa: E402
+import pubmed  # noqa: E402
 
 pmids = sys.argv[1:] or ["21258836", "39256982", "42750137"]
-meta = H.pubmed_meta(pmids)
+meta = pubmed.fetch(pmids)
 for pm in pmids:
     m = meta.get(pm)
     if not m: print(pm, "→ 取得できませんでした"); continue

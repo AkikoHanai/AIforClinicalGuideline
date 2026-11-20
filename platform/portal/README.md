@@ -102,3 +102,19 @@ python3 platform/portal/scripts/check_pubmed.py        # PubMed からの題名�
 - `platform/data/search_reference.json`: CQ ごとの検索式の案(前回Scopeの式。`core/prepare_review_workspace.py` の P節・C節・I節)と、2023年版の検索過程(`platform/prior_worksheets/search_*.json`。12 件)。
 - 2023年版の検索過程の記録がない CQ: P2(プレガバリン・予防)、T2(アミトリプチリン)、F3(オピオイド)、F4(併用療法)。
 - 今回(2028年版)の検索結果の一覧(検索式ごとの全件)は、リポジトリに保存されていない。`platform/literature_update/records.json` は、2026-10-26 に題名と RCT に限定して確認した 64 件であり、前回Scopeの式による検索ではない。
+
+## 検索の実行と、文献選択の別添(統括委員長の決定 2026-11-20)
+
+検索期間は 2026年10月1日まで、検索式は前回(2023年版)の式。検索ごとの式・期間・根拠は `platform/data/search_plan.json`(`scripts/build_search_plan.py` が作る)。
+17 検索のうち、前回の式が記録に残っている 9 検索が「確認済み」、残っていない 8 検索が「未確認」(件数だけを調べ、文献は取得しない)。
+
+```
+python3 platform/portal/scripts/run_search.py                    # 全検索の件数(AWS は不要)
+python3 platform/portal/scripts/run_search.py --fetch            # 確認済みの検索の文献を取得し、search_results/<実行日>/ に保存(json と csv)
+python3 platform/portal/scripts/run_search.py --import <メールアドレス> --searcher <氏名> --dir search_results/<実行日>
+```
+
+- 保存する csv は、検索ごとの文献の全件(No、PMID、題名、著者、誌名、年、DOI)。`検索の記録.csv` は、検索ごとの式、件数、取得した文献の数、PubMed が解釈した式。
+- 件数(PubMed の検索結果の件数)と取得した文献の数が一致しない検索は、ポータルに登録しない。1 万件を超える検索は、期間を分けて全件を取る。1つの CQ の対象が 8000 件を超える検索は、登録しない(式を確認する)。
+- ポータルの「スクリーニング・流れ図」の「別添を出力」(`GET /export/<cq>/screening`)は、検索の記録(件数 = 新たに登録した文献 + 重複 + 差)、流れ図の件数、枠ごとの文献の一覧(PMID・題名・著者)を xlsx にする。件数と一覧は同じ分け方(`classify`)から作る。
+- `search_results/` と `literature_pdfs_*/` は `.gitignore` に入れてあり、リポジトリに入らない。

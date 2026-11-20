@@ -77,3 +77,7 @@ platform/portal/api/openpyxl/
 platform/portal/api/openpyxl-*.dist-info/
 platform/portal/api/et_xmlfile/
 platform/portal/api/et_xmlfile-*.dist-info/
+
+# 論文PDFと検索結果(Mac の作業フォルダ。リポジトリに入れない)
+literature_pdfs_*/
+search_results/

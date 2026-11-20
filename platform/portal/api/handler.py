@@ -865,30 +865,10 @@ def search(method, parts, body, user):
     return resp(405, {"error": "方法が不正です"})
 
 
-def parse_pubmed_xml(data):
-    """PubMed(efetch の XML)から、PMID ごとの題名・著者・誌名・年・抄録を取り出す。scripts/run_search.py も、同じ関数を使う。"""
-    import xml.etree.ElementTree as ET
-    root = ET.fromstring(data)
-    text = lambda e: re.sub(r"\s+", " ", "".join(e.itertext())).strip() if e is not None else ""
-    out = {}
-    for a in root.findall(".//PubmedArticle"):
-        pmid = text(a.find("./MedlineCitation/PMID")); art = a.find("./MedlineCitation/Article")
-        if not pmid or art is None: continue
-        au = [(text(x.find("LastName")) + " " + text(x.find("Initials"))).strip() if x.find("LastName") is not None else text(x.find("CollectiveName")) for x in art.findall("./AuthorList/Author")]
-        au = [x for x in au if x]
-        year = text(art.find("./Journal/JournalIssue/PubDate/Year")) or (re.findall(r"\d{4}", text(art.find("./Journal/JournalIssue/PubDate/MedlineDate"))) or [""])[0]
-        ab = " ".join(((x.get("Label") + ": ") if x.get("Label") else "") + text(x) for x in art.findall("./Abstract/AbstractText"))
-        doi = next((text(x) for x in a.findall("./PubmedData/ArticleIdList/ArticleId") if x.get("IdType") == "doi"), "")
-        out[pmid] = {"title": text(art.find("ArticleTitle")), "authors": ", ".join(au[:3]) + (", et al" if len(au) > 3 else ""), "authors_all": ", ".join(au),
-                     "journal": text(art.find("./Journal/ISOAbbreviation")) or text(art.find("./Journal/Title")), "year": year, "doi": doi, "abstract": ab[:6000]}
-    return out
-
-
 def pubmed_meta(pmids):
     """PubMed(E-utilities の efetch)から、題名・著者・誌名・年・抄録を取る。取れなかった PMID は結果に含めない。"""
-    import urllib.parse, urllib.request
-    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?" + urllib.parse.urlencode({"db": "pubmed", "retmode": "xml", "id": ",".join(pmids)})
-    return parse_pubmed_xml(urllib.request.urlopen(url, timeout=20).read())
+    import pubmed
+    return pubmed.fetch(pmids)
 
 
 def stage_result(c, recs, stage):

@@ -407,8 +407,8 @@ def test_pubmed_xml_is_parsed(monkeypatch):
     xml = b"""<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>123456</PMID><Article><Journal><JournalIssue><PubDate><MedlineDate>2020 Jan-Feb</MedlineDate></PubDate></JournalIssue><ISOAbbreviation>J Test</ISOAbbreviation></Journal>
       <ArticleTitle>A <i>trial</i> of cooling.</ArticleTitle><Abstract><AbstractText Label="METHODS">Randomized.</AbstractText><AbstractText Label="RESULTS">Fewer events.</AbstractText></Abstract>
       <AuthorList><Author><LastName>Hanai</LastName><Initials>A</Initials></Author><Author><LastName>Ito</LastName><Initials>B</Initials></Author><Author><LastName>Sato</LastName><Initials>C</Initials></Author><Author><LastName>Abe</LastName><Initials>D</Initials></Author></AuthorList></Article></MedlineCitation></PubmedArticle></PubmedArticleSet>"""
-    import urllib.request
-    monkeypatch.setattr(urllib.request, "urlopen", lambda url, timeout=0: io.BytesIO(xml))
+    import pubmed
+    monkeypatch.setattr(pubmed, "call", lambda path, params, **k: xml)
     m = H.pubmed_meta(["123456"])["123456"]
     assert m == {"title": "A trial of cooling.", "authors": "Hanai A, Ito B, Sato C, et al", "authors_all": "Hanai A, Ito B, Sato C, Abe D", "journal": "J Test", "year": "2020", "doi": "", "abstract": "METHODS: Randomized. RESULTS: Fewer events."}
 
@@ -423,3 +423,36 @@ def test_search_reference_is_separate_from_records(env):
     c, r = call("GET", "/search/N1/reference", who=R2); assert c == 200 and "cryotherapy" in r["formula"][0]["query"] and len(r["prior"]) == 2 and r["last_search_end_2023"] == ["CQ1-冷却・圧迫: 2021-08-03"]
     assert call("GET", "/search/N1", who=R2)[1] == [] and call("GET", "/screening/N1")[1]["flow"]["db_hits"] == 0
     assert call("GET", "/search/P2/reference", who=R2)[1] == {}
+
+
+def test_run_search_saves_and_imports_exact_lists(env, monkeypatch, tmp_path):
+    """検索スクリプト: 件数と取得した文献の数が一致する検索だけを保存・登録する。1 万件を超える検索は期間を分けて全件を取る。登録後の別添で、件数 = 登録 + 重複 になる"""
+    import importlib, re
+    sys.path.insert(0, os.path.join(HERE, "..", "scripts")); RS = importlib.import_module("run_search"); import pubmed
+    plan = json.load(open(RS.PLAN, encoding="utf-8"))["searches"]
+    assert len(plan) == 17 and sum(s["confirmed"] for s in plan) == 9 and all(s["end"] == "2026/10/01" and s["full_query"].endswith(f'AND ("{s["start"]}"[dp] : "2026/10/01"[dp])') for s in plan)
+    assert next(s for s in plan if s["id"] == "T1-1")["start"] == "2021/12/13" and next(s for s in plan if s["id"] == "P1-1")["query"].startswith("goshajinkigan (neuropathy OR neurotoxi*)")
+    # 模擬の PubMed: 文献ごとに出版日を持ち、期間で絞る
+    base = RS.s2d("2021/07/01"); DB = {"goshajinkigan": [(str(40000000 + i), base + __import__("datetime").timedelta(days=i * 37)) for i in range(25)], "duloxetine": [(str(41000000 + i), RS.s2d("2022/01/01")) for i in range(3)]}
+    def esearch(term, retstart=0, retmax=0):
+        key = next((k for k in DB if k in term), None); a, b = [RS.s2d(x) for x in re.findall(r'"(\d{4}/\d{2}/\d{2})"\[dp\]', term)]
+        ids = [pm for pm, dt in DB.get(key, []) if a <= dt <= b]; return {"count": len(ids), "ids": ids[:retmax], "translation": "T(" + (key or "") + ")", "warnings": {}}
+    monkeypatch.setattr(pubmed, "esearch", esearch)
+    monkeypatch.setattr(pubmed, "fetch", lambda pmids, batch=200: {pm: {"title": "Title " + pm, "authors": "A B, et al", "authors_all": "A B, C D, E F, G H", "journal": "J", "year": "2023", "doi": "10.1/" + pm, "abstract": "Abs " + pm} for pm in pmids if pm != "40000003"})
+    ids, n = RS.all_pmids("goshajinkigan", RS.s2d("2021/07/01"), RS.s2d("2026/10/01"), limit=4); assert n == 25 and len(ids) == 25 and len(set(ids)) == 25      # 上限 4 件でも、期間を分けて全件
+    out = str(tmp_path / "res"); summ = RS.fetch_all(plan, out, only={"P1-1", "T1-1", "T2-1"}, limit=4)
+    assert [(x[0], x[7], x[8], x[9], x[10]) for x in summ] == [("P1-1", 25, 25, "一致", 1), ("T1-1", 3, 3, "一致", 0), ("T2-1", 0, 0, "一致", 0)]
+    rows = list(__import__("csv").reader(open(os.path.join(out, "P1-1_CQ1-牛車腎気丸.csv"), encoding="utf-8-sig"))); assert len(rows) == 26 and rows[1][1:4] == ["40000000", "Title 40000000", "A B, C D, E F, G H"]
+    assert RS.fetch_all(plan, str(tmp_path / "res2"), limit=4) and not os.path.exists(os.path.join(str(tmp_path / "res2"), "T2-1_CQ2-アミトリプチリン.json"))               # 未確認の式は、指定しない限り取得しない
+    class Tok:
+        def call(self, method, path, body=None): return call(method, path, body, R1 if path.endswith("/P1") or "/P1/" in path else CHAIR)[1]
+    call("POST", "/screening/P1/candidates", {"source": "ハンドサーチ", "why": "先に登録", "items": [{"pmid": "40000001"}]}, R1)
+    done = RS.import_all(Tok(), out, "元雄良治", batch=10); assert ("P1-1", 25, 24, 1) in done and ("T1-1", 3, 3, 0) in done
+    assert RS.import_all(Tok(), out, "元雄良治") == []                                                                                           # 同じ検索を二重に登録しない
+    s = call("GET", "/search/P1", who=R1)[1][0]; assert s["hits"] == 25 and s["searcher"] == "元雄良治" and s["period"] == "2021/07/01〜2026/10/01" and "手引き2017" in s["note"]
+    f = call("GET", "/screening/P1", who=R1)[1]["flow"]; assert (f["db_hits"], f["cand_db"], f["cand_other"], f["duplicates"], f["cands"]) == (25, 24, 1, 1, 25)
+    assert call("GET", "/screening/P1/40000002/abstract", who=R1)[1]["abstract"] == "Abs 40000002"
+    import openpyxl
+    r = call("GET", "/export/P1/screening", who=R1)[1]; wb = openpyxl.load_workbook(io.BytesIO(boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read()))
+    assert [x for x in wb["検索の記録"].iter_rows(min_row=2, values_only=True)][0][5:9] == (25, 24, 1, 0)
+    a = [x for x in wb["A 対象の全件"].iter_rows(min_row=2, values_only=True)]; assert len(a) == 25 and a[0][1:4] == ("40000000", "Title 40000000", "A B, C D, E F, G H") and a[3][2] in ("", None)   # 書誌を取得できなかった PMID も、一覧に残す
