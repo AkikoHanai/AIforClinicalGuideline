@@ -140,3 +140,44 @@ def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None, sc
     style(ws, widths=[20, 12, 22, 30, 60])
 
     buf = io.BytesIO(); wb.save(buf); return buf.getvalue()
+
+
+# ---------------------------------------------------------------- 文献選択の別添(SRチームが件数と文献を照合するための一覧)
+SCREEN_SHEETS = [  # (シート名, 一覧の名, 流れ図の枠)
+    ("A 対象の全件", "all", "スクリーニングの対象として登録した文献"), ("B 一次の対象", "s1_target", "一次スクリーニング(題名・抄録)の対象"), ("C 一次で除外", "s1_exclude", "一次で除外した文献"),
+    ("D 一次の結果なし", "s1_open", "一次の結果の記録がない文献(判定が 2名そろっていない、または不一致)"), ("E 二次の対象", "s2_target", "二次スクリーニング(全文)の対象"),
+    ("F 二次で除外", "s2_exclude", "二次で除外した文献"), ("G 二次の結果なし", "s2_open", "二次の結果の記録がない文献(判定が 2名そろっていない、または不一致)"), ("H 採用", "s2_include", "採用した文献")]
+LIST_HEAD = ["No", "PMID", "題名", "著者", "誌名", "年", "DOI", "出典", "検索の記録", "一次の結果", "一次の除外理由", "一次の決め方", "一次の各委員の判定", "二次の結果", "二次の除外理由", "二次の決め方", "二次の各委員の判定", "協議の内容"]
+
+
+def build_screening(cq, d, at):
+    """d: handler.screening_lists の戻り値。流れ図の件数と、枠ごとの文献の一覧(PMID・題名・著者)を 1 つのブックにする。件数は一覧の行数と一致する。"""
+    f = d["flow"]; L = d["lists"]; wb = openpyxl.Workbook()
+    ws = wb.active; ws.title = "流れ図の件数"
+    ws.append(["CQ", f"{cq['id']} {cq['title']}", "", "出力日時", at]); ws.append(["枠", "件数", "一覧のシート", "一覧の行数", "件数と行数"])
+    rows = [("データベース検索で得た文献(検索の記録の件数の合計)", f["db_hits"], "検索の記録", sum(int(s.get("hits") or 0) for s in d["searches"])),
+            ("データベース検索から登録した文献", f["cand_db"], "A 対象の全件(出典がデータベース検索)", len(L["db"])), ("その他の情報源から加えた文献", f["cand_other"], "A 対象の全件(出典がその他の情報源)", len(L["other"])),
+            ("取り込みのときに登録済みのため除いた重複", f["duplicates"], "重複として除いた文献", len(d["duplicates"]))]
+    rows += [(label, len(L[k]), name, len(L[k])) for name, k, label in SCREEN_SHEETS]
+    for label, n, sheet, m in rows: ws.append([label, n, sheet, m, "一致" if int(n) == int(m) else "不一致"])
+    ws.append([]); ws.append(["注", "結果は、2名の判定の一致、または協議の結論である。1名だけの判定は結果にしない。一次を経ずに加えた文献(" + str(f["direct"]) + " 件)は、B に含めず、E に含める。"])
+    style(ws, header_rows=2, widths=[62, 10, 44, 12, 12])
+
+    ws = wb.create_sheet("検索の記録")
+    ws.append(["検索日", "データベース", "検索者", "検索期間", "検索式", "件数(検索の記録)", "新たに登録した文献", "登録済みのため除いた重複", "差(件数 − 登録 − 重複)", "備考"])
+    for s in d["searches"]:
+        ws.append([s.get("date", ""), s.get("database", ""), s.get("searcher", ""), s.get("period", ""), s.get("query", ""), v(s.get("hits")), s["added"], s["dups"], s["diff"], s.get("note", "")])
+    ws.append([]); ws.append(["注", "差が 0 でない検索は、検索結果の一部が取り込まれていないか、件数の記入が検索結果と異なる。"])
+    style(ws, widths=[12, 12, 12, 24, 80, 12, 12, 12, 12, 40])
+
+    for name, k, _ in SCREEN_SHEETS:
+        ws = wb.create_sheet(name); ws.append(LIST_HEAD)
+        for i, r in enumerate(L[k], 1):
+            ws.append([i, r["pmid"], r["title"], r["authors"], r["journal"], r["year"], r["doi"], r["source"] + (f"({r['added_why']})" if r["added_why"] else ""), r["search"],
+                       r["s1"], r["s1_reason"], r["s1_by"], r["s1_who"], r["s2"], r["s2_reason"], r["s2_by"], r["s2_who"], r["why"]])
+        style(ws, widths=[6, 11, 60, 40, 18, 6, 22, 18, 16, 10, 22, 12, 30, 10, 22, 12, 30, 30]); ws.freeze_panes = "A2"
+
+    ws = wb.create_sheet("重複として除いた文献"); ws.append(["No", "PMID", "題名", "著者", "取り込みの日時", "出典", "検索の記録"])
+    for i, r in enumerate(d["duplicates"], 1): ws.append([i, r["pmid"], r["title"], r["authors"], r["at"], r["source"], r["search"]])
+    style(ws, widths=[6, 11, 60, 40, 20, 18, 16])
+    buf = io.BytesIO(); wb.save(buf); return buf.getvalue()

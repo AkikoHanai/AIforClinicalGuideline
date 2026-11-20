@@ -372,8 +372,7 @@
       const FIL = { all: ["すべて", () => true], my1: ["一次 自分が未判定", (p) => !p.direct && !myDec(p, "s1")], my2: ["二次 自分が未判定", (p) => s2ok(p) && !myDec(p, "s2")],
         conflict: ["不一致(協議の結論が必要)", (p) => p.s1.state === "不一致" || p.s2.state === "不一致"], s2: ["二次の対象", (p) => p.direct || ["採用", "保留"].includes(p.s1.decision)],
         inc: ["採用", (p) => p.s2.decision === "採用"], exc: ["除外", (p) => p.s1.decision === "除外" || p.s2.decision === "除外"] };
-      const show = FIL[q.show] ? q.show : "all"; const rows = P.filter(FIL[show][1]); const page = Math.max(0, Number(q.page || 0)); const PER = 50; const view = rows.slice(page * PER, page * PER + PER);
-      const link = (o) => "#screening?" + new URLSearchParams({ cq: cqid, show, ...o });
+      let show = FIL[q.show] ? q.show : "all", page = 0; const PER = 50;   // 絞り込みと頁送りは、画面の中で行う(文献を読み直さない)
       const box = (t, n, sub, cls) => `<div class="fbox ${cls || ""}"><b>${esc(t)}</b>: ${n} 件${sub ? `<br>${sub}` : ""}</div>`;
       const reasons = Object.entries(f.s2_reasons).map(([k, v]) => `${esc(k)} ${v} 件`).join("、");
       const flowHtml = `<div class="flow">
@@ -393,44 +392,56 @@
         return `<td class="w">${d.reviewer ? `<div>自分: ${sel(opts, cur.decision || "", `data-dec="${st}"`, true)} <select class="sm${cur.decision === "除外" ? "" : " hidden"}" data-reason="${st}"><option value="">(除外理由)</option>${d.reasons.map((o) => `<option ${o === cur.reason ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></div>` : ""}
           ${st === "s2" && d.reviewer ? `<div>全文: ${sel(["未入手", "入手済", "読了"], p.mine.ft || "未入手", "data-ft")}</div>` : ""}<div>結果: ${result(p, st)}${st === "s2" && p.s2.decision === "採用" ? ` <a href="#papers?cq=${esc(cqid)}">「論文」に登録する</a>` : ""}</div>${others(p, st) ? `<div class="small">${others(p, st)}</div>` : ""}
           ${d.can_edit && (p[st].state === "不一致" || p[st].decision) && p[st].n >= 2 ? `<button class="${p[st].state === "不一致" ? "approve" : "link"}" data-final="${st}">${p[st].state === "不一致" ? "承認: 協議の結論を記録する" : "結果を修正する(協議の結論)"}</button>` : ""}</td>`; };
+      const rowHtml = (p) => `<tr data-pmid="${esc(p.pmid)}"><td><a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.pmid)}/" target="_blank" rel="noopener">${esc(p.pmid)}</a></td>
+            <td class="w">${esc(p.title || "(題名は未取得)")}<div class="small">${esc([p.authors, p.journal, p.year].filter(Boolean).join(". "))}</div><div class="small">出典: ${esc(p.source)}${p.added_why ? `(${esc(p.added_why)})` : ""}</div>${p.has_abstract ? `<details data-abs><summary>抄録</summary><div class="abs">読み込み中…</div></details>` : ""}
+              ${(p.mine.history || []).length ? `<details><summary>自分の変更の履歴 ${p.mine.history.length} 件</summary>${p.mine.history.map((h) => `${esc(h.at.slice(0, 16).replace("T", " "))} ${esc(h.field)}: ${esc(h.from)} → ${esc(h.to)} ${esc(h.reason)}`).join("<br>")}</details>` : ""}
+              ${d.reviewer ? `<div><input data-note size="30" placeholder="備考" value="${esc(p.mine.note || "")}"></div>` : ""}</td>
+            ${cell(p, "s1")}${cell(p, "s2")}</tr>`;
+      const drawList = () => { const rows = P.filter(FIL[show][1]); page = Math.min(page, Math.max(0, Math.ceil(rows.length / PER) - 1)); const view = rows.slice(page * PER, page * PER + PER);
+        $("#scrList").innerHTML = `<h3>文献(${rows.length} 件 / 対象 ${P.length} 件)</h3>
+          <div class="row">${Object.entries(FIL).filter(([k]) => d.reviewer || !k.startsWith("my")).map(([k, [ja, fn]]) => `<button class="tag ${k === show ? "run" : ""}" data-show="${k}">${esc(ja)} ${P.filter(fn).length}</button>`).join("")}</div>
+          <table class="scr"><tr><th>PMID</th><th>文献</th><th>一次(題名・抄録)</th><th>二次(全文)</th></tr>${view.map(rowHtml).join("") || '<tr><td colspan="4" class="muted">該当する文献はありません</td></tr>'}</table>
+          <div class="row">${page > 0 ? `<button data-page="${page - 1}">前の ${PER} 件</button>` : ""} ${rows.length ? `${page * PER + 1}〜${Math.min(rows.length, (page + 1) * PER)} 件目` : ""} ${(page + 1) * PER < rows.length ? `<button data-page="${page + 1}">次の ${PER} 件</button>` : ""}</div>`; };
       m.innerHTML = `<h2>スクリーニング(一次・二次)と文献選択の流れ図</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
         <ol class="steps"><li>検索結果(「検索の記録」の件数の文献)と、その他の情報源の文献を、スクリーニングの対象に取り込む</li><li>担当委員 2名が、一次(題名・抄録)の可否を、相手の判定を見ずに入力する。除外には理由を選ぶ</li>
           <li>一次の結果が採用・保留の文献について、全文を読み、二次の可否を入力する</li><li>${need("承認")} 2名の判定が不一致の文献は、協議して「協議の結論」を記録する(担当委員。決まらない場合は SR委員長)</li><li>採用した文献を、「論文」の画面に登録する</li></ol>
         <p class="note">相手の判定は、自分がその文献のその段階を判定した後に表示される(2名独立)。2名の判定がそろった後は、自分の判定を変更できない。結果は、2名の判定の一致、または協議の結論である。</p>
-        <div class="card"><h3>文献選択の流れ図</h3>${flowHtml}<p class="note">件数は、検索の記録とスクリーニングの記録から数えた値である。</p></div>
+        <div class="card"><h3>文献選択の流れ図</h3>${flowHtml}
+          <p class="note">件数は、検索の記録とスクリーニングの記録から数えた値である(この画面を開いた時点)。判定を入力した後の件数は、「件数を数え直す」で更新する。別添は、流れ図の枠ごとの文献の一覧(PMID・題名・著者)であり、件数と一覧の行数が一致する。</p>
+          <div class="row"><button id="scrReload">件数を数え直す</button><button id="scrExport" class="primary">別添(検索の記録・件数・文献の一覧。xlsx)を出力</button></div></div>
         ${d.can_edit ? `<div class="card"><h3>対象の取り込み</h3>
           <div class="row"><label>出典 ${sel(d.sources, q.search ? "検索(PubMed)" : "", 'id="iSrc"')}</label><label>検索の記録 <select id="iSearch"><option value="">—</option>${searches.map((r) => `<option value="${esc(r.id)}" ${r.id === q.search ? "selected" : ""}>${esc(r.date)} ${esc(r.database)} ${esc(r.hits)}件</option>`).join("")}</select></label>
             <label><input type="checkbox" id="iDirect"> 一次を経ない(二次の対象として加える)</label><label>追加の理由(データベース検索以外は必須) <input id="iWhy" size="40"></label></div>
           <div class="row"><label>PubMed の「Save → Format: CSV」の内容、または PMID の行(PMID だけ、または「PMID(タブ)題名」)を貼り付ける<br><textarea id="iText" rows="5" cols="100"></textarea></label></div>
           <div class="row"><input type="file" id="iFile" accept=".csv,.txt"><button id="iBtn" class="primary">取り込む</button><button id="iFetch">題名・抄録を PubMed から取得する</button></div></div>` : ""}
-        <div class="card"><h3>文献(${rows.length} 件 / 対象 ${P.length} 件)</h3>
-          <div class="row">${Object.entries(FIL).filter(([k]) => d.reviewer || !k.startsWith("my")).map(([k, [ja, fn]]) => `<a class="tag ${k === show ? "run" : ""}" href="#screening?cq=${esc(cqid)}&show=${k}">${esc(ja)} ${P.filter(fn).length}</a>`).join("")}</div>
-          <table class="scr"><tr><th>PMID</th><th>文献</th><th>一次(題名・抄録)</th><th>二次(全文)</th></tr>
-          ${view.map((p) => `<tr data-pmid="${esc(p.pmid)}"><td><a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.pmid)}/" target="_blank" rel="noopener">${esc(p.pmid)}</a></td>
-            <td class="w">${esc(p.title || "(題名は未取得)")}<div class="small">${esc([p.authors, p.journal, p.year].filter(Boolean).join(". "))}</div><div class="small">出典: ${esc(p.source)}${p.added_why ? `(${esc(p.added_why)})` : ""}</div>${p.abstract ? `<details><summary>抄録</summary>${esc(p.abstract)}</details>` : ""}
-              ${(p.mine.history || []).length ? `<details><summary>自分の変更の履歴 ${p.mine.history.length} 件</summary>${p.mine.history.map((h) => `${esc(h.at.slice(0, 16).replace("T", " "))} ${esc(h.field)}: ${esc(h.from)} → ${esc(h.to)} ${esc(h.reason)}`).join("<br>")}</details>` : ""}
-              ${d.reviewer ? `<div><input data-note size="30" placeholder="備考" value="${esc(p.mine.note || "")}"></div>` : ""}</td>
-            ${cell(p, "s1")}${cell(p, "s2")}</tr>`).join("") || '<tr><td colspan="4" class="muted">該当する文献はありません</td></tr>'}</table>
-          <div class="row">${page > 0 ? `<a href="${link({ page: page - 1 })}">前の ${PER} 件</a>` : ""} ${rows.length ? `${page * PER + 1}〜${Math.min(rows.length, (page + 1) * PER)} 件目` : ""} ${(page + 1) * PER < rows.length ? `<a href="${link({ page: page + 1 })}">次の ${PER} 件</a>` : ""}</div>
-          <div id="finalBox"></div></div>`;
+        <div class="card"><div id="scrList"></div><div id="finalBox"></div></div>`;
+      drawList();
       $("#cqSel").addEventListener("change", () => go("screening", { cq: $("#cqSel").value }));
-      const row = (el) => P.find((p) => p.pmid === el.closest("tr").dataset.pmid);
-      const put = async (pmid, body) => { try { await api(`/screening/${cqid}/${pmid}`, "PUT", body); toast("記録しました"); render(); } catch (e) { toast(e.message, true); render(); } };
-      m.querySelectorAll("select[data-dec], select[data-reason]").forEach((el) => el.addEventListener("change", () => {
-        const st = el.dataset.dec || el.dataset.reason; const tr = el.closest("tr"); const p = row(el); const dec = tr.querySelector(`select[data-dec="${st}"]`).value; const rs = tr.querySelector(`select[data-reason="${st}"]`);
+      $("#scrReload").addEventListener("click", render);
+      $("#scrExport").addEventListener("click", async () => { try { const r = await api(`/export/${cqid}/screening`); if (r.url) window.open(r.url, "_blank"); toast("別添を出力しました"); } catch (e) { toast(e.message, true); } });
+      const L = $("#scrList"); const rowOf = (el) => P.find((p) => p.pmid === el.closest("tr").dataset.pmid);
+      const put = async (p, body) => { try { const r = await api(`/screening/${cqid}/${p.pmid}`, "PUT", body); Object.assign(p, r.row); toast("記録しました"); } catch (e) { toast(e.message, true); } drawList(); };
+      L.addEventListener("click", (ev) => { const b = ev.target.closest("button"); if (!b) return;
+        if (b.dataset.show) { show = b.dataset.show; page = 0; return drawList(); }
+        if (b.dataset.page !== undefined) { page = Number(b.dataset.page); drawList(); return L.scrollIntoView(); }
+        if (b.dataset.final) { const p = rowOf(b), st = b.dataset.final; const ja = st === "s1" ? "一次" : "二次";
+          $("#finalBox").innerHTML = `<div class="card"><h3>協議の結論(${ja}) PMID ${esc(p.pmid)}</h3><p>${esc(p.title)}</p>
+            <p>判定: ${[...(p.mine[st]?.decision ? [`${esc(me)}: ${esc(p.mine[st].decision)}${p.mine[st].reason ? `(${esc(p.mine[st].reason)})` : ""}`] : []), ...p[st + "_others"].map((o) => `${esc(o.reviewer)}: ${esc(o.decision)}${o.reason ? `(${esc(o.reason)})` : ""}`)].join("、")}</p>
+            <div class="row"><label>結論 ${sel(st === "s1" ? ["採用", "除外", "保留"] : ["採用", "除外"], "", 'id="fDec"', true)}</label><label>除外理由 ${sel(d.reasons, "", 'id="fReason"', true)}</label><label>協議の内容(結論の理由) <input id="fWhy" size="50"></label>
+              <button id="fBtn" class="approve">承認: 協議の結論を記録する</button></div></div>`;
+          $("#finalBox").scrollIntoView({ behavior: "smooth" });
+          $("#fBtn").addEventListener("click", async () => { try { const r = await api(`/screening/${cqid}/${p.pmid}/final`, "PUT", { stage: st, decision: $("#fDec").value, reason: $("#fReason").value, why: $("#fWhy").value });
+            Object.assign(p, r.row); $("#finalBox").innerHTML = ""; toast("協議の結論を記録しました"); drawList(); } catch (e) { toast(e.message, true); } }); } });
+      L.addEventListener("change", (ev) => { const el = ev.target; if (!el.closest("tr[data-pmid]")) return; const p = rowOf(el);
+        if (el.dataset.ft !== undefined) return put(p, { ft: el.value });
+        if (el.dataset.note !== undefined) return put(p, { note: el.value });
+        const st = el.dataset.dec || el.dataset.reason; if (!st) return; const tr = el.closest("tr"); const dec = tr.querySelector(`select[data-dec="${st}"]`).value; const rs = tr.querySelector(`select[data-reason="${st}"]`);
         rs.classList.toggle("hidden", dec !== "除外"); if (!dec) return; if (dec === "除外" && !rs.value) return toast("除外理由を選んでください");
         const cur = p.mine[st] || {}; const body = { stage: st, decision: dec, reason: dec === "除外" ? rs.value : "" };
-        if (cur.decision && (cur.decision !== dec || (cur.reason || "") !== body.reason)) { const why = window.prompt(`判定を変更します(${cur.decision} → ${dec})。変更の理由を入力してください。`); if (!why || !why.trim()) return render(); body.change_reason = why.trim(); }
-        put(p.pmid, body); }));
-      m.querySelectorAll("select[data-ft]").forEach((el) => el.addEventListener("change", () => put(row(el).pmid, { ft: el.value })));
-      m.querySelectorAll("input[data-note]").forEach((el) => el.addEventListener("change", () => put(row(el).pmid, { note: el.value })));
-      m.querySelectorAll("button[data-final]").forEach((b) => b.addEventListener("click", () => { const p = row(b), st = b.dataset.final; const ja = st === "s1" ? "一次" : "二次";
-        $("#finalBox").innerHTML = `<div class="card"><h3>協議の結論(${ja}) PMID ${esc(p.pmid)}</h3><p>${esc(p.title)}</p>
-          <p>判定: ${[...(p.mine[st]?.decision ? [`${esc(me)}: ${esc(p.mine[st].decision)}${p.mine[st].reason ? `(${esc(p.mine[st].reason)})` : ""}`] : []), ...p[st + "_others"].map((o) => `${esc(o.reviewer)}: ${esc(o.decision)}${o.reason ? `(${esc(o.reason)})` : ""}`)].join("、")}</p>
-          <div class="row"><label>結論 ${sel(st === "s1" ? ["採用", "除外", "保留"] : ["採用", "除外"], "", 'id="fDec"', true)}</label><label>除外理由 ${sel(d.reasons, "", 'id="fReason"', true)}</label><label>協議の内容(結論の理由) <input id="fWhy" size="50"></label>
-            <button id="fBtn" class="approve">承認: 協議の結論を記録する</button></div></div>`;
-        $("#finalBox").scrollIntoView({ behavior: "smooth" });
-        $("#fBtn").addEventListener("click", async () => { try { await api(`/screening/${cqid}/${p.pmid}/final`, "PUT", { stage: st, decision: $("#fDec").value, reason: $("#fReason").value, why: $("#fWhy").value }); toast("協議の結論を記録しました"); render(); } catch (e) { toast(e.message, true); } }); }));
+        if (cur.decision && (cur.decision !== dec || (cur.reason || "") !== body.reason)) { const why = window.prompt(`判定を変更します(${cur.decision} → ${dec})。変更の理由を入力してください。`); if (!why || !why.trim()) return drawList(); body.change_reason = why.trim(); }
+        put(p, body); });
+      L.addEventListener("toggle", async (ev) => { const dt = ev.target; if (!dt.matches || !dt.matches("details[data-abs]") || !dt.open || dt.dataset.loaded) return; dt.dataset.loaded = "1";
+        try { const r = await api(`/screening/${cqid}/${dt.closest("tr").dataset.pmid}/abstract`); dt.querySelector(".abs").textContent = r.abstract || "抄録の記録はありません"; } catch (e) { dt.querySelector(".abs").textContent = e.message; } }, true);
       const parse = (text) => { const out = [], seen = new Set(); const push = (o) => { if (/^\d{5,9}$/.test(o.pmid) && !seen.has(o.pmid)) { seen.add(o.pmid); out.push(o); } };
         const csv = (line) => { const a = []; let cur = "", inq = false; for (let k = 0; k < line.length; k++) { const ch = line[k]; if (inq) { if (ch === '"' && line[k + 1] === '"') { cur += '"'; k++; } else if (ch === '"') inq = false; else cur += ch; } else if (ch === '"') inq = true; else if (ch === ",") { a.push(cur); cur = ""; } else cur += ch; } a.push(cur); return a; };
         const lines = text.replace(/^﻿/, "").split(/\r?\n/).filter((l) => l.trim());
@@ -440,8 +451,8 @@
         return out; };
       $("#iFile")?.addEventListener("change", async () => { const fl = $("#iFile").files[0]; if (fl) $("#iText").value = await fl.text(); });
       $("#iBtn")?.addEventListener("click", async () => { const items = parse($("#iText").value); if (!items.length) return toast("PMID の行がありません", true);
-        try { const r = await api(`/screening/${cqid}/candidates`, "POST", { source: $("#iSrc").value, search_id: $("#iSearch").value, direct: $("#iDirect").checked, why: $("#iWhy").value, items });
-          toast(`追加 ${r.added} 件、登録済みのため除いた重複 ${r.duplicates} 件`); go("screening", { cq: cqid }); render(); } catch (e) { toast(e.message, true); } });
+        try { let a = 0, dp = 0; for (let k = 0; k < items.length; k += 500) { const r = await api(`/screening/${cqid}/candidates`, "POST", { source: $("#iSrc").value, search_id: $("#iSearch").value, direct: $("#iDirect").checked, why: $("#iWhy").value, items: items.slice(k, k + 500) }); a += r.added; dp += r.duplicates; }
+          toast(`追加 ${a} 件、登録済みのため除いた重複 ${dp} 件`); if (q.search) go("screening", { cq: cqid }); else render(); } catch (e) { toast(e.message, true); } });
       $("#iFetch")?.addEventListener("click", async () => { let n = 0; $("#iFetch").disabled = true;
         try { for (;;) { const r = await api(`/screening/${cqid}/fetch`, "POST", {}); n += r.fetched; if (!r.remaining || !r.asked) break; } toast(`${n} 件の題名・抄録を取得しました`); render(); } catch (e) { toast(e.message, true); $("#iFetch").disabled = false; } });
     },

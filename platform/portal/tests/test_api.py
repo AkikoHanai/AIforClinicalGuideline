@@ -350,7 +350,7 @@ def test_search_record_screening_and_flow(env, monkeypatch):
     assert put(R1, "30000001", stage="s1", decision="採用")[0] == 400
     c, r = put(R1, "30000001", stage="s1", decision="採用", change_reason="抄録を読み直した"); assert c == 200 and r["mine"]["history"][0]["to"] == "採用" and r["s1"]["decision"] == ""
     row = lambda who, pmid: next(x for x in call("GET", "/screening/P1", who=who)[1]["candidates"] if x["pmid"] == pmid)
-    assert row(R2, "30000001")["s1_others"] == [] and row(R2, "30000001")["abstract"] == "Background: x"
+    assert row(R2, "30000001")["s1_others"] == [] and row(R2, "30000001")["has_abstract"] is True and "abstract" not in row(R2, "30000001") and call("GET", "/screening/P1/30000001/abstract", who=R2)[1]["abstract"] == "Background: x"
     assert put(R2, "30000001", stage="s1", decision="採用")[1]["s1"] == {"decision": "採用", "reason": "", "by": "2名の一致", "n": 2}
     assert row(R2, "30000001")["s1_others"][0]["reviewer"] == "元雄良治"
     assert put(R1, "30000001", stage="s1", decision="除外", reason="重複", change_reason="x")[0] == 409                                   # 2名がそろった後は変更できない
@@ -385,8 +385,19 @@ def test_search_record_screening_and_flow(env, monkeypatch):
     fl = {x[0]: x[1] for x in wb["文献選択の流れ図"].iter_rows(min_row=2, values_only=True) if x[0]}; assert fl["採用した文献"] == 1 and fl["一次で除外した文献"] == 2 and fl["スクリーニングの対象として登録した文献"] == 6
     sc = {x[0]: x for x in wb["スクリーニング"].iter_rows(min_row=2, values_only=True)}
     assert sc["30000002"][5:8] == ("採用", None, "協議の結論") and sc["30000002"][8:11] == ("除外", "計画書のみ", "2名の一致") and "全文で確認する" in sc["30000002"][13] and sc["30000009"][5] == "一次を経ない"
+    # 文献選択の別添: 流れ図の件数と、枠ごとの文献の一覧(PMID・題名・著者)の行数が一致する
+    c, r = call("GET", "/export/P1/screening", who=R1); assert c == 200
+    wb = openpyxl.load_workbook(io.BytesIO(boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read()))
+    chk = [x for x in wb["流れ図の件数"].iter_rows(min_row=3, values_only=True) if x[0] and x[0] != "注"]
+    assert len(chk) == 12 and all(x[4] == "一致" for x in chk) and {x[0]: x[1] for x in chk}["採用した文献"] == 1
+    for name, k, _ in __import__("export_minds").SCREEN_SHEETS: assert wb[name].max_row - 1 == r["counts"][k] == f["cands" if k == "all" else k]
+    adopted = [x for x in wb["H 採用"].iter_rows(min_row=2, values_only=True)]; assert adopted[0][1] == "30000001" and adopted[0][2] == "T30000001" and adopted[0][3] == "A B"
+    assert [x[1] for x in wb["C 一次で除外"].iter_rows(min_row=2, values_only=True)] == ["30000003", "30000004"] and [x[1] for x in wb["F 二次で除外"].iter_rows(min_row=2, values_only=True)] == ["30000002"]
+    sr = [x for x in wb["検索の記録"].iter_rows(min_row=2, values_only=True)][0]; assert sr[5:9] == (6, 5, 1, 0)            # 件数 6 = 登録 5 + 重複 1
+    assert [x[1] for x in wb["重複として除いた文献"].iter_rows(min_row=2, values_only=True)] == ["30000001"]
     # 進捗ボード: 不一致は、協議の結論が必要な記録として出る
     put(R1, "30000005", stage="s2", decision="採用"); put(R2, "30000005", stage="s1", decision="除外", reason="重複")
+    assert call("GET", "/screening", who=CHAIR)[1]["P1"]["s1_conflict"] == 1                                                             # 保存した件数は、記録が変わると数え直す
     a = [x for x in call("GET", "/dashboard", who=R1)[1]["approvals"] if x["kind"] == "スクリーニングの協議の結論"]; assert len(a) == 1 and "1件" in a[0]["record"]
     assert any(x["action"] == "スクリーニングの協議の結論(一次)" for x in call("GET", "/audit")[1])
     assert not any("除外" in x["detail"] for x in call("GET", "/audit")[1] if x["action"].startswith("スクリーニングの判定"))          # 2名独立: 判定の値を記録に出さない
@@ -399,7 +410,7 @@ def test_pubmed_xml_is_parsed(monkeypatch):
     import urllib.request
     monkeypatch.setattr(urllib.request, "urlopen", lambda url, timeout=0: io.BytesIO(xml))
     m = H.pubmed_meta(["123456"])["123456"]
-    assert m == {"title": "A trial of cooling.", "authors": "Hanai A, Ito B, Sato C, et al", "journal": "J Test", "year": "2020", "abstract": "METHODS: Randomized. RESULTS: Fewer events."}
+    assert m == {"title": "A trial of cooling.", "authors": "Hanai A, Ito B, Sato C, et al", "authors_all": "Hanai A, Ito B, Sato C, Abe D", "journal": "J Test", "year": "2020", "doi": "", "abstract": "METHODS: Randomized. RESULTS: Fewer events."}
 
 
 def test_search_reference_is_separate_from_records(env):
