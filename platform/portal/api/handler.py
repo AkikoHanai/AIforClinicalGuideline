@@ -908,6 +908,7 @@ def flow(cqid, cands=None, recs=None):
          "s1_target": 0, "s1_include": 0, "s1_hold": 0, "s1_exclude": 0, "s1_open": 0, "s1_conflict": 0, "direct": 0,
          "s2_target": 0, "s2_include": 0, "s2_exclude": 0, "s2_open": 0, "s2_conflict": 0, "s2_reasons": {}, "registered": 0}
     papers = {p["pmid"] for p in query("PAPER", f"{cqid}#")}
+    f["papers"] = len(papers); f["papers_unscreened"] = len(papers - {c["pmid"] for c in cands})   # スクリーニングの記録がなく登録済みの論文(2023年版の引用文献として取り込んだ論文など)
     for c in cands:
         rs = recs.get(c["pmid"], []); r1 = stage_result(c, rs, "s1"); r2 = stage_result(c, rs, "s2")
         if c.get("direct"): f["direct"] += 1

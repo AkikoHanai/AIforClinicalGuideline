@@ -385,7 +385,7 @@
         <div class="farrow">↓</div><div></div><div></div>
         ${box("二次スクリーニング(全文)の対象", f.s2_target, `一次を経ずに加えた文献 ${f.direct} 件を含む。結果の記録がない文献 ${f.s2_open} 件(うち 2名の判定が不一致 ${f.s2_conflict} 件)`)}<div class="farrow">→</div>${box("二次で除外した文献", f.s2_exclude, reasons ? "除外理由: " + reasons : "")}
         <div class="farrow">↓</div><div></div><div></div>
-        ${box("採用した文献", f.s2_include, `うち「論文」の画面に登録済み ${f.registered} 件`)}<div></div><div></div></div>`;
+        ${box("採用した文献", f.s2_include, `うち「論文」の画面に登録済み ${f.registered} 件`)}<div></div>${box("スクリーニングの記録がなく「論文」に登録済みの論文", f.papers_unscreened, "2023年版の引用文献として取り込んだ論文など。上の流れの件数には数えていない")}</div>`;
       const others = (p, st) => p[st + "_others"].map((o) => `${esc(o.reviewer)}: ${esc(o.decision)}${o.reason ? `(${esc(o.reason)})` : ""}`).join("<br>");
       const result = (p, st) => { const r = p[st]; return r.decision ? `${tag(r.decision, r.decision === "除外" ? "" : "ok")} ${esc(r.by)}${r.reason ? `<br>除外理由: ${esc(r.reason)}` : ""}` : (r.state === "不一致" ? need("不一致") : `判定 ${r.n} 名`); };
       const cell = (p, st) => { const opts = st === "s1" ? ["採用", "除外", "保留"] : ["採用", "除外"]; const cur = p.mine[st] || {}; const na = st === "s1" ? p.direct : !s2ok(p);

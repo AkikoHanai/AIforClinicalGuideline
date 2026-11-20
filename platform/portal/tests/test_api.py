@@ -375,6 +375,8 @@ def test_search_record_screening_and_flow(env, monkeypatch):
     assert (f["s1_target"], f["s1_include"], f["s1_exclude"], f["s1_open"], f["direct"]) == (5, 2, 2, 1, 1)
     assert (f["s2_target"], f["s2_include"], f["s2_exclude"], f["s2_open"], f["s2_reasons"]) == (3, 1, 1, 1, {"計画書のみ": 1})
     assert call("GET", "/screening", who=CHAIR)[1]["P1"]["s2_include"] == 1
+    # 2023年版の引用文献として取り込んだ論文(スクリーニングの記録がない)は、流れの件数に入れず、別の枠で数える
+    register_paper(); f2 = call("GET", "/screening/P1", who=CHAIR)[1]["flow"]; assert (f2["papers"], f2["papers_unscreened"], f2["s2_include"], f2["registered"]) == (1, 1, 1, 0)
     st = call("GET", "/cq/P1")[1]["stages"]; assert st["検索"] == "1件(検索結果の合計 6件)" and st["スクリーニング"].startswith("対象 6件。一次 結果あり 4/5、二次 結果あり 2/3")
     # Minds 書類の出力に、検索の記録・流れ図の件数・スクリーニングの一覧が入る
     import openpyxl

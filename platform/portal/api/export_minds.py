@@ -56,7 +56,8 @@ def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None, sc
                     ("一次で除外した文献", f["s1_exclude"], ""),
                     ("二次スクリーニング(全文)の対象", f["s2_target"], f"一次を経ずに加えた文献 {f['direct']}件を含む。結果の記録がない文献 {f['s2_open']}件(うち 2名の判定が不一致 {f['s2_conflict']}件)"),
                     ("二次で除外した文献", f["s2_exclude"], "、".join(f"{k} {n}件" for k, n in f["s2_reasons"].items())),
-                    ("採用した文献", f["s2_include"], f"うち論文(PDF)を登録済み {f['registered']}件")]:
+                    ("採用した文献", f["s2_include"], f"うち論文(PDF)を登録済み {f['registered']}件"),
+                    ("スクリーニングの記録がなく登録済みの論文", f["papers_unscreened"], "2023年版の引用文献として取り込んだ論文など。上の流れの件数には数えていない")]:
             ws.append(list(row))
     ws.append([]); ws.append(["注", "", "件数は、検索の記録とスクリーニングの記録(2名の判定の一致、または協議の結論)から数えた値"])
     style(ws, widths=[46, 8, 90])
