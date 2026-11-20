@@ -1,5 +1,5 @@
 """ポータルの記録から、CQ ごとの Minds 書類(xlsx)を作る。
-シート: CQ / 検索の記録 / 文献選択の流れ図 / スクリーニング / 研究特性 / 様式4-5(確定。アウトカムごとのブロック) / 様式SR-8 / SoF表 / EtD・推奨 / 作成経過
+シート: CQ / 検索の記録 / 文献選択の流れ図 / スクリーニング / 研究特性 / SR-5(確定。アウトカムごとのブロック) / SR-8 / SoF表 / EtD・推奨 / 作成経過
 数値は記録のまま。統合値(メタアナリシス)は計算しない(確定は SR チームの協議による)。"""
 import io
 import openpyxl
@@ -29,7 +29,7 @@ def v(x):
 
 
 def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None, screening=None):
-    """cq: CQ item。papers: PAPER items。finals: 様式4-5の確定レコード。sr8_rows: SR8 items。etd: ETD item。gl2023: GL2023 item。audit: 作成経過"""
+    """cq: CQ item。papers: PAPER items。finals: SR-5の確定レコード。sr8_rows: SR8 items。etd: ETD item。gl2023: GL2023 item。audit: 作成経過"""
     wb = openpyxl.Workbook()
     ws = wb.active; ws.title = "CQ"
     ws.append(["項目", "内容"])
@@ -77,7 +77,7 @@ def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None, sc
                    ch.get("intervention_detail", ""), ch.get("comparator_detail", ""), ch.get("followup", ""), p.get("status", "")])
     style(ws, widths=[11, 40, 10, 12, 14, 20, 8, 8, 24, 20, 14, 10])
 
-    ws = wb.create_sheet("様式4-5")
+    ws = wb.create_sheet("SR-5")
     ws.append(["アウトカム", "PMID", "研究(題名)", "デザイン"] + ITEM_JA + ["対照 分子", "対照 分母", "介入 分子", "介入 分母", "効果指標", "値", "95%CI下", "95%CI上", "測定尺度", "根拠(段落ID)", "確定者", "照合の元(評価者)", "備考"])
     pmap = {p["pmid"]: p for p in papers}
     for o in cq.get("outcomes") or []:
@@ -89,7 +89,7 @@ def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None, sc
                          f.get("instrument", ""), ev, f.get("fixed_by", ""), "・".join(f.get("based_on") or []), f.get("note", "")])
     style(ws, widths=[16, 11, 36, 8] + [7] * 15 + [7, 7, 7, 7, 8, 7, 7, 7, 14, 60, 10, 14, 20])
 
-    ws = wb.create_sheet("様式SR-8")
+    ws = wb.create_sheet("SR-8")
     ws.append(["アウトカム", "研究数", "化学療法の分類(層別行)"] + [ja for _, ja in SR8] + ["層別の結論", "効果の要約", "記入者", "備考"])
     for o in cq.get("outcomes") or []:
         fs = [x for x in finals if x["outcome"] == o]
@@ -113,7 +113,7 @@ def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None, sc
         n_part = tot("ctrl_den") + tot("int_den")
         effects = "; ".join(f"{f['pmid']}: {(f.get('effect') or {}).get('measure') or '—'} {(f.get('effect') or {}).get('value') or ''}" for f in fs)
         ws.append([o, f"{len(fs)}({n_part})" if n_part else str(len(fs)), f"{tot('ctrl_num')}/{tot('ctrl_den')}", f"{tot('int_num')}/{tot('int_den')}", effects, r.get("certainty", ""), r.get("strata", "")])
-    ws.append([]); ws.append(["注", "統合値(メタアナリシス)は計算していない。各研究の効果は様式4-5の記録のまま。確実性は様式SR-8の記入"])
+    ws.append([]); ws.append(["注", "統合値(メタアナリシス)は計算していない。各研究の効果はSR-5の記録のまま。確実性はSR-8の記入"])
     style(ws, widths=[18, 14, 16, 16, 50, 14, 30])
 
     ws = wb.create_sheet("EtD・推奨")
@@ -160,7 +160,8 @@ def build_screening(cq, d, at):
             ("取り込みのときに登録済みのため除いた重複", f["duplicates"], "重複として除いた文献", len(d["duplicates"]))]
     rows += [(label, len(L[k]), name, len(L[k])) for name, k, label in SCREEN_SHEETS]
     for label, n, sheet, m in rows: ws.append([label, n, sheet, m, "一致" if int(n) == int(m) else "不一致"])
-    ws.append([]); ws.append(["注", "結果は、2名の判定の一致、または協議の結論である。1名だけの判定は結果にしない。一次を経ずに加えた文献(" + str(f["direct"]) + " 件)は、B に含めず、E に含める。"])
+    ws.append([]); ws.append(["Minds様式との対応", "検索の記録 = SR-1 データベース検索結果。流れ図の件数 = SR-2 文献検索フローチャート。E 二次の対象・H 採用の一覧 = SR-3 二次スクリーニング後の一覧表の材料"])
+    ws.append(["注", "結果は、2名の判定の一致、または協議の結論である。1名だけの判定は結果にしない。一次を経ずに加えた文献(" + str(f["direct"]) + " 件)は、B に含めず、E に含める。"])
     style(ws, header_rows=2, widths=[62, 10, 44, 12, 12])
 
     ws = wb.create_sheet("検索の記録")

@@ -27,7 +27,7 @@ S = [
  ("N2-1", "N2", "CQ1-運動", asco('("Exercise"[Mesh] OR "Exercise Therapy"[Mesh])'), A, "【運動】検索過程.docx は C の部分だけが記録に残っている(867件)。介入語は委員会提示の語", False, "2021-09-04", "2021/09/05", "前回の検索の終了日(2021年9月4日)の翌日", ["運動の前回の式(介入語の部分)を、検索過程の原本で確認する"]),
  ("N3-1", "N3", "CQ1-鍼灸", asco("acupuncture"), A, "検索式.docx", True, "2021", "2021/07/01", GL, ["記録の検索期間は「2019,9から2021」で、終了の月日がない。開始日を確認する"]),
  ("T1-1", "T1", "CQ2-デュロキセチン", asco("(duloxetine)"), A, "検索過程 武井_デュロキセチン.docx、検索過程 神林＿デュロキセチン.docx", True, "2021-12-12", "2021/12/13", "前回の検索の終了日(2021年12月12日)の翌日", []),
- ("T2-1", "T2", "CQ2-アミトリプチリン", asco("amitriptyline"), A, "2023年版の検索過程の記録がない。介入語は仮の語", False, "", "2021/07/01", GL, ["アミトリプチリンの前回の式と検索の終了日を確認する"]),
+ ("T2-1", "T2", "CQ2-アミトリプチリン", asco("amitriptyline"), A, "2023年版の検索過程の記録がない。介入語は仮の語", False, "", "2021/07/01", GL, ["アミトリプチリンの前回の式と検索の終了日を確認する", "委員会提示の I 節の語「amitriptyline/ketamine」は MeSH になく、PubMed は語句として検索する。アミトリプチリンの文献を検索できないため、仮に「amitriptyline」を置いた(式は未確認)"]),
  ("T3-1", "T3", "CQ2-プレガバリン", asco("Pregabalin"), A, "検索過程 プレガバリン・ミロガバリン.docx", True, "2021-08-12", "2021/08/13", "前回の検索の終了日(2021年8月12日)の翌日", []),
  ("T3-2", "T3", "CQ2-ミロガバリン", asco("Mirogabalin"), A, "検索過程 プレガバリン・ミロガバリン.docx は、プレガバリンの式だけが記録に残っている。介入語は仮の語", False, "2021-08-12", "2021/08/13", "前回の検索の終了日(2021年8月12日)の翌日", ["ミロガバリンの前回の式を、検索過程の原本で確認する"]),
  ("N4-1", "N4", "CQ2-運動", asco('("Exercise"[Mesh] OR "Exercise Therapy"[Mesh])'), A, "【運動】検索過程.docx は C の部分だけが記録に残っている(867件)。介入語は委員会提示の語", False, "2021-09-04", "2021/09/05", "前回の検索の終了日(2021年9月4日)の翌日", ["運動の前回の式(介入語の部分)を、検索過程の原本で確認する"]),
@@ -46,6 +46,8 @@ for sid, cq, d, q, kind, src, ok, prior_end, start, basis, notes in S:
     out.append({"id": sid, "cq": cq, "cq_name": names[cq], "dir": d, "database": "PubMed", "query": q, "formula_kind": kind, "formula_source": src, "confirmed": ok, "prior_end": prior_end,
                 "start": start, "start_basis": basis, "end": END, "notes": notes, "full_query": f'({q}) AND ("{start}"[dp] : "{END}"[dp])'})
 assert {s["cq"] for s in out} == set(names)
-json.dump({"decision": "統括委員長の決定(2026-11-20): 検索期間は 2026年10月1日まで。検索式は前回(2023年版)の式。開始日は、前回の検索の終了日の翌日(終了が月だけの記録は翌月の 1 日)",
+_old = os.path.join(ROOT, "data", "search_plan.json"); _mesh = (json.load(open(_old, encoding="utf-8")).get("mesh_check") if os.path.exists(_old) else None)   # シソーラスの確認結果は残す
+json.dump({"mesh_check": _mesh, "decision": "統括委員長の決定(2026-11-20): 検索期間は 2026年10月1日まで。検索式は前回(2023年版)の式。開始日は、前回の検索の終了日の翌日(終了が月だけの記録は翌月の 1 日)",
            "date_field": "dp(出版日。2023年版の記録と同じ)", "searches": out}, open(os.path.join(ROOT, "data", "search_plan.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(len(out), "検索。確認済み", sum(s["confirmed"] for s in out), "/ 未確認", sum(not s["confirmed"] for s in out))
+

@@ -1,4 +1,4 @@
-"""論文PDF → 段落(ID付き)。様式4-5の判定の根拠として、Method と Result の該当箇所を引用するために使う。
+"""論文PDF → 段落(ID付き)。SR-5の判定の根拠として、Method と Result の該当箇所を引用するために使う。
 段落ID: <PMID>-p001 … 。各段落に節(abstract/methods/results/discussion/other)とページを付ける。
 pypdf(純Python)で本文を取り出す。図表の文字は段落に混ざることがあるため、節の見出しは行頭の語で判定する。"""
 import io, re

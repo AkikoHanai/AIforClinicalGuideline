@@ -5,8 +5,8 @@ DynamoDB 1テーブル(pk, sk):
   USER/<email>                利用者(氏名、役割)。名簿・COIはGoogleフォーム・ドライブで管理し、ここには置かない
   CQ/<id>                     SR項目11・FRQ項目4(企画書)。PICO、アウトカム一覧、段階
   PAPER/<cq>#<pmid>           登録した論文。PDFは S3(papers/<cq>/<pmid>.pdf)、本文の段落は S3(text/<cq>/<pmid>.json)。研究特性
-  F45/<cq>#<pmid>#<outcome>#<評価者>   様式4-5。評価者= 委員の氏名 / "AI"(下書き) / "確定"(照合の結果)
-  SR8/<cq>#<outcome>          様式SR-8(エビデンス総体)
+  F45/<cq>#<pmid>#<outcome>#<評価者>   SR-5。評価者= 委員の氏名 / "AI"(下書き) / "確定"(照合の結果)
+  SR8/<cq>#<outcome>          SR-8(エビデンス総体)
   ETD/<cq>                    EtD(2023年版の体裁: 推奨文、強さ、確実性、4つの考慮事項、投票)
   GL2023/<cq>                 2023年版の記述(推奨文・解説・投票。build_etd.py の etd_2023.json を取り込む)
   SORON/<key>                 総論A〜N(企画書)
@@ -36,7 +36,7 @@ ROLE_LEAD = ROLE_ADMIN | {"SR委員長"}
 ROLE_GROUP = {"統括委員会", "作成グループ"}  # 推奨作成(EtD・投票)
 GROUPS = ["統括委員会", "事務局", "SR委員長", "作成グループ", "SR委員", "総説執筆者", "外部評価委員"]
 DEFAULT_OUTCOME = "CIPN"  # 統括委員長の決定(2026-11-16): 今回の改訂では、全CQ・FRQのアウトカムを CIPN とする
-CQ_STAGES = ["CQ確定", "検索", "スクリーニング", "論文登録", "様式4-5", "様式SR-8", "EtD"]  # 表示は記録された件数だけ。推測の状態は出さない
+CQ_STAGES = ["CQ確定", "検索", "スクリーニング", "論文登録", "SR-5", "SR-8", "EtD"]  # 表示は記録された件数だけ。推測の状態は出さない
 SORON_STATES = ["原稿未提出", "執筆中", "査読中", "修正中", "完了"]  # 記録に基づく状態だけ
 PHASES = ["STEP 1 Scope・体制", "STEP 2 検索・スクリーニング", "STEP 3 システマティックレビュー実施中", "STEP 4 推奨作成", "STEP 5 解説・総論執筆", "STEP 6 外部評価・パブリックコメント", "STEP 7 公開"]
 ITEM_KEYS = ["randomization", "concealment", "blinding_participants", "blinding_assessors", "itt", "incomplete_outcome", "selective_reporting", "early_stopping", "other_bias", "bias_summary",
@@ -190,8 +190,8 @@ def stage_text(n):
             "検索": f"{f['searches']}件(検索結果の合計 {f['db_hits']}件)" if f["searches"] else "記録なし",
             "スクリーニング": (f"対象 {f['cands']}件。一次 結果あり {f['s1_target'] - f['s1_open']}/{f['s1_target']}、二次 結果あり {f['s2_target'] - f['s2_open']}/{f['s2_target']}(採用 {f['s2_include']}件)" if f["cands"] else "記録なし"),
             "論文登録": f"{n['papers']}件(本文抽出済 {n['extracted']}件)" if n["papers"] else "記録なし",
-            "様式4-5": (f"確定 {n['f45_fixed']}/{n['f45_need']}(提出 {n['f45_submitted']})" if n["f45_need"] else ("アウトカム未登録" if n["papers"] else "記録なし")),
-            "様式SR-8": (f"確実性 記入 {n['sr8']}/{n['outcomes']}" if n["outcomes"] else "記録なし"),
+            "SR-5": (f"確定 {n['f45_fixed']}/{n['f45_need']}(提出 {n['f45_submitted']})" if n["f45_need"] else ("アウトカム未登録" if n["papers"] else "記録なし")),
+            "SR-8": (f"確実性 記入 {n['sr8']}/{n['outcomes']}" if n["outcomes"] else "記録なし"),
             "EtD": n["etd_status"] or "記録なし"}
 
 
@@ -201,8 +201,8 @@ def stage_auto(cq):
 
 
 def progress(st):
-    """確定した様式4-5の割合(記録がなければ None)。"""
-    m = re.match(r"確定 (\d+)/(\d+)", st.get("様式4-5", ""))
+    """確定したSR-5の割合(記録がなければ None)。"""
+    m = re.match(r"確定 (\d+)/(\d+)", st.get("SR-5", ""))
     return round(100 * int(m.group(1)) / int(m.group(2))) if m and int(m.group(2)) else None
 
 
@@ -222,7 +222,7 @@ def dashboard(user):
                         todo.append({"cq": c["id"], "pmid": p["pmid"], "title": p.get("title", ""), "outcome": o})
         if lead or mine:
             for w in wait:
-                approvals.append({"kind": "様式4-5の照合・確定", "target": f"{c['id']} PMID {w['pmid']} / {w['outcome']}", "record": "2名が提出済(" + "・".join(w["submitted"]) + ")。確定の記録なし",
+                approvals.append({"kind": "SR-5の照合・確定", "target": f"{c['id']} PMID {w['pmid']} / {w['outcome']}", "record": "2名が提出済(" + "・".join(w["submitted"]) + ")。確定の記録なし",
                                   "approver": "評価した2名、またはSR委員長", "can": lead or name in w["submitted"], "page": "f45", "q": {"cq": c["id"], "pmid": w["pmid"], "outcome": w["outcome"]}})
         nc = n["flow"]["s1_conflict"] + n["flow"]["s2_conflict"]
         if nc and (lead or mine):
@@ -253,12 +253,15 @@ def handler(event, context=None):
         return run_draft_etd(event)
     method = (event.get("requestContext") or {}).get("http", {}).get("method") or event.get("httpMethod", "GET")
     path = event.get("rawPath") or event.get("path") or "/"
+    path, _, q = path.partition("?")
+    qs = dict(event.get("queryStringParameters") or {}) or {k: v for k, v in __import__("urllib.parse", fromlist=["x"]).parse_qsl(q)}
     body = {}
     if event.get("body"):
         try:
             body = json.loads(event["body"])
         except Exception:
             return resp(400, {"error": "JSONではありません"})
+    if qs and isinstance(body, dict): body["_query"] = qs
     try:
         user = caller(event)
         if not user["email"]:
@@ -318,6 +321,11 @@ def route(method, parts, body, user):
         return soron(method, parts, body, user)
     if head == "docs":
         return docs(method, parts, body, user)
+    if head == "sync":
+        # POST /sync/log : 統括委員長の Mac が、ポータル → 共有ドライブへ転送した内容を、作成経過の記録に残す(転送の内容を後で確認できるようにする)
+        require(user, ROLE_ADMIN)
+        if method != "POST": return resp(405, {"error": "方法が不正です"})
+        audit(user, "共有ドライブへの転送", "ポータル → 共有ドライブ", f"転送 {int(body.get('copied', 0))}件、変更なしで飛ばした {int(body.get('skipped', 0))}件。" + str(body.get("detail", ""))[:800]); return resp(200, {"ok": True})
     if head == "screening":
         return screening(method, parts, body, user)
     if head == "search":
@@ -456,7 +464,7 @@ def papers(method, parts, body, user):
     return resp(405, {"error": "方法が不正です"})
 
 
-# ---------- 様式4-5 ----------
+# ---------- SR-5 ----------
 def f45_key(cqid, pmid, outcome, reviewer):
     return f"{cqid}#{pmid}#{outcome}#{reviewer}"
 
@@ -492,14 +500,14 @@ def f45(method, parts, body, user):
         rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": user["name"], "items": items, "counts": body.get("counts") or {}, "effect": body.get("effect") or {},
                "instrument": str(body.get("instrument", "")), "note": str(body.get("note", "")), "submitted": bool(body.get("submitted")), "submitted_at": now() if body.get("submitted") else ""}
         put("F45", f45_key(cqid, pmid, outcome, user["name"]), rec)
-        audit(user, "様式4-5の" + ("提出" if rec["submitted"] else "保存"), f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); return resp(200, rec)
+        audit(user, "SR-5の" + ("提出" if rec["submitted"] else "保存"), f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); return resp(200, rec)
     if method == "PUT" and sub == "final":
         if not (lead or (user["name"] in submitted and len(submitted) >= 2)): raise Forbidden("照合の確定は、2名独立の評価を提出した評価者、またはSR委員長以上に限ります")
         if len(submitted) < 2 and not lead: return resp(409, {"error": "2名独立の評価の提出が必要です"})
         items = norm_items(body.get("items") or {})
         rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "確定", "items": items, "counts": body.get("counts") or {}, "effect": body.get("effect") or {}, "instrument": str(body.get("instrument", "")),
                "note": str(body.get("note", "")), "fixed_by": user["name"], "based_on": submitted}
-        put("F45", f45_key(cqid, pmid, outcome, "確定"), rec); audit(user, "様式4-5の確定(照合)", f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); return resp(200, rec)
+        put("F45", f45_key(cqid, pmid, outcome, "確定"), rec); audit(user, "SR-5の確定(照合)", f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); return resp(200, rec)
     if method == "POST" and sub == "draft":
         if not (is_assignee(user, c) or lead): raise Forbidden("この CQ の担当委員に限ります")
         if not str(p.get("status", "")).startswith("本文抽出済"): return resp(409, {"error": "本文が未抽出です。PDFを登録し、本文を抽出してください(抄録だけでは作りません。画像PDFは OCR で本文を入れます)"})
@@ -509,7 +517,7 @@ def f45(method, parts, body, user):
             boto3.client("lambda").invoke(FunctionName=FUNCTION, InvocationType="Event", Payload=json.dumps(ev, ensure_ascii=False).encode())
         else:
             run_draft45(ev)
-        audit(user, "様式4-5の下書きを依頼", f"{cqid} / PMID {pmid} / {outcome}"); return resp(202, {"status": "作成中"})
+        audit(user, "SR-5の下書きを依頼", f"{cqid} / PMID {pmid} / {outcome}"); return resp(202, {"status": "作成中"})
     return resp(405, {"error": "方法が不正です"})
 
 
@@ -542,16 +550,16 @@ def run_draft45(ev):
         out = draft45.draft(c["title"], c["pico"].get("P"), c["pico"].get("I") or c["title"], outcome, paras)
         rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "下書き", "items": out["items"], "study": out.get("study") or {}, "design": out.get("design"),
                "counts": out.get("counts") or {}, "effect": out.get("effect") or {}, "numbers": out.get("numbers") or {}, "model": draft45.MODEL_ID, "paragraphs_used": [x["id"] for x in paras], "at": now()}
-        put("F45", key, rec); audit(user, "様式4-5の下書きを作成", f"{cqid} / PMID {pmid} / {outcome}", f"段落 {len(paras)}件を根拠に。" + summarize_items(out["items"]))
+        put("F45", key, rec); audit(user, "SR-5の下書きを作成", f"{cqid} / PMID {pmid} / {outcome}", f"段落 {len(paras)}件を根拠に。" + summarize_items(out["items"]))
         return {"ok": True}
     except Exception as e:
         put("F45", key, {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "失敗", "error": str(e)[:500]})
-        audit(user, "様式4-5の下書きに失敗", f"{cqid} / PMID {pmid} / {outcome}", str(e)[:300]); return {"ok": False}
+        audit(user, "SR-5の下書きに失敗", f"{cqid} / PMID {pmid} / {outcome}", str(e)[:300]); return {"ok": False}
 
 
-# ---------- 様式SR-8 ----------
+# ---------- SR-8 ----------
 def sr8(method, parts, body, user):
-    # GET /sr8/<cq>              アウトカムごとの SR-8 と、確定済み様式4-5の集計(研究数、分類別)
+    # GET /sr8/<cq>              アウトカムごとの SR-8 と、確定済みSR-5の集計(研究数、分類別)
     # PUT /sr8/<cq>/<outcome>    SRチーム(担当委員・SR委員長)が記入
     if len(parts) < 2: return resp(400, {"error": "CQ が必要です"})
     cqid = parts[1]; c = get("CQ", cqid)
@@ -579,7 +587,7 @@ def sr8(method, parts, body, user):
         rec["upgrade"] = int(body["upgrade"]) if str(body.get("upgrade")) in ("0", "1", "2") else None
         rec["certainty"] = body.get("certainty") if body.get("certainty") in CERT else ""
         rec["strata"] = str(body.get("strata", "")); rec["effect_summary"] = str(body.get("effect_summary", "")); rec["note"] = str(body.get("note", ""))
-        put("SR8", f"{cqid}#{o}", rec); audit(user, "様式SR-8の記入", f"{cqid} / {o}", f"確実性 {rec['certainty'] or '—'}"); return resp(200, rec)
+        put("SR8", f"{cqid}#{o}", rec); audit(user, "SR-8の記入", f"{cqid} / {o}", f"確実性 {rec['certainty'] or '—'}"); return resp(200, rec)
     return resp(405, {"error": "方法が不正です"})
 
 
@@ -594,7 +602,7 @@ def etd(method, parts, body, user):
         return resp(200, {"etd": e, "gl2023": get("GL2023", cqid), "sr8": sr, "considerations": ETD_CONSIDERATIONS, "strength": STRENGTH, "cert": CERT})
     if method == "POST" and parts[2:3] == ["draft"]:
         require(user, ROLE_GROUP | ROLE_LEAD)
-        if not query("SR8", f"{cqid}#"): return resp(409, {"error": "様式SR-8 が未記入です。SR-8 の記入後に下書きを作ります"})
+        if not query("SR8", f"{cqid}#"): return resp(409, {"error": "SR-8 が未記入です。SR-8 の記入後に下書きを作ります"})
         e = get("ETD", cqid) or {"cq": cqid, "considerations": {}, "vote": {}, "status": "下書き"}
         e["ai_draft"] = {"status": "作成中", "requested_by": user["name"], "at": now()}; put("ETD", cqid, e)
         ev = {"task": "draft_etd", "cq": cqid, "user": user}
@@ -686,7 +694,7 @@ def run_draft_etd(ev):
         finals = [r for r in query("F45", f"{cqid}#") if r["sk"].endswith("#確定")]
         out = draft45.draft_etd(c, query("SR8", f"{cqid}#"), finals, papers, get("GL2023", cqid))
         e["ai_draft"] = {**out, "status": "下書き", "model": draft45.MODEL_ID, "at": now(), "based_on": {"sr8": len(query("SR8", f"{cqid}#")), "f45_final": len(finals)}}
-        put("ETD", cqid, e); audit(user, "EtD下書きを作成", cqid, f"SR-8 {e['ai_draft']['based_on']['sr8']}件、様式4-5確定 {len(finals)}件を根拠に"); return {"ok": True}
+        put("ETD", cqid, e); audit(user, "EtD下書きを作成", cqid, f"SR-8 {e['ai_draft']['based_on']['sr8']}件、SR-5確定 {len(finals)}件を根拠に"); return {"ok": True}
     except Exception as ex:
         e["ai_draft"] = {"status": "失敗", "error": str(ex)[:500], "at": now()}; put("ETD", cqid, e)
         audit(user, "EtD下書きに失敗", cqid, str(ex)[:300]); return {"ok": False}
@@ -723,7 +731,7 @@ def export(method, parts, body, user):
         url = s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": key, "ResponseContentDisposition": f"attachment; filename*=UTF-8''Minds_{cqid}.xlsx"}, ExpiresIn=900)
     else:
         url = ""
-    audit(user, "Minds書類の出力", cqid, key); return resp(200, {"url": url, "key": key, "sheets": ["CQ", "検索の記録", "文献選択の流れ図", "スクリーニング", "研究特性", "様式4-5", "様式SR-8", "SoF表", "EtD・推奨", "作成経過"], "bytes": len(data)})
+    audit(user, "Minds書類の出力", cqid, key); return resp(200, {"url": url, "key": key, "sheets": ["CQ", "検索の記録", "文献選択の流れ図", "スクリーニング", "研究特性", "SR-5", "SR-8", "SoF表", "EtD・推奨", "作成経過"], "bytes": len(data)})
 
 
 # ---------- 総説(総論A〜N)。SRの流れとは独立した流れ ----------
@@ -756,10 +764,13 @@ def soron(method, parts, body, user):
         vs = s3().list_object_versions(Bucket=BUCKET, Prefix=f"soron/{s['key']}/").get("Versions", [])
         return resp(200, sorted([{"key": v["Key"].split("/")[-1], "version": v["VersionId"], "at": v["LastModified"].isoformat(), "size": v["Size"], "latest": v["IsLatest"]} for v in vs], key=lambda x: x["at"], reverse=True))
     if method == "GET" and sub == "download-url":
-        name = s.get("file") or ""
+        # ?v=<版ID> で、過去の版を取得する(省略すると最新)。ファイル名は ?name= で指定できる(版の一覧 /files の key)
+        qs = body.get("_query") or {}; name = qs.get("name") or s.get("file") or ""
         if not name: return resp(404, {"error": "原稿がありません"})
-        url = s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": f"soron/{s['key']}/{name}"}, ExpiresIn=900)
-        audit(user, "総論の原稿の取得", f"総論{s['label']}", name); return resp(200, {"url": url})
+        prm = {"Bucket": BUCKET, "Key": f"soron/{s['key']}/{re.sub(r'[/]', '_', name)}"}
+        if qs.get("v"): prm["VersionId"] = qs["v"]
+        url = s3().generate_presigned_url("get_object", Params=prm, ExpiresIn=900)
+        audit(user, "総論の原稿の取得", f"総論{s['label']}", name + (f"(版 {qs['v'][:8]})" if qs.get("v") else "")); return resp(200, {"url": url})
     if method == "POST" and sub == "upload-url":
         name = re.sub(r"[^\w.\-一-龥ぁ-んァ-ン]", "_", body.get("filename") or "原稿.docx")[:80]
         key = f"soron/{s['key']}/{name}"

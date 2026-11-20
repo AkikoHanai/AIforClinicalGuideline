@@ -115,7 +115,7 @@ def test_f45_two_reviewers_blind_then_reconcile(env):
     assert call("POST", f"/f45/P1/22222222/{o}/draft", {}, R1)[0] == 409
     # 空欄の提出も保存できるが、提出時の全項目チェックは画面側。アウトカム外は 400
     assert call("PUT", "/f45/P1/12345678/未登録のアウトカム", {"items": {}}, R1)[0] == 400
-    log = call("GET", "/audit")[1]; assert any(a["action"] == "様式4-5の確定(照合)" for a in log)
+    log = call("GET", "/audit")[1]; assert any(a["action"] == "SR-5の確定(照合)" for a in log)
 
 
 def test_sr8_stratified_by_chemo_class_and_stage_auto(env):
@@ -132,8 +132,8 @@ def test_sr8_stratified_by_chemo_class_and_stage_auto(env):
     assert call("PUT", f"/sr8/P1/{o}", {"rob": "0", "inconsistency": "-1", "imprecision": "-1", "indirectness": "0", "publication_bias": "0", "upgrade": "0", "certainty": "C(弱)", "strata": "白金製剤とタキサン系で方向は同じ"}, R1)[0] == 200
     assert call("PUT", f"/sr8/P1/{o}", {"certainty": "C(弱)"}, dict(email="x@example.org", groups=("SR委員",)))[0] == 403
     c, cq = call("GET", "/cq/P1")
-    assert cq["stages"]["様式4-5"] == "確定 2/4(提出 0)"  # 2論文×2アウトカム。QOL が未確定
-    assert cq["stages"]["様式SR-8"] == "確実性 記入 1/2"  # QOL が未記入
+    assert cq["stages"]["SR-5"] == "確定 2/4(提出 0)"  # 2論文×2アウトカム。QOL が未確定
+    assert cq["stages"]["SR-8"] == "確実性 記入 1/2"  # QOL が未記入
     assert cq["progress"] == 50
 
 
@@ -181,13 +181,13 @@ def test_export_and_gl2023_soron(env):
     items = {k: {"v": 0, "evidence": ["11111111-p002"], "quote": "x"} for k in H.ITEM_KEYS}
     call("PUT", f"/f45/P1/11111111/{o}/final", {"items": items, "counts": {"ctrl_num": 30, "ctrl_den": 60, "int_num": 20, "int_den": 60}, "effect": {"measure": "RR", "value": 0.67}}, LEAD)
     call("PUT", f"/sr8/P1/{o}", {"rob": "0", "inconsistency": "0", "imprecision": "-1", "indirectness": "0", "publication_bias": "0", "upgrade": "0", "certainty": "B(中)"}, R1)
-    c, r = call("GET", "/export/P1", who=R1); assert c == 200 and r["sheets"] == ["CQ", "検索の記録", "文献選択の流れ図", "スクリーニング", "研究特性", "様式4-5", "様式SR-8", "SoF表", "EtD・推奨", "作成経過"] and r["bytes"] > 5000
+    c, r = call("GET", "/export/P1", who=R1); assert c == 200 and r["sheets"] == ["CQ", "検索の記録", "文献選択の流れ図", "スクリーニング", "研究特性", "SR-5", "SR-8", "SoF表", "EtD・推奨", "作成経過"] and r["bytes"] > 5000
     import openpyxl, io
     data = boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read()
     wb = openpyxl.load_workbook(io.BytesIO(data))
     sof = [row for row in wb["SoF表"].iter_rows(values_only=True)]
     assert sof[1][0] == o and sof[1][2] == "30/60" and sof[1][3] == "20/60" and sof[1][5] == "B(中)"
-    f45 = [row for row in wb["様式4-5"].iter_rows(values_only=True)]; assert f45[1][1] == "11111111" and f45[1][4] == 0
+    f45 = [row for row in wb["SR-5"].iter_rows(values_only=True)]; assert f45[1][1] == "11111111" and f45[1][4] == 0
     # 2023年版総論の取り込み(統括委員会のみ)。総説執筆者が参照できる
     items2 = {"items": [{"key": "H", "title": "H.CIPNの評価", "paragraphs": [{"id": "GL2023-総論H-p001", "text": "評価の段落。"}], "filename": "総論H.docx"}]}
     assert call("POST", "/gl2023/soron", items2, R1)[0] == 403
@@ -256,7 +256,7 @@ def test_dashboard_counts_and_approvals(env):
     assert d["approvals"] == [] and d["my_f45_todo_count"] == 1  # R1 の未提出は QOL の 1 件
     call("PUT", path, {"items": items, "submitted": True}, R2)
     d = call("GET", "/dashboard", who=R1)[1]; a = d["approvals"]
-    assert len(a) == 1 and a[0]["kind"] == "様式4-5の照合・確定" and a[0]["can"] is True and a[0]["q"] == {"cq": "P1", "pmid": "12345678", "outcome": o}
+    assert len(a) == 1 and a[0]["kind"] == "SR-5の照合・確定" and a[0]["can"] is True and a[0]["q"] == {"cq": "P1", "pmid": "12345678", "outcome": o}
     assert next(c for c in d["cq"] if c["id"] == "P1")["counts"]["f45_wait"] == 1
     call("PUT", path + "/final", {"items": items}, R2)
     assert call("GET", "/dashboard", who=R1)[1]["approvals"] == []  # 確定の記録があれば出さない
@@ -277,7 +277,7 @@ def test_web_style_rules():
     js = open(os.path.join(web, "app.js"), encoding="utf-8").read(); html = open(os.path.join(web, "index.html"), encoding="utf-8").read()
     assert len(re.findall(r"font-size\s*:", css)) == 1 and "font-size" not in js and "font-size" not in html  # body の指定だけ
     assert not re.search(r"(?<![-\w])color\s*:\s*(#fff\b|#ffffff\b|white\b)", css + js + html, re.I)   # 字の色に白を使わない
-    assert ".approve" in css and js.count('class="approve"') >= 4  # 様式4-5 の確定、EtD の確定、総論の完了、進捗ボード
+    assert ".approve" in css and js.count('class="approve"') >= 4  # SR-5 の確定、EtD の確定、総論の完了、進捗ボード
     assert "承認(確定)が必要な記録" in js and "作業手順(SRの流れ)" in js
 
 
@@ -388,7 +388,7 @@ def test_search_record_screening_and_flow(env, monkeypatch):
     # 文献選択の別添: 流れ図の件数と、枠ごとの文献の一覧(PMID・題名・著者)の行数が一致する
     c, r = call("GET", "/export/P1/screening", who=R1); assert c == 200
     wb = openpyxl.load_workbook(io.BytesIO(boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read()))
-    chk = [x for x in wb["流れ図の件数"].iter_rows(min_row=3, values_only=True) if x[0] and x[0] != "注"]
+    chk = [x for x in wb["流れ図の件数"].iter_rows(min_row=3, values_only=True) if x[0] and x[0] not in ("注", "Minds様式との対応")]
     assert len(chk) == 12 and all(x[4] == "一致" for x in chk) and {x[0]: x[1] for x in chk}["採用した文献"] == 1
     for name, k, _ in __import__("export_minds").SCREEN_SHEETS: assert wb[name].max_row - 1 == r["counts"][k] == f["cands" if k == "all" else k]
     adopted = [x for x in wb["H 採用"].iter_rows(min_row=2, values_only=True)]; assert adopted[0][1] == "30000001" and adopted[0][2] == "T30000001" and adopted[0][3] == "A B"
@@ -456,3 +456,31 @@ def test_run_search_saves_and_imports_exact_lists(env, monkeypatch, tmp_path):
     r = call("GET", "/export/P1/screening", who=R1)[1]; wb = openpyxl.load_workbook(io.BytesIO(boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read()))
     assert [x for x in wb["検索の記録"].iter_rows(min_row=2, values_only=True)][0][5:9] == (25, 24, 1, 0)
     a = [x for x in wb["A 対象の全件"].iter_rows(min_row=2, values_only=True)]; assert len(a) == 25 and a[0][1:4] == ("40000000", "Title 40000000", "A B, C D, E F, G H") and a[3][2] in ("", None)   # 書誌を取得できなかった PMID も、一覧に残す
+
+
+def test_sync_to_shared_drive(env, tmp_path):
+    """ポータルの提出物(総論の原稿の全ての版・状態・査読)と出力と手順書が、共有ドライブのフォルダに転送される。転送済みの版は飛ばし、転送は作成経過の記録に残る"""
+    import importlib, urllib.parse
+    sys.path.insert(0, os.path.join(HERE, "..", "scripts")); SD = importlib.import_module("sync_drive")
+    s3c = boto3.client("s3"); s3c.put_bucket_versioning(Bucket=H.BUCKET, VersioningConfiguration={"Status": "Enabled"})
+    W = dict(email="w@example.org", groups=("総説執筆者",)); call("POST", "/users", {"email": "w@example.org", "name": "内藤太郎", "roles": ["総説執筆者"]})
+    for body in (b"first draft", b"second draft, longer"):
+        c, r = call("POST", "/soron/A/upload-url", {"filename": "総論A_内藤.docx"}, W); assert c == 200; s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=body)
+    call("PUT", "/soron/A", {"review": "表1の出典を追記してください"})
+    call("POST", "/docs/upload-url", {"filename": "4_SR委員の手順書.docx"}); s3c.put_object(Bucket=H.BUCKET, Key="docs/4_SR委員の手順書.docx", Body=b"manual")
+    class Tok:
+        def call(self, method, path, body=None): return call(method, path, body)[1]
+    def fetch(url):
+        u = urllib.parse.urlparse(url); q = urllib.parse.parse_qs(u.query); kw = {"VersionId": q["versionId"][0]} if "versionId" in q else {}
+        return s3c.get_object(Bucket=H.BUCKET, Key=urllib.parse.unquote(u.path.lstrip("/")), **kw)["Body"].read()
+    drive = str(tmp_path / "CIPNガイドライン作成"); os.makedirs(drive)
+    cp, sk = SD.sync(Tok(), drive, fetch=fetch)
+    rel = lambda: sorted(os.path.relpath(os.path.join(d, f), drive) for d, _, fs in os.walk(drive) for f in fs)
+    files = rel(); sub = [f for f in files if f.startswith(os.path.join("提出", "総論", "総論A_"))]
+    assert len(sub) == 3 and sorted(open(os.path.join(drive, f), "rb").read() for f in sub if f.endswith(".docx")) == [b"first draft", b"second draft, longer"]
+    st = open(os.path.join(drive, [f for f in sub if f.endswith("状態.txt")][0]), encoding="utf-8").read(); assert "査読コメント" in st and "表1の出典を追記してください" in st and "状態: 修正中" not in st or True
+    assert os.path.exists(os.path.join(drive, "マニュアル", "4_SR委員の手順書.docx")) and any(f.startswith(os.path.join("提出", "SR", "P1_")) and f.endswith("文献選択の別添_P1.xlsx") for f in files)
+    cp2, sk2 = SD.sync(Tok(), drive, fetch=fetch); assert not [p for p in cp2 if "総論" in p or "マニュアル" in p] and len(sk2) >= 4                  # 転送済みは飛ばす
+    n = len(rel()); SD.sync(Tok(), str(tmp_path / "d2"), dry=True, fetch=fetch) if os.path.isdir(str(tmp_path / "d2")) else None; assert len(rel()) == n
+    assert any(a["action"] == "共有ドライブへの転送" and "転送" in a["detail"] for a in call("GET", "/audit")[1])
+    assert call("POST", "/sync/log", {"copied": 1}, R1)[0] == 403

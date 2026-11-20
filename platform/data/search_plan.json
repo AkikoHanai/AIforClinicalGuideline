@@ -1,4 +1,64 @@
 {
+ "mesh_check": {
+  "date": "2026-11-20",
+  "method": "PubMed(コネクタ経由)で、各見出し語を [MeSH Terms] / [Supplementary Concept] で検索し、件数と PubMed が解釈した式(query_translation)を確認した",
+  "results": [
+   {
+    "term": "\"Compression Bandages\"[MeSH Terms]",
+    "count": 3223,
+    "result": "有効な見出し語"
+   },
+   {
+    "term": "\"Mirogabalin\"[Supplementary Concept]",
+    "count": 96,
+    "result": "有効な補助概念"
+   },
+   {
+    "term": "\"Vitamin B 12\"[MeSH Terms]",
+    "count": null,
+    "result": "有効(\"Vitamin B 12\" AND neuropathy[tiab] で 470 件)"
+   },
+   {
+    "term": "\"Cryotherapy\"[MeSH Terms]",
+    "count": null,
+    "result": "有効(CIPN の語との組み合わせで 38 件)"
+   },
+   {
+    "term": "\"Peripheral Nerve Diseases\"[MeSH Terms]",
+    "count": 0,
+    "result": "見出し語ではない"
+   },
+   {
+    "term": "\"Peripheral Nervous System Diseases/chemically induced\"[MeSH Terms]",
+    "count": 8837,
+    "result": "有効。前回の式の「peripheral nerve diseases/chemically induced」は、PubMed がこの見出し語に読み替える"
+   },
+   {
+    "term": "Exercise / Exercise Therapy / Acupuncture Therapy / Analgesics, Opioid / Drug Therapy, Combination / Anti-Inflammatory Agents, Non-Steroidal / Amitriptyline / Duloxetine Hydrochloride",
+    "count": 915315,
+    "result": "すべて有効な見出し語(合わせた検索の解釈で確認)"
+   },
+   {
+    "term": "goshajinkigan",
+    "count": 57,
+    "result": "補助概念「gosha jinki gan」に読み替えられる(P 節との組み合わせの件数)"
+   },
+   {
+    "term": "Acetyl-L-carnitine / Pregabalin / acupuncture / duloxetine / Cryotherapy",
+    "count": null,
+    "result": "それぞれ MeSH または補助概念に読み替えられる"
+   },
+   {
+    "term": "amitriptyline/ketamine",
+    "count": null,
+    "result": "MeSH にない。PubMed は「amitriptyline ketamine」の語句(All Fields)として検索する。委員会提示の I 節にある語だが、アミトリプチリンの文献は検索できない"
+   }
+  ],
+  "findings": [
+   "前回の式の C 節は、「neoplasms/drug therapy」「neoplasms/complications」の MeSH(下位の見出しを含む)を含み、C 節だけで約 139 万件に当たる。P 節も、「cancer」の全項目検索を含み、実質は「がん」の全件である。件数を絞るのは、介入語である",
+   "T2(アミトリプチリン)は、委員会提示の語「amitriptyline/ketamine」では検索できない。仮に「amitriptyline」を置いた。式は、統括委員会が確認する"
+  ]
+ },
  "decision": "統括委員長の決定(2026-11-20): 検索期間は 2026年10月1日まで。検索式は前回(2023年版)の式。開始日は、前回の検索の終了日の翌日(終了が月だけの記録は翌月の 1 日)",
  "date_field": "dp(出版日。2023年版の記録と同じ)",
  "searches": [
@@ -161,7 +221,8 @@
    "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
    "end": "2026/10/01",
    "notes": [
-    "アミトリプチリンの前回の式と検索の終了日を確認する"
+    "アミトリプチリンの前回の式と検索の終了日を確認する",
+    "委員会提示の I 節の語「amitriptyline/ketamine」は MeSH になく、PubMed は語句として検索する。アミトリプチリンの文献を検索できないため、仮に「amitriptyline」を置いた(式は未確認)"
    ],
    "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND amitriptyline) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
   },
