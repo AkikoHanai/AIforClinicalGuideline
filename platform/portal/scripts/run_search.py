@@ -38,7 +38,7 @@ def count_all(plan):
     rows = []
     for s in plan:
         r = pubmed.esearch(s["full_query"]); rows.append((s, r))
-        print(f"{s['id']:5} | {s['cq']} {s['cq_name']} | {r['count']} | {'確認済み' if s['confirmed'] else '未確認'} | {s['start']}〜{s['end']} | {s['formula_kind']}")
+        print(f"{s['id']:5} | {s['cq']} {s['cq_name']} | {r['count']} | {'案' if s.get('proposal') else '確認済み' if s['confirmed'] else '未確認'} | {s['start']}〜{s['end']} | {s['formula_kind']}")
         for n in s["notes"]: print(f"        注意: {n}")
         if r["count"] > MAX_IMPORT: print(f"        注意: 件数が {MAX_IMPORT} 件を超える。ポータルに登録できない。式を統括委員会で確認する")
     return rows
@@ -48,7 +48,7 @@ def fetch_all(plan, out, only=None, limit=None):
     os.makedirs(out, exist_ok=True); summary = []
     for s in plan:
         if only is not None and s["id"] not in only: continue
-        if only is None and not s["confirmed"]:
+        if only is None and (not s["confirmed"] or s.get("proposal")):
             print(f"{s['id']} {s['cq_name']}: 式が未確認のため、取得しない({'; '.join(s['notes'])})"); continue
         at = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
         first = pubmed.esearch(s["full_query"]); ids, n = all_pmids(s["query"], s2d(s["start"]), s2d(s["end"]), limit)

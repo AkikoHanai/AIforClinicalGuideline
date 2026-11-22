@@ -435,7 +435,7 @@ def test_run_search_saves_and_imports_exact_lists(env, monkeypatch, tmp_path):
     import importlib, re
     sys.path.insert(0, os.path.join(HERE, "..", "scripts")); RS = importlib.import_module("run_search"); import pubmed
     plan = json.load(open(RS.PLAN, encoding="utf-8"))["searches"]
-    assert len(plan) == 17 and sum(s["confirmed"] for s in plan) == 9 and all(s["end"] == "2026/10/01" and s["full_query"].endswith(f'AND ("{s["start"]}"[dp] : "2026/10/01"[dp])') for s in plan)
+    assert len(plan) == 18 and sum(s["proposal"] for s in plan) == 1 and sum(s["confirmed"] for s in plan) == 9 and all(s["end"] == "2026/10/01" and s["full_query"].endswith(f'AND ("{s["start"]}"[dp] : "2026/10/01"[dp])') for s in plan)
     assert next(s for s in plan if s["id"] == "T1-1")["start"] == "2021/12/13" and next(s for s in plan if s["id"] == "P1-1")["query"].startswith("goshajinkigan (neuropathy OR neurotoxi*)")
     # 模擬の PubMed: 文献ごとに出版日を持ち、期間で絞る
     base = RS.s2d("2021/07/01"); DB = {"goshajinkigan": [(str(40000000 + i), base + __import__("datetime").timedelta(days=i * 37)) for i in range(25)], "duloxetine": [(str(41000000 + i), RS.s2d("2022/01/01")) for i in range(3)]}
@@ -448,7 +448,7 @@ def test_run_search_saves_and_imports_exact_lists(env, monkeypatch, tmp_path):
     out = str(tmp_path / "res"); summ = RS.fetch_all(plan, out, only={"P1-1", "T1-1", "T2-1"}, limit=4)
     assert [(x[0], x[7], x[8], x[9], x[10]) for x in summ] == [("P1-1", 25, 25, "一致", 1), ("T1-1", 3, 3, "一致", 0), ("T2-1", 0, 0, "一致", 0)]
     rows = list(__import__("csv").reader(open(os.path.join(out, "P1-1_CQ1-牛車腎気丸.csv"), encoding="utf-8-sig"))); assert len(rows) == 26 and rows[1][1:4] == ["40000000", "Title 40000000", "A B, C D, E F, G H"]
-    assert RS.fetch_all(plan, str(tmp_path / "res2"), limit=4) and not os.path.exists(os.path.join(str(tmp_path / "res2"), "T2-1_CQ2-アミトリプチリン.json"))               # 未確認の式は、指定しない限り取得しない
+    assert RS.fetch_all(plan, str(tmp_path / "res2"), limit=4) and not os.path.exists(os.path.join(str(tmp_path / "res2"), "T2-1_CQ2-アミトリプチリン.json")) and not os.path.exists(os.path.join(str(tmp_path / "res2"), "N1-3_CQ1-冷却・圧迫.json"))               # 未確認の式は、指定しない限り取得しない
     class Tok:
         def call(self, method, path, body=None): return call(method, path, body, R1 if path.endswith("/P1") or "/P1/" in path else CHAIR)[1]
     call("POST", "/screening/P1/candidates", {"source": "ハンドサーチ", "why": "先に登録", "items": [{"pmid": "40000001"}]}, R1)

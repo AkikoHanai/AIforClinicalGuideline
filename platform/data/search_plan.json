@@ -59,322 +59,6 @@
    "T2(アミトリプチリン)は、委員会提示の語「amitriptyline/ketamine」では検索できない。仮に「amitriptyline」を置いた。式は、統括委員会が確認する"
   ]
  },
- "decision": "統括委員長の決定(2026-11-20): 検索期間は 2026年10月1日まで。検索式は前回(2023年版)の式。開始日は、前回の検索の終了日の翌日(終了が月だけの記録は翌月の 1 日)",
- "date_field": "dp(出版日。2023年版の記録と同じ)",
- "searches": [
-  {
-   "id": "P1-1",
-   "cq": "P1",
-   "cq_name": "牛車腎気丸",
-   "dir": "CQ1-牛車腎気丸",
-   "database": "PubMed",
-   "query": "goshajinkigan (neuropathy OR neurotoxi*) (prevent* OR management* OR effect*)",
-   "formula_kind": "手引き2017 の式",
-   "formula_source": "2023年版の委員ワークシート(PubMed 2020〜2021.6、53件)",
-   "confirmed": true,
-   "prior_end": "2021-06",
-   "start": "2021/07/01",
-   "start_basis": "前回の検索の終了月(2021年6月)の翌月",
-   "end": "2026/10/01",
-   "notes": [],
-   "full_query": "(goshajinkigan (neuropathy OR neurotoxi*) (prevent* OR management* OR effect*)) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "P2-1",
-   "cq": "P2",
-   "cq_name": "ガバペンチノイド(プレガバリン)",
-   "dir": "CQ1-プレガバリン",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "検索過程 プレガバリン・ミロガバリン.docx(治療の CQ と同じ文書。予防の CQ だけの記録はない)",
-   "confirmed": true,
-   "prior_end": "2021-08-12",
-   "start": "2021/08/13",
-   "start_basis": "前回の検索の終了日(2021年8月12日)の翌日",
-   "end": "2026/10/01",
-   "notes": [],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin) AND (\"2021/08/13\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "P3-1",
-   "cq": "P3",
-   "cq_name": "カルニチン(アセチルLカルニチン)",
-   "dir": "CQ1-カルニチン-アセチル‒L‒カルニチン",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Acetyl-L-carnitine",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "カルニチン 平山検索過程.docx(検索式1)",
-   "confirmed": true,
-   "prior_end": "2021-06-30",
-   "start": "2021/07/01",
-   "start_basis": "前回の検索の終了日(2021年6月30日)の翌日",
-   "end": "2026/10/01",
-   "notes": [
-    "2023年版は「検索式2」でも検索している(2件)。検索式2 の式は記録に残っていない"
-   ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Acetyl-L-carnitine) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "N1-1",
-   "cq": "N1",
-   "cq_name": "冷却・圧迫療法(統合)",
-   "dir": "CQ1-冷却・圧迫",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Cryotherapy",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "検索過程_冷却_山田華井.docx「検索式: ASCO 検索式(Cryotherapy のみ)」",
-   "confirmed": true,
-   "prior_end": "2021-08-03",
-   "start": "2021/08/04",
-   "start_basis": "前回の検索の日(2021年8月3日)の翌日",
-   "end": "2026/10/01",
-   "notes": [],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Cryotherapy) AND (\"2021/08/04\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "N1-2",
-   "cq": "N1",
-   "cq_name": "冷却・圧迫療法(統合)",
-   "dir": "CQ1-冷却・圧迫",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Compression Bandages\"[Mesh]",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "圧迫の 2023年版の検索式は記録に残っていない。介入語は委員会提示の語",
-   "confirmed": false,
-   "prior_end": "",
-   "start": "2021/07/01",
-   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
-   "end": "2026/10/01",
-   "notes": [
-    "圧迫の前回の式と検索の終了日を確認する"
-   ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Compression Bandages\"[Mesh]) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "N2-1",
-   "cq": "N2",
-   "cq_name": "運動(予防)",
-   "dir": "CQ1-運動",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh])",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "【運動】検索過程.docx は C の部分だけが記録に残っている(867件)。介入語は委員会提示の語",
-   "confirmed": false,
-   "prior_end": "2021-09-04",
-   "start": "2021/09/05",
-   "start_basis": "前回の検索の終了日(2021年9月4日)の翌日",
-   "end": "2026/10/01",
-   "notes": [
-    "運動の前回の式(介入語の部分)を、検索過程の原本で確認する"
-   ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh])) AND (\"2021/09/05\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "N3-1",
-   "cq": "N3",
-   "cq_name": "鍼灸(予防)",
-   "dir": "CQ1-鍼灸",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND acupuncture",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "検索式.docx",
-   "confirmed": true,
-   "prior_end": "2021",
-   "start": "2021/07/01",
-   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
-   "end": "2026/10/01",
-   "notes": [
-    "記録の検索期間は「2019,9から2021」で、終了の月日がない。開始日を確認する"
-   ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND acupuncture) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "T1-1",
-   "cq": "T1",
-   "cq_name": "デュロキセチン",
-   "dir": "CQ2-デュロキセチン",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (duloxetine)",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "検索過程 武井_デュロキセチン.docx、検索過程 神林＿デュロキセチン.docx",
-   "confirmed": true,
-   "prior_end": "2021-12-12",
-   "start": "2021/12/13",
-   "start_basis": "前回の検索の終了日(2021年12月12日)の翌日",
-   "end": "2026/10/01",
-   "notes": [],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (duloxetine)) AND (\"2021/12/13\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "T2-1",
-   "cq": "T2",
-   "cq_name": "デュロキセチン以外の抗うつ剤(アミトリプチリン)",
-   "dir": "CQ2-アミトリプチリン",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND amitriptyline",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "2023年版の検索過程の記録がない。介入語は仮の語",
-   "confirmed": false,
-   "prior_end": "",
-   "start": "2021/07/01",
-   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
-   "end": "2026/10/01",
-   "notes": [
-    "アミトリプチリンの前回の式と検索の終了日を確認する",
-    "委員会提示の I 節の語「amitriptyline/ketamine」は MeSH になく、PubMed は語句として検索する。アミトリプチリンの文献を検索できないため、仮に「amitriptyline」を置いた(式は未確認)"
-   ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND amitriptyline) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "T3-1",
-   "cq": "T3",
-   "cq_name": "ガバペンチノイド(プレガバリン、ミロガバリン)",
-   "dir": "CQ2-プレガバリン",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "検索過程 プレガバリン・ミロガバリン.docx",
-   "confirmed": true,
-   "prior_end": "2021-08-12",
-   "start": "2021/08/13",
-   "start_basis": "前回の検索の終了日(2021年8月12日)の翌日",
-   "end": "2026/10/01",
-   "notes": [],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin) AND (\"2021/08/13\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "T3-2",
-   "cq": "T3",
-   "cq_name": "ガバペンチノイド(プレガバリン、ミロガバリン)",
-   "dir": "CQ2-ミロガバリン",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Mirogabalin",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "検索過程 プレガバリン・ミロガバリン.docx は、プレガバリンの式だけが記録に残っている。介入語は仮の語",
-   "confirmed": false,
-   "prior_end": "2021-08-12",
-   "start": "2021/08/13",
-   "start_basis": "前回の検索の終了日(2021年8月12日)の翌日",
-   "end": "2026/10/01",
-   "notes": [
-    "ミロガバリンの前回の式を、検索過程の原本で確認する"
-   ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Mirogabalin) AND (\"2021/08/13\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "N4-1",
-   "cq": "N4",
-   "cq_name": "運動(治療)",
-   "dir": "CQ2-運動",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh])",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "【運動】検索過程.docx は C の部分だけが記録に残っている(867件)。介入語は委員会提示の語",
-   "confirmed": false,
-   "prior_end": "2021-09-04",
-   "start": "2021/09/05",
-   "start_basis": "前回の検索の終了日(2021年9月4日)の翌日",
-   "end": "2026/10/01",
-   "notes": [
-    "運動の前回の式(介入語の部分)を、検索過程の原本で確認する"
-   ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh])) AND (\"2021/09/05\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "N5-1",
-   "cq": "N5",
-   "cq_name": "鍼灸(治療)",
-   "dir": "CQ2-鍼灸",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND acupuncture",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "検索式.docx",
-   "confirmed": true,
-   "prior_end": "2021",
-   "start": "2021/07/01",
-   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
-   "end": "2026/10/01",
-   "notes": [
-    "記録の検索期間は「2019,9から2021」で、終了の月日がない。開始日を確認する"
-   ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND acupuncture) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "F1-1",
-   "cq": "F1",
-   "cq_name": "ビタミンB12による治療",
-   "dir": "CQ2-ビタミン-B12",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Vitamin B 12\"[Mesh]",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "CIPN SR_VB12 検索過程.docx に式が残っていない(2023年版は手引き2017 の式で 2016年6月〜2021年6月)。介入語は委員会提示の語",
-   "confirmed": false,
-   "prior_end": "2021-06",
-   "start": "2021/07/01",
-   "start_basis": "前回の検索の終了月(2021年6月)の翌月",
-   "end": "2026/10/01",
-   "notes": [
-    "ビタミンB12 の前回の式(手引き2017 の式)を確認する"
-   ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Vitamin B 12\"[Mesh]) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "F2-1",
-   "cq": "F2",
-   "cq_name": "非ステロイド性消炎鎮痛薬(NSAIDs)による治療",
-   "dir": "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs",
-   "database": "PubMed",
-   "query": "Cancer peripheral (neuropathy OR neurotoxi*) (\"non steroidal anti inflammatory drugs\" OR NSAIDs OR Aspirin OR Acemetacin OR Ampiroxicam OR Ibuprofen OR Indometacin OR Ethenzamide OR Etodolac OR Oxaprozin OR Zaltoprofen OR Diclofenac OR Sulindac OR Celecoxib OR Tiaprofenic acid OR Nabumetone OR Naproxen OR Piroxicam OR Pranoprofen OR Flufenamic acid OR Mefenamic acid OR Meloxicam OR Loxoprofen OR Lornoxicam OR Ketoprofen OR Sodium salicylate) (effect OR management OR treat* OR therapy) NOT diabet*",
-   "formula_kind": "手引き2017 の式",
-   "formula_source": "NSAIDs 松坂 検索式記録.docx",
-   "confirmed": true,
-   "prior_end": "2021-06-30",
-   "start": "2021/07/01",
-   "start_basis": "前回の検索の終了日(2021年6月30日)の翌日",
-   "end": "2026/10/01",
-   "notes": [],
-   "full_query": "(Cancer peripheral (neuropathy OR neurotoxi*) (\"non steroidal anti inflammatory drugs\" OR NSAIDs OR Aspirin OR Acemetacin OR Ampiroxicam OR Ibuprofen OR Indometacin OR Ethenzamide OR Etodolac OR Oxaprozin OR Zaltoprofen OR Diclofenac OR Sulindac OR Celecoxib OR Tiaprofenic acid OR Nabumetone OR Naproxen OR Piroxicam OR Pranoprofen OR Flufenamic acid OR Mefenamic acid OR Meloxicam OR Loxoprofen OR Lornoxicam OR Ketoprofen OR Sodium salicylate) (effect OR management OR treat* OR therapy) NOT diabet*) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "F3-1",
-   "cq": "F3",
-   "cq_name": "オピオイドによる治療",
-   "dir": "CQ2-オピオイド",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Analgesics, Opioid\"[Mesh]",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "2023年版の検索過程の記録がない(2023年版は手引き2017 の式)。介入語は委員会提示の語",
-   "confirmed": false,
-   "prior_end": "",
-   "start": "2021/07/01",
-   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
-   "end": "2026/10/01",
-   "notes": [
-    "オピオイドの前回の式(手引き2017 の式)と検索の終了日を確認する"
-   ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Analgesics, Opioid\"[Mesh]) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
-  },
-  {
-   "id": "F4-1",
-   "cq": "F4",
-   "cq_name": "併用療法による治療",
-   "dir": "CQ2-薬物の併用療法",
-   "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Drug Therapy, Combination\"[Mesh]",
-   "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "2023年版の検索過程の記録がない。介入語は委員会提示の語",
-   "confirmed": false,
-   "prior_end": "",
-   "start": "2021/07/01",
-   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
-   "end": "2026/10/01",
-   "notes": [
-    "併用療法の前回の式と検索の終了日を確認する"
-   ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Drug Therapy, Combination\"[Mesh]) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
-  }
- ],
  "count_check": {
   "date": "2026-11-22",
   "by": "統括委員長のMac(run_search.py)",
@@ -401,6 +85,418 @@
    "F4-1(併用療法)は 25,794 件で、ポータルの登録上限(8,000件)を超える。介入語が「Drug Therapy, Combination」(MeSH)で広すぎる。前回の式を確認するまで、取得・登録しない",
    "N2-1 と N4-1(運動)は同じ式で 1,086 件。N3-1 と N5-1(鍼灸)は同じ式で 734 件。P2-1 と T3-1(プレガバリン)は同じ式で 73 件。予防と治療で同じ式のため、同じ文献が両方の CQ に入る(前回も同じ式)",
    "件数は PubMed の更新で変わる(F4-1: 25,789 → 25,794。同日の 2 回の実行)。取得した時点の件数を、検索の記録に使う"
+  ]
+ },
+ "decision": "統括委員長の決定(2026-11-20): 検索期間は 2026年10月1日まで。検索式は前回(2023年版)の式。開始日は、前回の検索の終了日の翌日(終了が月だけの記録は翌月の 1 日)",
+ "date_field": "dp(出版日。2023年版の記録と同じ)",
+ "searches": [
+  {
+   "id": "P1-1",
+   "cq": "P1",
+   "cq_name": "牛車腎気丸",
+   "dir": "CQ1-牛車腎気丸",
+   "database": "PubMed",
+   "query": "goshajinkigan (neuropathy OR neurotoxi*) (prevent* OR management* OR effect*)",
+   "formula_kind": "手引き2017 の式",
+   "formula_source": "2023年版の委員ワークシート(PubMed 2020〜2021.6、53件)",
+   "confirmed": true,
+   "prior_end": "2021-06",
+   "start": "2021/07/01",
+   "start_basis": "前回の検索の終了月(2021年6月)の翌月",
+   "end": "2026/10/01",
+   "notes": [],
+   "full_query": "(goshajinkigan (neuropathy OR neurotoxi*) (prevent* OR management* OR effect*)) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "P2-1",
+   "cq": "P2",
+   "cq_name": "ガバペンチノイド(プレガバリン)",
+   "dir": "CQ1-プレガバリン",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "検索過程 プレガバリン・ミロガバリン.docx(治療の CQ と同じ文書。予防の CQ だけの記録はない)",
+   "confirmed": true,
+   "prior_end": "2021-08-12",
+   "start": "2021/08/13",
+   "start_basis": "前回の検索の終了日(2021年8月12日)の翌日",
+   "end": "2026/10/01",
+   "notes": [],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin) AND (\"2021/08/13\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "P3-1",
+   "cq": "P3",
+   "cq_name": "カルニチン(アセチルLカルニチン)",
+   "dir": "CQ1-カルニチン-アセチル‒L‒カルニチン",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Acetyl-L-carnitine",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "カルニチン 平山検索過程.docx(検索式1)",
+   "confirmed": true,
+   "prior_end": "2021-06-30",
+   "start": "2021/07/01",
+   "start_basis": "前回の検索の終了日(2021年6月30日)の翌日",
+   "end": "2026/10/01",
+   "notes": [
+    "2023年版は「検索式2」でも検索している(2件)。検索式2 の式は記録に残っていない"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Acetyl-L-carnitine) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "N1-1",
+   "cq": "N1",
+   "cq_name": "冷却・圧迫療法(統合)",
+   "dir": "CQ1-冷却・圧迫",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Cryotherapy",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "検索過程_冷却_山田華井.docx「検索式: ASCO 検索式(Cryotherapy のみ)」",
+   "confirmed": true,
+   "prior_end": "2021-08-03",
+   "start": "2021/08/04",
+   "start_basis": "前回の検索の日(2021年8月3日)の翌日",
+   "end": "2026/10/01",
+   "notes": [],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Cryotherapy) AND (\"2021/08/04\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "N1-2",
+   "cq": "N1",
+   "cq_name": "冷却・圧迫療法(統合)",
+   "dir": "CQ1-冷却・圧迫",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Compression Bandages\"[Mesh]",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "圧迫の 2023年版の検索式は記録に残っていない。介入語は委員会提示の語",
+   "confirmed": false,
+   "prior_end": "",
+   "start": "2021/07/01",
+   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
+   "end": "2026/10/01",
+   "notes": [
+    "圧迫の前回の式と検索の終了日を確認する"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Compression Bandages\"[Mesh]) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "N1-3",
+   "cq": "N1",
+   "cq_name": "冷却・圧迫療法(統合)",
+   "dir": "CQ1-冷却・圧迫",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (Cryotherapy OR cooling OR \"frozen glove*\" OR compression OR \"Compression Bandages\"[Mesh])",
+   "formula_kind": "案(2023年版の引用文献で再現率を確認した式)",
+   "formula_source": "冷却と圧迫を 1つの式にした案。2023年版の冷却・圧迫の引用文献 13件のうち 11件を拾う(拾えない 2件は、ASCOガイドラインとメタアナリシス)。N1-1(冷却)と N1-2(圧迫)を置き換える。統括委員会の承認が必要",
+   "confirmed": false,
+   "prior_end": "2021-08-03",
+   "start": "2021/07/01",
+   "start_basis": "圧迫の前回の検索の終了日が記録にないため、冷却の終了日(2021年8月3日)より前の 2021/07/01。重複は取り込みのときに除く",
+   "end": "2026/10/01",
+   "notes": [
+    "案である。N1-1 と N1-2 の代わりに使う場合は、統括委員会の承認が必要",
+    "「Cryotherapy」だけでは、「regional cooling」の論文(Sato 2016、PMID 27891244)を拾えない。「cooling」「frozen glove*」を加えた"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (Cryotherapy OR cooling OR \"frozen glove*\" OR compression OR \"Compression Bandages\"[Mesh])) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": true
+  },
+  {
+   "id": "N2-1",
+   "cq": "N2",
+   "cq_name": "運動(予防)",
+   "dir": "CQ1-運動",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh])",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "【運動】検索過程.docx は C の部分だけが記録に残っている(867件)。介入語は委員会提示の語",
+   "confirmed": false,
+   "prior_end": "2021-09-04",
+   "start": "2021/09/05",
+   "start_basis": "前回の検索の終了日(2021年9月4日)の翌日",
+   "end": "2026/10/01",
+   "notes": [
+    "運動の前回の式(介入語の部分)を、検索過程の原本で確認する"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh])) AND (\"2021/09/05\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "N3-1",
+   "cq": "N3",
+   "cq_name": "鍼灸(予防)",
+   "dir": "CQ1-鍼灸",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND acupuncture",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "検索式.docx",
+   "confirmed": true,
+   "prior_end": "2021",
+   "start": "2021/07/01",
+   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
+   "end": "2026/10/01",
+   "notes": [
+    "記録の検索期間は「2019,9から2021」で、終了の月日がない。開始日を確認する"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND acupuncture) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "T1-1",
+   "cq": "T1",
+   "cq_name": "デュロキセチン",
+   "dir": "CQ2-デュロキセチン",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (duloxetine)",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "検索過程 武井_デュロキセチン.docx、検索過程 神林＿デュロキセチン.docx",
+   "confirmed": true,
+   "prior_end": "2021-12-12",
+   "start": "2021/12/13",
+   "start_basis": "前回の検索の終了日(2021年12月12日)の翌日",
+   "end": "2026/10/01",
+   "notes": [],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (duloxetine)) AND (\"2021/12/13\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "T2-1",
+   "cq": "T2",
+   "cq_name": "デュロキセチン以外の抗うつ剤(アミトリプチリン)",
+   "dir": "CQ2-アミトリプチリン",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND amitriptyline",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "2023年版の検索過程の記録がない。介入語は仮の語",
+   "confirmed": false,
+   "prior_end": "",
+   "start": "2021/07/01",
+   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
+   "end": "2026/10/01",
+   "notes": [
+    "アミトリプチリンの前回の式と検索の終了日を確認する",
+    "委員会提示の I 節の語「amitriptyline/ketamine」は MeSH になく、PubMed は語句として検索する。アミトリプチリンの文献を検索できないため、仮に「amitriptyline」を置いた(式は未確認)"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND amitriptyline) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "T3-1",
+   "cq": "T3",
+   "cq_name": "ガバペンチノイド(プレガバリン、ミロガバリン)",
+   "dir": "CQ2-プレガバリン",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "検索過程 プレガバリン・ミロガバリン.docx",
+   "confirmed": true,
+   "prior_end": "2021-08-12",
+   "start": "2021/08/13",
+   "start_basis": "前回の検索の終了日(2021年8月12日)の翌日",
+   "end": "2026/10/01",
+   "notes": [],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin) AND (\"2021/08/13\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "T3-2",
+   "cq": "T3",
+   "cq_name": "ガバペンチノイド(プレガバリン、ミロガバリン)",
+   "dir": "CQ2-ミロガバリン",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Mirogabalin",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "検索過程 プレガバリン・ミロガバリン.docx は、プレガバリンの式だけが記録に残っている。介入語は仮の語",
+   "confirmed": false,
+   "prior_end": "2021-08-12",
+   "start": "2021/08/13",
+   "start_basis": "前回の検索の終了日(2021年8月12日)の翌日",
+   "end": "2026/10/01",
+   "notes": [
+    "ミロガバリンの前回の式を、検索過程の原本で確認する"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Mirogabalin) AND (\"2021/08/13\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "N4-1",
+   "cq": "N4",
+   "cq_name": "運動(治療)",
+   "dir": "CQ2-運動",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh])",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "【運動】検索過程.docx は C の部分だけが記録に残っている(867件)。介入語は委員会提示の語",
+   "confirmed": false,
+   "prior_end": "2021-09-04",
+   "start": "2021/09/05",
+   "start_basis": "前回の検索の終了日(2021年9月4日)の翌日",
+   "end": "2026/10/01",
+   "notes": [
+    "運動の前回の式(介入語の部分)を、検索過程の原本で確認する"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (\"Exercise\"[Mesh] OR \"Exercise Therapy\"[Mesh])) AND (\"2021/09/05\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "N5-1",
+   "cq": "N5",
+   "cq_name": "鍼灸(治療)",
+   "dir": "CQ2-鍼灸",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND acupuncture",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "検索式.docx",
+   "confirmed": true,
+   "prior_end": "2021",
+   "start": "2021/07/01",
+   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
+   "end": "2026/10/01",
+   "notes": [
+    "記録の検索期間は「2019,9から2021」で、終了の月日がない。開始日を確認する"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND acupuncture) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "F1-1",
+   "cq": "F1",
+   "cq_name": "ビタミンB12による治療",
+   "dir": "CQ2-ビタミン-B12",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Vitamin B 12\"[Mesh]",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "CIPN SR_VB12 検索過程.docx に式が残っていない(2023年版は手引き2017 の式で 2016年6月〜2021年6月)。介入語は委員会提示の語",
+   "confirmed": false,
+   "prior_end": "2021-06",
+   "start": "2021/07/01",
+   "start_basis": "前回の検索の終了月(2021年6月)の翌月",
+   "end": "2026/10/01",
+   "notes": [
+    "ビタミンB12 の前回の式(手引き2017 の式)を確認する"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Vitamin B 12\"[Mesh]) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "F2-1",
+   "cq": "F2",
+   "cq_name": "非ステロイド性消炎鎮痛薬(NSAIDs)による治療",
+   "dir": "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs",
+   "database": "PubMed",
+   "query": "Cancer peripheral (neuropathy OR neurotoxi*) (\"non steroidal anti inflammatory drugs\" OR NSAIDs OR Aspirin OR Acemetacin OR Ampiroxicam OR Ibuprofen OR Indometacin OR Ethenzamide OR Etodolac OR Oxaprozin OR Zaltoprofen OR Diclofenac OR Sulindac OR Celecoxib OR Tiaprofenic acid OR Nabumetone OR Naproxen OR Piroxicam OR Pranoprofen OR Flufenamic acid OR Mefenamic acid OR Meloxicam OR Loxoprofen OR Lornoxicam OR Ketoprofen OR Sodium salicylate) (effect OR management OR treat* OR therapy) NOT diabet*",
+   "formula_kind": "手引き2017 の式",
+   "formula_source": "NSAIDs 松坂 検索式記録.docx",
+   "confirmed": true,
+   "prior_end": "2021-06-30",
+   "start": "2021/07/01",
+   "start_basis": "前回の検索の終了日(2021年6月30日)の翌日",
+   "end": "2026/10/01",
+   "notes": [],
+   "full_query": "(Cancer peripheral (neuropathy OR neurotoxi*) (\"non steroidal anti inflammatory drugs\" OR NSAIDs OR Aspirin OR Acemetacin OR Ampiroxicam OR Ibuprofen OR Indometacin OR Ethenzamide OR Etodolac OR Oxaprozin OR Zaltoprofen OR Diclofenac OR Sulindac OR Celecoxib OR Tiaprofenic acid OR Nabumetone OR Naproxen OR Piroxicam OR Pranoprofen OR Flufenamic acid OR Mefenamic acid OR Meloxicam OR Loxoprofen OR Lornoxicam OR Ketoprofen OR Sodium salicylate) (effect OR management OR treat* OR therapy) NOT diabet*) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "F3-1",
+   "cq": "F3",
+   "cq_name": "オピオイドによる治療",
+   "dir": "CQ2-オピオイド",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Analgesics, Opioid\"[Mesh]",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "2023年版の検索過程の記録がない(2023年版は手引き2017 の式)。介入語は委員会提示の語",
+   "confirmed": false,
+   "prior_end": "",
+   "start": "2021/07/01",
+   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
+   "end": "2026/10/01",
+   "notes": [
+    "オピオイドの前回の式(手引き2017 の式)と検索の終了日を確認する"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Analgesics, Opioid\"[Mesh]) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "F4-1",
+   "cq": "F4",
+   "cq_name": "併用療法による治療",
+   "dir": "CQ2-薬物の併用療法",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Drug Therapy, Combination\"[Mesh]",
+   "formula_kind": "ASCO の式(P・C)+介入語",
+   "formula_source": "2023年版の検索過程の記録がない。介入語は委員会提示の語",
+   "confirmed": false,
+   "prior_end": "",
+   "start": "2021/07/01",
+   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
+   "end": "2026/10/01",
+   "notes": [
+    "併用療法の前回の式と検索の終了日を確認する"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Drug Therapy, Combination\"[Mesh]) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  }
+ ],
+ "recall_check": {
+  "date": "2026-11-22",
+  "method": "2023年版の冷却・圧迫の引用文献 13 件(PMID)を、PubMed(コネクタ経由)で、介入語の式ごとに検索し、拾えた件数を数えた。P節・C節は、演算子の上限(20)のため含めていない(P・C は、がん・神経障害の広い語で、介入語が絞り込みを決める)",
+  "pmids": [
+   "32663120",
+   "34912720",
+   "31590108",
+   "32036471",
+   "31811482",
+   "29924336",
+   "27891244",
+   "33424755",
+   "31912787",
+   "35070969",
+   "27620884",
+   "33985457",
+   "31901783"
+  ],
+  "results": [
+   {
+    "formula": "Cryotherapy",
+    "found": 8,
+    "missing": [
+     "32663120",
+     "27891244",
+     "35070969",
+     "27620884",
+     "33985457"
+    ],
+    "note": "N1-1(冷却)の介入語。圧迫の 3件と、cooling の語を使った 1件を拾えない"
+   },
+   {
+    "formula": "\"Compression Bandages\"[Mesh]",
+    "found": 3,
+    "missing": [
+     "冷却の 10件"
+    ],
+    "note": "N1-2(圧迫)の介入語。圧迫の 3件(27620884、33985457、31901783)をすべて拾う"
+   },
+   {
+    "formula": "compression",
+    "found": 3,
+    "missing": [
+     "冷却の 10件"
+    ],
+    "note": "圧迫の 3件をすべて拾う(MeSH と同じ)"
+   },
+   {
+    "formula": "Cryotherapy OR compression OR cooling OR \"frozen glove*\"",
+    "found": 11,
+    "missing": [
+     "32663120",
+     "35070969"
+    ],
+    "note": "N1-3(案)の介入語。拾えない 2件は、ASCOガイドライン(PMID 32663120)とメタアナリシス(PMID 35070969。介入語は neuroprotectants)で、データベース検索の対象ではない(ASCOガイドラインの引用文献、手引き、メタアナリシスの引用文献として入る)"
+   }
   ]
  }
 }

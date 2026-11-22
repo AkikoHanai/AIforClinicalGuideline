@@ -24,6 +24,7 @@ S = [
  ("P3-1", "P3", "CQ1-カルニチン-アセチル‒L‒カルニチン", asco("Acetyl-L-carnitine"), A, "カルニチン 平山検索過程.docx(検索式1)", True, "2021-06-30", "2021/07/01", "前回の検索の終了日(2021年6月30日)の翌日", ["2023年版は「検索式2」でも検索している(2件)。検索式2 の式は記録に残っていない"]),
  ("N1-1", "N1", "CQ1-冷却・圧迫", asco("Cryotherapy"), A, "検索過程_冷却_山田華井.docx「検索式: ASCO 検索式(Cryotherapy のみ)」", True, "2021-08-03", "2021/08/04", "前回の検索の日(2021年8月3日)の翌日", []),
  ("N1-2", "N1", "CQ1-冷却・圧迫", asco('"Compression Bandages"[Mesh]'), A, "圧迫の 2023年版の検索式は記録に残っていない。介入語は委員会提示の語", False, "", "2021/07/01", GL, ["圧迫の前回の式と検索の終了日を確認する"]),
+ ("N1-3", "N1", "CQ1-冷却・圧迫", asco('(Cryotherapy OR cooling OR "frozen glove*" OR compression OR "Compression Bandages"[Mesh])'), "案(2023年版の引用文献で再現率を確認した式)", "冷却と圧迫を 1つの式にした案。2023年版の冷却・圧迫の引用文献 13件のうち 11件を拾う(拾えない 2件は、ASCOガイドラインとメタアナリシス)。N1-1(冷却)と N1-2(圧迫)を置き換える。統括委員会の承認が必要", False, "2021-08-03", "2021/07/01", "圧迫の前回の検索の終了日が記録にないため、冷却の終了日(2021年8月3日)より前の 2021/07/01。重複は取り込みのときに除く", ["案である。N1-1 と N1-2 の代わりに使う場合は、統括委員会の承認が必要", "「Cryotherapy」だけでは、「regional cooling」の論文(Sato 2016、PMID 27891244)を拾えない。「cooling」「frozen glove*」を加えた"]),
  ("N2-1", "N2", "CQ1-運動", asco('("Exercise"[Mesh] OR "Exercise Therapy"[Mesh])'), A, "【運動】検索過程.docx は C の部分だけが記録に残っている(867件)。介入語は委員会提示の語", False, "2021-09-04", "2021/09/05", "前回の検索の終了日(2021年9月4日)の翌日", ["運動の前回の式(介入語の部分)を、検索過程の原本で確認する"]),
  ("N3-1", "N3", "CQ1-鍼灸", asco("acupuncture"), A, "検索式.docx", True, "2021", "2021/07/01", GL, ["記録の検索期間は「2019,9から2021」で、終了の月日がない。開始日を確認する"]),
  ("T1-1", "T1", "CQ2-デュロキセチン", asco("(duloxetine)"), A, "検索過程 武井_デュロキセチン.docx、検索過程 神林＿デュロキセチン.docx", True, "2021-12-12", "2021/12/13", "前回の検索の終了日(2021年12月12日)の翌日", []),
@@ -45,9 +46,10 @@ for sid, cq, d, q, kind, src, ok, prior_end, start, basis, notes in S:
     assert cq in names and d in dirs and q.count("(") == q.count(")"), sid
     out.append({"id": sid, "cq": cq, "cq_name": names[cq], "dir": d, "database": "PubMed", "query": q, "formula_kind": kind, "formula_source": src, "confirmed": ok, "prior_end": prior_end,
                 "start": start, "start_basis": basis, "end": END, "notes": notes, "full_query": f'({q}) AND ("{start}"[dp] : "{END}"[dp])'})
+for s_ in out: s_["proposal"] = s_["id"] == "N1-3"   # 案は、確認済み・未確認の件数に数えず、--only で指定したときだけ取得する
 assert {s["cq"] for s in out} == set(names)
-_old = os.path.join(ROOT, "data", "search_plan.json"); _mesh = (json.load(open(_old, encoding="utf-8")).get("mesh_check") if os.path.exists(_old) else None)   # シソーラスの確認結果は残す
-json.dump({"mesh_check": _mesh, "decision": "統括委員長の決定(2026-11-20): 検索期間は 2026年10月1日まで。検索式は前回(2023年版)の式。開始日は、前回の検索の終了日の翌日(終了が月だけの記録は翌月の 1 日)",
+_old = os.path.join(ROOT, "data", "search_plan.json"); _keep = {k: v for k, v in (json.load(open(_old, encoding="utf-8")) if os.path.exists(_old) else {}).items() if k not in ("decision", "date_field", "searches")}   # 確認結果(mesh_check、count_check、recall_check)は残す
+json.dump({**_keep, "decision": "統括委員長の決定(2026-11-20): 検索期間は 2026年10月1日まで。検索式は前回(2023年版)の式。開始日は、前回の検索の終了日の翌日(終了が月だけの記録は翌月の 1 日)",
            "date_field": "dp(出版日。2023年版の記録と同じ)", "searches": out}, open(os.path.join(ROOT, "data", "search_plan.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-print(len(out), "検索。確認済み", sum(s["confirmed"] for s in out), "/ 未確認", sum(not s["confirmed"] for s in out))
+print(len(out), "検索(案を除く", sum(not s["proposal"] for s in out), "。確認済み", sum(s["confirmed"] for s in out), "/ 未確認", sum(not s["confirmed"] and not s["proposal"] for s in out), "/ 案", sum(s["proposal"] for s in out), ")")
 
