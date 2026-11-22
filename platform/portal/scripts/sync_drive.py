@@ -6,9 +6,11 @@
   提出/総論/総論<項目>_<題名>/   原稿の全ての版(<日時>_<版ID末尾>_<ファイル名>)、状態.txt(状態・期限・提出者・査読コメント)
   提出/SR/<CQ>_<名称>/           Minds書類(xlsx)、文献選択の別添(xlsx)。出力のたびに、同じ名前で置き換える(ドライブの版の履歴に残る)
   依頼書/                        総論の依頼書(Word。2023年版の全文入り)
-  マニュアル/                    手順書(Word)
+  マニュアル/<対象>/             手順書(Word)。対象(全委員、SR委員、SR委員長、作成グループ、総論の執筆者、統括委員会)ごとのフォルダに分ける
 転送済みの版(同じ名前・同じ大きさ)は、飛ばす。転送した内容は、ポータルの「作成経過の記録」に残る。
-注意: 共有ドライブのメンバーは、委員に限る(学生を含めない。委員以外に資料を見せない)。"""
+注意: 共有ドライブのメンバーは、委員に限る(学生を含めない。委員以外に資料を見せない)。
+ポータルでは役割ごとに見える範囲を分けているが、ドライブのフォルダは、ドライブの共有設定で分ける(例: マニュアル/統括委員会 は統括委員会だけ)。
+文献選択の別添と Minds書類は、各委員の判定を、その段階を 2名が判定した後だけ載せる(2名独立)。"""
 import datetime, os, re, sys, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -61,7 +63,7 @@ def sync(tok, drive=DRIVE, dry=False, fetch=get_bytes):
             r = tok.call("GET", f"/soron/{g['key']}/gl2023")
             if r.get("docx_url"): place(os.path.join(drive, "依頼書", os.path.basename(g["docx_key"])), fetch(r["docx_url"]), copied, skipped, dry)
     for d in tok.call("GET", "/docs"):
-        place(os.path.join(drive, "マニュアル", d["name"]), fetch(d["url"]), copied, skipped, dry)
+        place(os.path.join(drive, "マニュアル", safe(d["target"]), d["name"]), fetch(d["url"]), copied, skipped, dry)   # 対象(全委員・SR委員・総論の執筆者・統括委員会など)ごとのフォルダ
     print(("【転送の内容の表示だけ。ファイルは置いていません】\n" if dry else "") + f"転送 {len(copied)} 件、変更なしで飛ばした {len(skipped)} 件")
     for p in copied: print("  置いた:" if not dry else "  置く:", rel(p))
     if not dry and (copied or skipped):

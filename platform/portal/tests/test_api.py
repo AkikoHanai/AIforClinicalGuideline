@@ -385,6 +385,7 @@ def test_search_record_screening_and_flow(env, monkeypatch):
     fl = {x[0]: x[1] for x in wb["文献選択の流れ図"].iter_rows(min_row=2, values_only=True) if x[0]}; assert fl["採用した文献"] == 1 and fl["一次で除外した文献"] == 2 and fl["スクリーニングの対象として登録した文献"] == 6
     sc = {x[0]: x for x in wb["スクリーニング"].iter_rows(min_row=2, values_only=True)}
     assert sc["30000002"][5:8] == ("採用", None, "協議の結論") and sc["30000002"][8:11] == ("除外", "計画書のみ", "2名の一致") and "全文で確認する" in sc["30000002"][13] and sc["30000009"][5] == "一次を経ない"
+    assert sc["30000005"][11] in (None, "") and "元雄良治" in sc["30000002"][11] and "菊池健" in sc["30000002"][11]        # 1名だけの判定は載せない。2名が判定した後は載せる(2名独立)
     # 文献選択の別添: 流れ図の件数と、枠ごとの文献の一覧(PMID・題名・著者)の行数が一致する
     c, r = call("GET", "/export/P1/screening", who=R1); assert c == 200
     wb = openpyxl.load_workbook(io.BytesIO(boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read()))
@@ -392,6 +393,7 @@ def test_search_record_screening_and_flow(env, monkeypatch):
     assert len(chk) == 12 and all(x[4] == "一致" for x in chk) and {x[0]: x[1] for x in chk}["採用した文献"] == 1
     for name, k, _ in __import__("export_minds").SCREEN_SHEETS: assert wb[name].max_row - 1 == r["counts"][k] == f["cands" if k == "all" else k]
     adopted = [x for x in wb["H 採用"].iter_rows(min_row=2, values_only=True)]; assert adopted[0][1] == "30000001" and adopted[0][2] == "T30000001" and adopted[0][3] == "A B"
+    one = [x for x in wb["D 一次の結果なし"].iter_rows(min_row=2, values_only=True) if x[1] == "30000005"][0]; assert one[12] in (None, "") and one[9].startswith("判定 1 名")   # 別添でも、1名だけの判定は載せない
     assert [x[1] for x in wb["C 一次で除外"].iter_rows(min_row=2, values_only=True)] == ["30000003", "30000004"] and [x[1] for x in wb["F 二次で除外"].iter_rows(min_row=2, values_only=True)] == ["30000002"]
     sr = [x for x in wb["検索の記録"].iter_rows(min_row=2, values_only=True)][0]; assert sr[5:9] == (6, 5, 1, 0)            # 件数 6 = 登録 5 + 重複 1
     assert [x[1] for x in wb["重複として除いた文献"].iter_rows(min_row=2, values_only=True)] == ["30000001"]
@@ -479,7 +481,7 @@ def test_sync_to_shared_drive(env, tmp_path):
     files = rel(); sub = [f for f in files if f.startswith(os.path.join("提出", "総論", "総論A_"))]
     assert len(sub) == 3 and sorted(open(os.path.join(drive, f), "rb").read() for f in sub if f.endswith(".docx")) == [b"first draft", b"second draft, longer"]
     st = open(os.path.join(drive, [f for f in sub if f.endswith("状態.txt")][0]), encoding="utf-8").read(); assert "査読コメント" in st and "表1の出典を追記してください" in st and "状態: 修正中" not in st or True
-    assert os.path.exists(os.path.join(drive, "マニュアル", "4_SR委員の手順書.docx")) and any(f.startswith(os.path.join("提出", "SR", "P1_")) and f.endswith("文献選択の別添_P1.xlsx") for f in files)
+    assert os.path.exists(os.path.join(drive, "マニュアル", "SR委員", "4_SR委員の手順書.docx")) and any(f.startswith(os.path.join("提出", "SR", "P1_")) and f.endswith("文献選択の別添_P1.xlsx") for f in files)
     cp2, sk2 = SD.sync(Tok(), drive, fetch=fetch); assert not [p for p in cp2 if "総論" in p or "マニュアル" in p] and len(sk2) >= 4                  # 転送済みは飛ばす
     n = len(rel()); SD.sync(Tok(), str(tmp_path / "d2"), dry=True, fetch=fetch) if os.path.isdir(str(tmp_path / "d2")) else None; assert len(rel()) == n
     assert any(a["action"] == "共有ドライブへの転送" and "転送" in a["detail"] for a in call("GET", "/audit")[1])

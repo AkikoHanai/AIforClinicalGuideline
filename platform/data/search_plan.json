@@ -374,5 +374,33 @@
    ],
    "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Drug Therapy, Combination\"[Mesh]) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])"
   }
- ]
+ ],
+ "count_check": {
+  "date": "2026-11-22",
+  "by": "統括委員長のMac(run_search.py)",
+  "counts": {
+   "P1-1": 19,
+   "P2-1": 73,
+   "P3-1": 14,
+   "N1-1": 242,
+   "N1-2": 30,
+   "N2-1": 1086,
+   "N3-1": 734,
+   "T1-1": 114,
+   "T2-1": 31,
+   "T3-1": 73,
+   "T3-2": 21,
+   "N4-1": 1086,
+   "N5-1": 734,
+   "F1-1": 45,
+   "F2-1": 22,
+   "F3-1": 856,
+   "F4-1": 25794
+  },
+  "findings": [
+   "F4-1(併用療法)は 25,794 件で、ポータルの登録上限(8,000件)を超える。介入語が「Drug Therapy, Combination」(MeSH)で広すぎる。前回の式を確認するまで、取得・登録しない",
+   "N2-1 と N4-1(運動)は同じ式で 1,086 件。N3-1 と N5-1(鍼灸)は同じ式で 734 件。P2-1 と T3-1(プレガバリン)は同じ式で 73 件。予防と治療で同じ式のため、同じ文献が両方の CQ に入る(前回も同じ式)",
+   "件数は PubMed の更新で変わる(F4-1: 25,789 → 25,794。同日の 2 回の実行)。取得した時点の件数を、検索の記録に使う"
+  ]
+ }
 }

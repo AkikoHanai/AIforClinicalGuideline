@@ -49,7 +49,7 @@ def main(email, use_docx=False):
         paras = paragraphs(f)
         items.append({"key": key, "title": title, "paragraphs": [{"id": f"GL2023-総論{key.replace('_', '-')}-p{i + 1:03d}", "text": p} for i, p in enumerate(paras)], "filename": name})
         print(f"総論{key}: {len(paras)}段落")
-    r = tok.call("POST", "/gl2023/soron", {"items": items}); print(r)
+    r = tok.call("POST", "/gl2023/soron", {"items": items}); print({k: v for k, v in r.items() if k != "upload_urls"})   # 署名付き URL(一時的な認証情報を含む)は表示しない
     for it, url in zip(items, r.get("upload_urls", [])):
         if url and it.get("filename"):
             with open(os.path.join(SRC, it["filename"]), "rb") as fh:

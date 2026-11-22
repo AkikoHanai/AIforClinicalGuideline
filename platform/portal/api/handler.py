@@ -719,7 +719,7 @@ def export(method, parts, body, user):
     cands, recs = screen_data(cqid); rows = []
     for cd in cands:
         rs = recs.get(cd["pmid"], []); fin = cd.get("final") or {}
-        who = lambda st: "、".join(f"{r['reviewer']}: {r[st]['decision']}" + (f"({r[st]['reason']})" if r[st].get("reason") else "") for r in rs if (r.get(st) or {}).get("decision"))
+        who = lambda st: who_decisions(rs, st, fin)
         rows.append({"pmid": cd["pmid"], "title": cd.get("title", ""), "citation": ". ".join(x for x in (cd.get("authors"), cd.get("journal"), cd.get("year")) if x), "source": cd.get("source", ""), "added_why": cd.get("added_why", ""),
                      "s1": {"decision": "一次を経ない"} if cd.get("direct") else stage_result(cd, rs, "s1"), "s2": stage_result(cd, rs, "s2"), "s1_reviewers": who("s1"), "s2_reviewers": who("s2"),
                      "why": " / ".join(f"{STAGE_JA[st]}: {fin[st].get('why', '')}({fin[st].get('by', '')})" for st in ("s1", "s2") if fin.get(st))})
@@ -952,6 +952,14 @@ def flow_cached(cqid, fresh=None):
     return f
 
 
+def who_decisions(rs, st, fin=None):
+    """出力(別添・Minds書類)に載せる、各委員の判定。2名独立のため、その段階を 2名以上が判定した後(または協議の結論がある場合)だけ載せる。
+    1名だけが判定した段階は、空にする(共有ドライブに置いた出力から、もう一人の担当委員に見えないようにする)。"""
+    ds = [r for r in rs if (r.get(st) or {}).get("decision")]
+    if len(ds) < 2 and not (fin or {}).get(st): return ""
+    return "、".join(f"{r['reviewer']}: {r[st]['decision']}" + (f"({r[st]['reason']})" if r[st].get("reason") else "") for r in ds)
+
+
 def cand_row(cd, rs, name, mine, lead):
     """画面に返す 1 文献の行。抄録は含めない(別に取得する)。2名独立: 担当委員には、自分がその段階を判定するまで、他の委員の判定を返さない。"""
     my = next((r for r in rs if r["reviewer"] == name), None) or {}
@@ -1078,7 +1086,7 @@ def screening_lists(cqid):
     batches = sorted(query("SCRIMP", f"{cqid}#"), key=lambda b: b["sk"]); title = {c["pmid"]: c for c in cands}
     def line(c, r1, r2):
         rs = recs.get(c["pmid"], []); fin = c.get("final") or {}; sr = searches.get(c.get("search_id") or "", {})
-        who = lambda st: "、".join(f"{r['reviewer']}: {r[st]['decision']}" + (f"({r[st]['reason']})" if r[st].get("reason") else "") for r in rs if (r.get(st) or {}).get("decision"))
+        who = lambda st: who_decisions(rs, st, fin)
         return {"pmid": c["pmid"], "title": c.get("title", ""), "authors": c.get("authors_all") or c.get("authors", ""), "journal": c.get("journal", ""), "year": c.get("year", ""), "doi": c.get("doi", ""),
                 "source": c.get("source", ""), "search": f"{sr.get('date', '')} {sr.get('database', '')}".strip(), "added_why": c.get("added_why", ""),
                 "s1": "一次を経ない" if c.get("direct") else (r1["decision"] or r1.get("state") or f"判定 {r1['n']} 名"), "s1_reason": r1.get("reason", ""), "s1_by": r1.get("by", ""), "s1_who": who("s1"),
