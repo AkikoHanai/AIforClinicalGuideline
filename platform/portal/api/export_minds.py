@@ -89,16 +89,21 @@ def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None, sc
                          f.get("instrument", ""), ev, f.get("fixed_by", ""), "・".join(f.get("based_on") or []), f.get("note", "")])
     style(ws, widths=[16, 11, 36, 8] + [7] * 15 + [7, 7, 7, 7, 8, 7, 7, 7, 14, 60, 10, 14, 20])
 
-    ws = wb.create_sheet("SR-8")
-    ws.append(["アウトカム", "研究数", "化学療法の分類(層別行)"] + [ja for _, ja in SR8] + ["層別の結論", "効果の要約", "記入者", "備考"])
+    ws = wb.create_sheet("SR-8")   # Minds の SR-8(エビデンス総体。絶対効果指標の結果を記入する場合)の列。統合値・絶対効果は委員が記入した値
+    ws.append(["アウトカム", "研究デザイン／研究数", "バイアスリスク", "非一貫性", "不精確性", "非直接性", "その他(出版バイアスなど)", "上昇要因(観察研究)", "対照群 分母", "対照群 分子", "対照群 (%)", "介入群 分母", "介入群 分子", "介入群 (%)",
+               "効果指標(種類)", "効果指標 統合値", "効果指標 95%信頼区間", "エビデンスの強さ", "重要性(1〜9)", "コメント", "絶対効果", "絶対効果 95%信頼区間", "層別(化学療法の分類)ごとの結論", "効果の要約", "記入者"])
+    def pct(n, d):
+        try: return round(100 * float(n) / float(d), 1) if n is not None and d else ""     # DynamoDB の数値は Decimal
+        except (TypeError, ValueError, ZeroDivisionError): return ""
     for o in cq.get("outcomes") or []:
-        fs = [x for x in finals if x["outcome"] == o]
-        r = next((x for x in sr8_rows if x.get("outcome") == o), {})
-        by_class = {}
-        for f in fs:
-            by_class.setdefault((pmap.get(f["pmid"], {}).get("chars") or {}).get("chemo_class") or "不明", []).append(f["pmid"])
-        ws.append([o, len(fs), "\n".join(f"{c}: {', '.join(ps)}" for c, ps in by_class.items())] + [v(r.get(k)) for k, _ in SR8] + [r.get("strata", ""), r.get("effect_summary", ""), r.get("by", ""), r.get("note", "")])
-    style(ws, widths=[18, 7, 30] + [10] * 7 + [30, 30, 10, 20])
+        fs = [x for x in finals if x["outcome"] == o]; r = next((x for x in sr8_rows if x.get("outcome") == o), {})
+        dc = {}
+        for f in fs: d_ = ((pmap.get(f["pmid"], {}).get("chars") or {}).get("design") or "デザイン不明"); dc[d_] = dc.get(d_, 0) + 1
+        ws.append([o, r.get("design_n") or "、".join(f"{k} {n}件" for k, n in dc.items()), v(r.get("rob")), v(r.get("inconsistency")), v(r.get("imprecision")), v(r.get("indirectness")), v(r.get("publication_bias")), v(r.get("upgrade")),
+                   v(r.get("ctrl_den")), v(r.get("ctrl_num")), pct(r.get("ctrl_num"), r.get("ctrl_den")), v(r.get("int_den")), v(r.get("int_num")), pct(r.get("int_num"), r.get("int_den")),
+                   r.get("eff_type", ""), r.get("eff_val", ""), r.get("eff_ci", ""), r.get("certainty", ""), v(r.get("importance")), r.get("note", ""), r.get("abs_val", ""), r.get("abs_ci", ""), r.get("strata", ""), r.get("effect_summary", ""), r.get("by", "")])
+    ws.append([]); ws.append(["注", "エビデンスの強さは、RCT は強(A)から開始。各ドメインは 高(-2)・中/疑い(-1)・低(0)。上昇要因は 高(+2)・中(+1)・低(0)。統合値と絶対効果は、委員が記入した値であり、ポータルは計算しない。(%)は、分子 ÷ 分母の単純な割合"])
+    style(ws, widths=[18, 20] + [9] * 6 + [8, 8, 8, 8, 8, 8, 10, 10, 14, 12, 8, 30, 12, 14, 30, 30, 10])
 
     ws = wb.create_sheet("SoF表")
     ws.append(["アウトカム", "研究数(参加者数)", "対照群のイベント/人数", "介入群のイベント/人数", "各研究の効果(記録のまま)", "エビデンスの確実性", "層別の結論"])

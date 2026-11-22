@@ -227,7 +227,7 @@ def dashboard(user):
         nc = n["flow"]["s1_conflict"] + n["flow"]["s2_conflict"]
         if nc and (lead or mine):
             approvals.append({"kind": "スクリーニングの協議の結論", "target": f"{c['id']} {c['title']}", "record": f"2名の判定が不一致の文献 {nc}件(一次 {n['flow']['s1_conflict']}件、二次 {n['flow']['s2_conflict']}件)。協議の結論の記録なし",
-                              "approver": "担当委員(協議)、またはSR委員長", "can": True, "page": "screening", "q": {"cq": c["id"], "show": "conflict"}})
+                              "approver": "担当委員2名の協議と、第三者の意見(SR委員長への報告)", "can": True, "page": "screening", "q": {"cq": c["id"], "show": "conflict"}})
         if n["etd_status"] == "協議中":
             approvals.append({"kind": "EtD・推奨の確定", "target": f"{c['id']} {c['title']}", "record": "状態 協議中。" + (f"投票 合意率 {n['etd_agreement']}%" if n["etd_agreement"] is not None else "投票の記録なし"),
                               "approver": "統括委員会", "can": "統括委員会" in g, "page": "etd", "q": {"cq": c["id"]}})
@@ -575,7 +575,16 @@ def sr8(method, parts, body, user):
             for f in fs:
                 cls = (papers.get(f["pmid"], {}).get("chars") or {}).get("chemo_class") or "不明"
                 by_class.setdefault(cls, []).append({"pmid": f["pmid"], "bias_summary": f["items"]["bias_summary"]["v"], "ind_summary": f["items"]["ind_summary"]["v"], "effect": f.get("effect"), "counts": f.get("counts")})
-            out.append({"outcome": o, "n_studies": len(fs), "by_chemo_class": by_class, "sr8": rows.get(f"{cqid}#{o}")})
+            def tot(k):
+                t = 0
+                for f in fs:
+                    try: t += int(float((f.get("counts") or {}).get(k) or 0))
+                    except (TypeError, ValueError): pass
+                return t
+            dc = {}
+            for f in fs: d_ = ((papers.get(f["pmid"], {}).get("chars") or {}).get("design") or "デザイン不明"); dc[d_] = dc.get(d_, 0) + 1
+            out.append({"outcome": o, "n_studies": len(fs), "by_chemo_class": by_class, "sr8": rows.get(f"{cqid}#{o}"),
+                        "sums": {k: tot(k) for k in ("ctrl_den", "ctrl_num", "int_den", "int_num")}, "design_n": "、".join(f"{k} {v}件" for k, v in dc.items())})   # 記録の合計(統計的な統合ではない)
         return resp(200, {"cq": cqid, "outcomes": out, "sr8_keys": SR8_KEYS, "sr8_ja": SR8_JA})
     if method == "PUT" and len(parts) > 2:
         o = parts[2]
@@ -587,6 +596,15 @@ def sr8(method, parts, body, user):
         rec["upgrade"] = int(body["upgrade"]) if str(body.get("upgrade")) in ("0", "1", "2") else None
         rec["certainty"] = body.get("certainty") if body.get("certainty") in CERT else ""
         rec["strata"] = str(body.get("strata", "")); rec["effect_summary"] = str(body.get("effect_summary", "")); rec["note"] = str(body.get("note", ""))
+        # SR-8(絶対効果指標の結果を記入する場合)の列。統合値・信頼区間・絶対効果は、委員が記入する(ポータルは統計的な統合を計算しない)
+        for k in ("design_n", "eff_type", "eff_val", "eff_ci", "abs_val", "abs_ci"): rec[k] = str(body.get(k, ""))[:200]
+        for k in ("ctrl_den", "ctrl_num", "int_den", "int_num"):
+            v = str(body.get(k, "")).strip()
+            if v and not v.isdigit(): return resp(400, {"error": "分母・分子は、0 以上の整数で入力してください"})
+            rec[k] = int(v) if v else None
+        imp = str(body.get("importance", "")).strip()
+        if imp and imp not in [str(i) for i in range(1, 10)]: return resp(400, {"error": "重要性は 1〜9 です"})
+        rec["importance"] = int(imp) if imp else None
         put("SR8", f"{cqid}#{o}", rec); audit(user, "SR-8の記入", f"{cqid} / {o}", f"確実性 {rec['certainty'] or '—'}"); return resp(200, rec)
     return resp(405, {"error": "方法が不正です"})
 
@@ -722,7 +740,7 @@ def export(method, parts, body, user):
         who = lambda st: who_decisions(rs, st, fin)
         rows.append({"pmid": cd["pmid"], "title": cd.get("title", ""), "citation": ". ".join(x for x in (cd.get("authors"), cd.get("journal"), cd.get("year")) if x), "source": cd.get("source", ""), "added_why": cd.get("added_why", ""),
                      "s1": {"decision": "一次を経ない"} if cd.get("direct") else stage_result(cd, rs, "s1"), "s2": stage_result(cd, rs, "s2"), "s1_reviewers": who("s1"), "s2_reviewers": who("s2"),
-                     "why": " / ".join(f"{STAGE_JA[st]}: {fin[st].get('why', '')}({fin[st].get('by', '')})" for st in ("s1", "s2") if fin.get(st))})
+                     "why": " / ".join(f"{STAGE_JA[st]}: {fin[st].get('why', '')}({fin[st].get('by', '')})。第三者の意見({fin[st].get('opinion_by', '')}): {fin[st].get('opinion', '')}" for st in ("s1", "s2") if fin.get(st))})
     scr = {"searches": sorted(query("SEARCH", f"{cqid}#"), key=lambda r: r.get("date", "")), "flow": flow(cqid, cands, recs), "rows": rows}
     data = export_minds.build(c, papers, finals, query("SR8", f"{cqid}#"), get("ETD", cqid), get("GL2023", cqid), aud, screening=scr)
     key = f"exports/{cqid}/Minds書類_{cqid}_{now()[:19].replace(':', '')}.xlsx"
@@ -1043,12 +1061,15 @@ def screening(method, parts, body, user):
         if dec == "除外" and reason not in SCREEN_REASONS: return resp(400, {"error": "除外には、除外理由が必要です"})
         if st == "s1" and reason in S2_ONLY_REASONS: return resp(400, {"error": f"「{reason}」は、全文を読んで決める理由です。一次では使えません(判断できないときは、残します)"})
         if not why: return resp(400, {"error": "協議の内容(結論の理由)が必要です"})
+        opinion = str(body.get("opinion", "")).strip()
+        if not opinion: return resp(400, {"error": "第三者の意見(SR委員長への報告と、その意見)が必要です(Minds: 不一致は、第三者の意見を取り入れて決める)"})
+        opinion_by = (name or user["email"]) if "SR委員長" in set(user["groups"]) else (str(body.get("opinion_by", "")).strip() or "SR委員長")
         if sum(1 for r in rs if (r.get(st) or {}).get("decision")) < 2 and not lead: return resp(409, {"error": "2名の判定がそろってから、協議の結論を記録します"})
         if st == "s2" and not to_s2(cd, stage_result(cd, rs, "s1")): return resp(409, {"error": "一次の結果が 採用・保留 の文献だけが、二次の対象です"})
         before = stage_result(cd, rs, st)
-        cd.setdefault("final", {})[st] = {"decision": dec, "reason": reason if dec == "除外" else "", "why": why, "by": name or user["email"], "at": now()}
+        cd.setdefault("final", {})[st] = {"decision": dec, "reason": reason if dec == "除外" else "", "why": why, "opinion": opinion[:1000], "opinion_by": opinion_by[:40], "by": name or user["email"], "at": now()}
         put("CAND", cd["sk"], cd); bump(cqid)
-        audit(user, f"スクリーニングの協議の結論({STAGE_JA[st]})", f"{cqid} / PMID {pmid}", f"{before['decision'] or before.get('state') or '結果なし'} → {dec}" + (f"(除外理由: {reason})" if dec == "除外" else "") + f"。協議: {why}")
+        audit(user, f"スクリーニングの協議の結論({STAGE_JA[st]})", f"{cqid} / PMID {pmid}", f"{before['decision'] or before.get('state') or '結果なし'} → {dec}" + (f"(除外理由: {reason})" if dec == "除外" else "") + f"。協議: {why}。第三者の意見({opinion_by}): {opinion[:300]}")
         return resp(200, {"ok": True, **stage_result(cd, rs, st), "row": cand_row(cd, rs, name, mine, lead)})
     if method == "PUT":
         if not mine or not name: raise Forbidden("判定を入力できるのは、この CQ の担当委員です(SR委員長は協議の結論を記録できます)")
@@ -1094,7 +1115,7 @@ def screening_lists(cqid):
                 "source": c.get("source", ""), "search": f"{sr.get('date', '')} {sr.get('database', '')}".strip(), "added_why": c.get("added_why", ""),
                 "s1": "一次を経ない" if c.get("direct") else (r1["decision"] or r1.get("state") or f"判定 {r1['n']} 名"), "s1_reason": r1.get("reason", ""), "s1_by": r1.get("by", ""), "s1_who": who("s1"),
                 "s2": (r2["decision"] or r2.get("state") or f"判定 {r2['n']} 名") if to_s2(c, r1) else "", "s2_reason": r2.get("reason", ""), "s2_by": r2.get("by", ""), "s2_who": who("s2"),
-                "why": " / ".join(f"{STAGE_JA[st]}: {fin[st].get('why', '')}({fin[st].get('by', '')})" for st in ("s1", "s2") if fin.get(st))}
+                "why": " / ".join(f"{STAGE_JA[st]}: {fin[st].get('why', '')}({fin[st].get('by', '')})。第三者の意見({fin[st].get('opinion_by', '')}): {fin[st].get('opinion', '')}" for st in ("s1", "s2") if fin.get(st))}
     dups = [{"pmid": pm, "title": (title.get(pm) or {}).get("title", ""), "authors": (title.get(pm) or {}).get("authors_all") or (title.get(pm) or {}).get("authors", ""), "at": b.get("at", ""), "source": b.get("source", ""),
              "search": f"{searches.get(b.get('search_id') or '', {}).get('date', '')}".strip()} for b in batches for pm in (b.get("duplicates") or [])]
     per_search = []

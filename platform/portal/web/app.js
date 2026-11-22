@@ -249,8 +249,16 @@
           <div class="row">${["rob", "inconsistency", "imprecision", "indirectness", "publication_bias"].map((k, i) => `<label class="small">${esc(S.meta.sr8_ja[i])} ${ed ? vsel(r[k], `data-k="${k}"`) : `<b>${r[k] ?? "—"}</b>`}</label>`).join("")}
             <label class="small">上昇要因 ${ed ? sel([0, 1, 2], r.upgrade ?? "", 'data-k="upgrade"', true) : `<b>${r.upgrade ?? "—"}</b>`}</label>
             <label class="small">確実性 ${ed ? sel(S.meta.cert, r.certainty, 'data-k="certainty"', true) : `<b>${esc(r.certainty || "—")}</b>`}</label></div>
+          <p class="small">SR-8 の列: 研究デザイン／研究数、群ごとの分母・分子、効果指標の種類・統合値・95%信頼区間、絶対効果、重要性、コメント。統合値(メタアナリシス)と絶対効果は、委員が計算した値を記入する(ポータルは計算しない)。分母・分子の「記録の合計」は、確定したSR-5 の人数の単純な合計である。</p>
+          <div class="row"><label class="small">研究デザイン／研究数 <input data-k="design_n" value="${esc(r.design_n ?? o.design_n)}" size="26" ${ed ? "" : "readonly"}></label>
+            ${[["ctrl_den", "対照群 分母"], ["ctrl_num", "対照群 分子"], ["int_den", "介入群 分母"], ["int_num", "介入群 分子"]].map(([k, ja]) => `<label class="small">${ja} <input data-k="${k}" value="${esc(r[k] ?? "")}" size="6" ${ed ? "" : "readonly"}></label>`).join("")}
+            ${ed ? `<button data-sum='${esc(JSON.stringify(o.sums))}'>記録の合計(${o.sums.ctrl_num}/${o.sums.ctrl_den}、${o.sums.int_num}/${o.sums.int_den})を入れる</button>` : ""}</div>
+          <div class="row"><label class="small">効果指標(種類) <input data-k="eff_type" value="${esc(r.eff_type || "")}" size="10" placeholder="RR など" ${ed ? "" : "readonly"}></label><label class="small">統合値 <input data-k="eff_val" value="${esc(r.eff_val || "")}" size="8" ${ed ? "" : "readonly"}></label><label class="small">95%信頼区間 <input data-k="eff_ci" value="${esc(r.eff_ci || "")}" size="14" ${ed ? "" : "readonly"}></label>
+            <label class="small">絶対効果 <input data-k="abs_val" value="${esc(r.abs_val || "")}" size="12" ${ed ? "" : "readonly"}></label><label class="small">絶対効果の95%信頼区間 <input data-k="abs_ci" value="${esc(r.abs_ci || "")}" size="14" ${ed ? "" : "readonly"}></label>
+            <label class="small">重要性(1〜9) ${ed ? sel([1, 2, 3, 4, 5, 6, 7, 8, 9], r.importance ?? "", 'data-k="importance"', true) : `<b>${r.importance ?? "—"}</b>`}</label></div>
           <div class="row"><label class="small">層別(分類ごとの結論) <input data-k="strata" value="${esc(r.strata || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">効果の要約 <input data-k="effect_summary" value="${esc(r.effect_summary || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">備考 <input data-k="note" value="${esc(r.note || "")}" size="30" ${ed ? "" : "readonly"}></label>${ed ? '<button data-act="save">保存</button>' : ""}</div></div>`; }).join("") || '<p class="muted">アウトカムが未登録です。</p>'}`;
       $("#cqSel").addEventListener("change", () => go("sr8", { cq: $("#cqSel").value }));
+      m.querySelectorAll("button[data-sum]").forEach((b) => b.addEventListener("click", () => { const s = JSON.parse(b.dataset.sum), c = b.closest(".card"); Object.entries(s).forEach(([k, v]) => { c.querySelector(`[data-k="${k}"]`).value = v; }); }));
       m.querySelectorAll("button[data-act=save]").forEach((b) => b.addEventListener("click", async () => { const d2 = b.closest(".card"); const body = {}; d2.querySelectorAll("[data-k]").forEach((i) => (body[i.dataset.k] = i.value));
         try { await api(`/sr8/${cqid}/${encodeURIComponent(d2.dataset.o)}`, "PUT", body); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } }));
     },
@@ -404,7 +412,7 @@
           <div class="row">${page > 0 ? `<button data-page="${page - 1}">前の ${PER} 件</button>` : ""} ${rows.length ? `${page * PER + 1}〜${Math.min(rows.length, (page + 1) * PER)} 件目` : ""} ${(page + 1) * PER < rows.length ? `<button data-page="${page + 1}">次の ${PER} 件</button>` : ""}</div>`; };
       m.innerHTML = `<h2>スクリーニング(一次・二次)と文献選択の流れ図</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
         <ol class="steps"><li>検索結果(「検索の記録」の件数の文献)と、その他の情報源の文献を、スクリーニングの対象に取り込む</li><li>担当委員 2名が、一次(題名・抄録)の可否を、相手の判定を見ずに入力する。除外には理由を選ぶ。一次では、アウトカムを理由に除外せず、抄録で判断できない文献は残す(Minds 第4章)</li>
-          <li>一次の結果が採用・保留の文献について、全文を読み、二次の可否を入力する</li><li>${need("承認")} 2名の判定が不一致の文献は、協議して「協議の結論」を記録する(担当委員。決まらない場合は SR委員長)</li><li>採用した文献を、「論文」の画面に登録する</li></ol>
+          <li>一次の結果が採用・保留の文献について、全文を読み、二次の可否を入力する</li><li>${need("承認")} 2名の判定が不一致の文献は、2名で協議し、SR委員長に報告して第三者の意見を得たうえで、「協議の結論」に結論・協議の内容・第三者の意見を記録する(担当委員。SR委員長も記録できる)</li><li>採用した文献を、「論文」の画面に登録する</li></ol>
         <p class="note">相手の判定は、自分がその文献のその段階を判定した後に表示される(2名独立)。2名の判定がそろった後は、自分の判定を変更できない。結果は、2名の判定の一致、または協議の結論である。</p>
         <div class="card"><h3>文献選択の流れ図(Minds SR-2 文献検索フローチャート)</h3>${flowHtml}
           <p class="note">件数は、検索の記録とスクリーニングの記録から数えた値である(この画面を開いた時点)。判定を入力した後の件数は、「件数を数え直す」で更新する。別添は、流れ図の枠ごとの文献の一覧(PMID・題名・著者。二次の対象と採用の一覧は Minds SR-3 二次スクリーニング後の一覧表の材料)であり、件数と一覧の行数が一致する。</p>
@@ -427,10 +435,11 @@
         if (b.dataset.final) { const p = rowOf(b), st = b.dataset.final; const ja = st === "s1" ? "一次" : "二次";
           $("#finalBox").innerHTML = `<div class="card"><h3>協議の結論(${ja}) PMID ${esc(p.pmid)}</h3><p>${esc(p.title)}</p>
             <p>判定: ${[...(p.mine[st]?.decision ? [`${esc(me)}: ${esc(p.mine[st].decision)}${p.mine[st].reason ? `(${esc(p.mine[st].reason)})` : ""}`] : []), ...p[st + "_others"].map((o) => `${esc(o.reviewer)}: ${esc(o.decision)}${o.reason ? `(${esc(o.reason)})` : ""}`)].join("、")}</p>
-            <div class="row"><label>結論 ${sel(st === "s1" ? ["採用", "除外", "保留"] : ["採用", "除外"], "", 'id="fDec"', true)}</label><label>除外理由 ${sel(d.reasons.filter((o) => st === "s2" || !d.reasons_s2_only.includes(o)), "", 'id="fReason"', true)}</label><label>協議の内容(結論の理由) <input id="fWhy" size="50"></label>
+            <div class="row"><label>結論 ${sel(st === "s1" ? ["採用", "除外", "保留"] : ["採用", "除外"], "", 'id="fDec"', true)}</label><label>除外理由 ${sel(d.reasons.filter((o) => st === "s2" || !d.reasons_s2_only.includes(o)), "", 'id="fReason"', true)}</label><label>協議の内容(結論の理由) <input id="fWhy" size="50"></label></div>
+            <div class="row"><label>第三者の意見(SR委員長に報告し、述べられた意見) <input id="fOpinion" size="60"></label><label>意見を述べた人 <input id="fOpinionBy" size="12" value="SR委員長"></label>
               <button id="fBtn" class="approve">承認: 協議の結論を記録する</button></div></div>`;
           $("#finalBox").scrollIntoView({ behavior: "smooth" });
-          $("#fBtn").addEventListener("click", async () => { try { const r = await api(`/screening/${cqid}/${p.pmid}/final`, "PUT", { stage: st, decision: $("#fDec").value, reason: $("#fReason").value, why: $("#fWhy").value });
+          $("#fBtn").addEventListener("click", async () => { try { const r = await api(`/screening/${cqid}/${p.pmid}/final`, "PUT", { stage: st, decision: $("#fDec").value, reason: $("#fReason").value, why: $("#fWhy").value, opinion: $("#fOpinion").value, opinion_by: $("#fOpinionBy").value });
             Object.assign(p, r.row); $("#finalBox").innerHTML = ""; toast("協議の結論を記録しました"); drawList(); } catch (e) { toast(e.message, true); } }); } });
       L.addEventListener("change", (ev) => { const el = ev.target; if (!el.closest("tr[data-pmid]")) return; const p = rowOf(el);
         if (el.dataset.ft !== undefined) return put(p, { ft: el.value });

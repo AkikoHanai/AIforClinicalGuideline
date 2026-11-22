@@ -361,8 +361,10 @@ def test_search_record_screening_and_flow(env, monkeypatch):
     put(R1, "30000002", stage="s1", decision="採用"); assert put(R2, "30000002", stage="s1", decision="除外", reason="がん患者でない")[1]["s1"]["state"] == "不一致"
     fin = lambda who, pmid, **b: call("PUT", f"/screening/P1/{pmid}/final", b, who)
     assert fin(R1, "30000002", stage="s1", decision="採用")[0] == 400                                                                     # 協議の内容が必要
-    assert fin(R1, "30000003", stage="s1", decision="採用", why="x")[0] == 409                                                            # 2名の判定がそろっていない
-    assert fin(R1, "30000002", stage="s1", decision="採用", why="全文で確認する")[1]["by"] == "協議の結論"
+    assert fin(R1, "30000002", stage="s1", decision="採用", why="全文で確認する")[0] == 400                                               # 第三者の意見(SR委員長への報告)が必要
+    assert fin(R1, "30000003", stage="s1", decision="採用", why="x", opinion="y")[0] == 409                                               # 2名の判定がそろっていない
+    assert fin(R1, "30000002", stage="s1", decision="採用", why="全文で確認する", opinion="全文を読んで決めるのがよい")[1]["by"] == "協議の結論"
+    assert H.get("CAND", "P1#30000002")["final"]["s1"]["opinion_by"] == "SR委員長" and "第三者の意見" in call("GET", "/audit")[1][0]["detail"]
     for pm in ("30000003", "30000004"):
         for who in (R1, R2): assert put(who, pm, stage="s1", decision="除外", reason="CIPNに関する研究でない")[0] == 200
     assert put(R1, "30000005", stage="s1", decision="保留")[0] == 200                                                                     # 1名だけ: 結果にしない
@@ -385,7 +387,7 @@ def test_search_record_screening_and_flow(env, monkeypatch):
     assert [x for x in wb["検索の記録"].iter_rows(min_row=2, values_only=True)][0][5] == 6
     fl = {x[0]: x[1] for x in wb["文献選択の流れ図"].iter_rows(min_row=2, values_only=True) if x[0]}; assert fl["採用した文献"] == 1 and fl["一次で除外した文献"] == 2 and fl["スクリーニングの対象として登録した文献"] == 6
     sc = {x[0]: x for x in wb["スクリーニング"].iter_rows(min_row=2, values_only=True)}
-    assert sc["30000002"][5:8] == ("採用", None, "協議の結論") and sc["30000002"][8:11] == ("除外", "計画書のみ", "2名の一致") and "全文で確認する" in sc["30000002"][13] and sc["30000009"][5] == "一次を経ない"
+    assert sc["30000002"][5:8] == ("採用", None, "協議の結論") and sc["30000002"][8:11] == ("除外", "計画書のみ", "2名の一致") and "全文で確認する" in sc["30000002"][13] and "第三者の意見(SR委員長): 全文を読んで決めるのがよい" in sc["30000002"][13] and sc["30000009"][5] == "一次を経ない"
     assert sc["30000005"][11] in (None, "") and "元雄良治" in sc["30000002"][11] and "菊池健" in sc["30000002"][11]        # 1名だけの判定は載せない。2名が判定した後は載せる(2名独立)
     # 文献選択の別添: 流れ図の件数と、枠ごとの文献の一覧(PMID・題名・著者)の行数が一致する
     c, r = call("GET", "/export/P1/screening", who=R1); assert c == 200
@@ -487,3 +489,19 @@ def test_sync_to_shared_drive(env, tmp_path):
     n = len(rel()); SD.sync(Tok(), str(tmp_path / "d2"), dry=True, fetch=fetch) if os.path.isdir(str(tmp_path / "d2")) else None; assert len(rel()) == n
     assert any(a["action"] == "共有ドライブへの転送" and "転送" in a["detail"] for a in call("GET", "/audit")[1])
     assert call("POST", "/sync/log", {"copied": 1}, R1)[0] == 403
+
+
+def test_sr8_has_minds_sr8_columns(env):
+    """SR-8(絶対効果指標の結果を記入する場合)の列: 研究デザイン／研究数、群ごとの分母・分子、効果指標の統合値・CI、絶対効果、重要性。ポータルは統合値を計算せず、委員が記入する"""
+    register_paper("11111111"); o = "CIPN Grade2以上の発生"
+    items = {k: {"v": 0, "evidence": [], "quote": "x"} for k in H.ITEM_KEYS}
+    call("PUT", f"/f45/P1/11111111/{o}/final", {"items": items, "counts": {"ctrl_num": 30, "ctrl_den": 60, "int_num": 20, "int_den": 60}, "effect": {"measure": "RR", "value": 0.67}}, LEAD)
+    c, d = call("GET", "/sr8/P1", who=R1); x = next(z for z in d["outcomes"] if z["outcome"] == o); assert x["sums"] == {"ctrl_den": 60, "ctrl_num": 30, "int_den": 60, "int_num": 20} and "デザイン不明" in x["design_n"]
+    body = {"rob": "-1", "inconsistency": "0", "imprecision": "-1", "indirectness": "0", "publication_bias": "0", "upgrade": "0", "certainty": "B(中)", "design_n": "RCT 1件", "ctrl_den": "60", "ctrl_num": "30", "int_den": "60", "int_num": "20",
+            "eff_type": "RR", "eff_val": "0.67", "eff_ci": "0.43-1.03", "abs_val": "-167/1000", "abs_ci": "-285〜+15", "importance": "9", "note": "コメント"}
+    assert call("PUT", f"/sr8/P1/{o}", {**body, "ctrl_num": "x"}, R1)[0] == 400 and call("PUT", f"/sr8/P1/{o}", {**body, "importance": "10"}, R1)[0] == 400
+    assert call("PUT", f"/sr8/P1/{o}", body, R1)[0] == 200
+    import openpyxl
+    r = call("GET", "/export/P1", who=R1)[1]; wb = openpyxl.load_workbook(io.BytesIO(boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read()))
+    head = [c.value for c in wb["SR-8"][1]]; row = {h: c.value for h, c in zip(head, wb["SR-8"][2])}
+    assert row["研究デザイン／研究数"] == "RCT 1件" and row["対照群 (%)"] == 50.0 and row["介入群 (%)"] == 33.3 and row["効果指標 統合値"] == "0.67" and row["絶対効果"] == "-167/1000" and row["重要性(1〜9)"] == 9 and row["エビデンスの強さ"] == "B(中)"
