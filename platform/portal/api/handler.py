@@ -825,6 +825,7 @@ def docs(method, parts, body, user):
 # ---------- 検索の記録、スクリーニング(2名独立の可否)、文献選択の流れ図 ----------
 SCREEN_REASONS = ["18歳未満が対象", "がん患者でない", "英語でない", "国内で施行できない方法・薬物", "研究デザインが対象外(総説・症例報告など)", "CIPNに関する研究でない", "本CQの介入を評価していない",
                   "予防・治療の目的が本CQと異なる", "対象の化学療法が本CQと異なる", "重複", "計画書のみ", "副次解析", "主要評価が本CQのアウトカムでない", "全文が入手できない", "その他(備考に記載)"]  # 前回Scopeの選択基準に対応
+S2_ONLY_REASONS = ["主要評価が本CQのアウトカムでない", "副次解析", "全文が入手できない"]   # 全文を読んで決める理由。一次(題名・抄録)では使わない(Minds 第4章: 一次ではアウトカムを考慮せず、抄録で判断できないものは残す)
 SCREEN_SOURCES = ["検索(PubMed)", "更新検索", "既存ガイドラインの引用文献", "ハンドサーチ", "作成委員のサーベイランス", "その他"]
 DB_SOURCES = {"検索(PubMed)", "更新検索"}  # データベース検索。他は「その他の情報源」
 S1_DEC = ["採用", "除外", "保留"]; S2_DEC = ["採用", "除外"]
@@ -991,7 +992,7 @@ def screening(method, parts, body, user):
     sub = parts[2] if len(parts) > 2 else ""
     if method == "GET" and not sub:
         cands, recs = screen_data(cqid); f = flow_cached(cqid, flow(cqid, cands, recs))
-        return resp(200, {"cq": cqid, "can_edit": mine or lead, "reviewer": mine, "candidates": [cand_row(cd, recs.get(cd["pmid"], []), name, mine, lead) for cd in cands], "flow": f, "reasons": SCREEN_REASONS, "sources": SCREEN_SOURCES})
+        return resp(200, {"cq": cqid, "can_edit": mine or lead, "reviewer": mine, "candidates": [cand_row(cd, recs.get(cd["pmid"], []), name, mine, lead) for cd in cands], "flow": f, "reasons": SCREEN_REASONS, "reasons_s2_only": S2_ONLY_REASONS, "sources": SCREEN_SOURCES})
     if method == "GET" and parts[3:4] == ["abstract"]:
         a = get("ABS", f"{cqid}#{re.sub(r'[^0-9]', '', sub)}"); return resp(200, {"abstract": (a or {}).get("abstract", "")})
     if not (mine or lead): raise Forbidden("この CQ の担当委員、SR委員長、統括委員会、事務局に限ります")
@@ -1040,6 +1041,7 @@ def screening(method, parts, body, user):
         st = body.get("stage"); dec = str(body.get("decision", "")); reason = str(body.get("reason", "")); why = str(body.get("why", "")).strip()
         if st not in ("s1", "s2") or dec not in (S1_DEC if st == "s1" else S2_DEC): return resp(400, {"error": "段階または判定の値が不正です"})
         if dec == "除外" and reason not in SCREEN_REASONS: return resp(400, {"error": "除外には、除外理由が必要です"})
+        if st == "s1" and reason in S2_ONLY_REASONS: return resp(400, {"error": f"「{reason}」は、全文を読んで決める理由です。一次では使えません(判断できないときは、残します)"})
         if not why: return resp(400, {"error": "協議の内容(結論の理由)が必要です"})
         if sum(1 for r in rs if (r.get(st) or {}).get("decision")) < 2 and not lead: return resp(409, {"error": "2名の判定がそろってから、協議の結論を記録します"})
         if st == "s2" and not to_s2(cd, stage_result(cd, rs, "s1")): return resp(409, {"error": "一次の結果が 採用・保留 の文献だけが、二次の対象です"})
@@ -1064,6 +1066,7 @@ def screening(method, parts, body, user):
             if st == "s2" and not (cd.get("direct") or (r.get("s1") or {}).get("decision") in ("採用", "保留") or to_s2(cd, stage_result(cd, rs, "s1"))):
                 return resp(409, {"error": "二次の対象は、一次が 採用・保留 の文献です"})
             if dec == "除外" and reason not in SCREEN_REASONS: return resp(400, {"error": "除外には、除外理由が必要です"})
+            if st == "s1" and reason in S2_ONLY_REASONS: return resp(400, {"error": f"「{reason}」は、全文を読んで決める理由です。一次では使えません(判断できないときは、残します)"})
             cur = r.get(st) or {}
             if cur.get("decision") and (cur["decision"] != dec or cur.get("reason", "") != (reason if dec == "除外" else "")):
                 # 他の委員の判定が見える状態になった後(2名がそろった後)は、自分の判定を変えない。協議の結論で記録する

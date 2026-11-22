@@ -346,6 +346,7 @@ def test_search_record_screening_and_flow(env, monkeypatch):
     put = lambda who, pmid, **b: call("PUT", f"/screening/P1/{pmid}", b, who)
     # 一次: 除外は理由が必要。変更は理由が必要。相手の判定は、自分が判定するまで返らない
     assert put(R1, "30000001", stage="s1", decision="除外")[0] == 400
+    assert put(R1, "30000001", stage="s1", decision="除外", reason="主要評価が本CQのアウトカムでない")[0] == 400                          # 一次では、アウトカムを理由に除外しない(Minds)
     assert put(R1, "30000001", stage="s1", decision="除外", reason="CIPNに関する研究でない")[0] == 200
     assert put(R1, "30000001", stage="s1", decision="採用")[0] == 400
     c, r = put(R1, "30000001", stage="s1", decision="採用", change_reason="抄録を読み直した"); assert c == 200 and r["mine"]["history"][0]["to"] == "採用" and r["s1"]["decision"] == ""

@@ -389,7 +389,7 @@
       const result = (p, st) => { const r = p[st]; return r.decision ? `${tag(r.decision, r.decision === "除外" ? "" : "ok")} ${esc(r.by)}${r.reason ? `<br>除外理由: ${esc(r.reason)}` : ""}` : (r.state === "不一致" ? need("不一致") : `判定 ${r.n} 名`); };
       const cell = (p, st) => { const opts = st === "s1" ? ["採用", "除外", "保留"] : ["採用", "除外"]; const cur = p.mine[st] || {}; const na = st === "s1" ? p.direct : !s2ok(p);
         if (na) return `<td>${st === "s1" ? "一次を経ない" : "対象外"}</td>`;
-        return `<td class="w">${d.reviewer ? `<div>自分: ${sel(opts, cur.decision || "", `data-dec="${st}"`, true)} <select class="sm${cur.decision === "除外" ? "" : " hidden"}" data-reason="${st}"><option value="">(除外理由)</option>${d.reasons.map((o) => `<option ${o === cur.reason ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></div>` : ""}
+        return `<td class="w">${d.reviewer ? `<div>自分: ${sel(opts, cur.decision || "", `data-dec="${st}"`, true)} <select class="sm${cur.decision === "除外" ? "" : " hidden"}" data-reason="${st}"><option value="">(除外理由)</option>${d.reasons.filter((o) => st === "s2" || !d.reasons_s2_only.includes(o)).map((o) => `<option ${o === cur.reason ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></div>` : ""}
           ${st === "s2" && d.reviewer ? `<div>全文: ${sel(["未入手", "入手済", "読了"], p.mine.ft || "未入手", "data-ft")}</div>` : ""}<div>結果: ${result(p, st)}${st === "s2" && p.s2.decision === "採用" ? ` <a href="#papers?cq=${esc(cqid)}">「論文」に登録する</a>` : ""}</div>${others(p, st) ? `<div class="small">${others(p, st)}</div>` : ""}
           ${d.can_edit && (p[st].state === "不一致" || p[st].decision) && p[st].n >= 2 ? `<button class="${p[st].state === "不一致" ? "approve" : "link"}" data-final="${st}">${p[st].state === "不一致" ? "承認: 協議の結論を記録する" : "結果を修正する(協議の結論)"}</button>` : ""}</td>`; };
       const rowHtml = (p) => `<tr data-pmid="${esc(p.pmid)}"><td><a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.pmid)}/" target="_blank" rel="noopener">${esc(p.pmid)}</a></td>
@@ -403,7 +403,7 @@
           <table class="scr"><tr><th>PMID</th><th>文献</th><th>一次(題名・抄録)</th><th>二次(全文)</th></tr>${view.map(rowHtml).join("") || '<tr><td colspan="4" class="muted">該当する文献はありません</td></tr>'}</table>
           <div class="row">${page > 0 ? `<button data-page="${page - 1}">前の ${PER} 件</button>` : ""} ${rows.length ? `${page * PER + 1}〜${Math.min(rows.length, (page + 1) * PER)} 件目` : ""} ${(page + 1) * PER < rows.length ? `<button data-page="${page + 1}">次の ${PER} 件</button>` : ""}</div>`; };
       m.innerHTML = `<h2>スクリーニング(一次・二次)と文献選択の流れ図</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
-        <ol class="steps"><li>検索結果(「検索の記録」の件数の文献)と、その他の情報源の文献を、スクリーニングの対象に取り込む</li><li>担当委員 2名が、一次(題名・抄録)の可否を、相手の判定を見ずに入力する。除外には理由を選ぶ</li>
+        <ol class="steps"><li>検索結果(「検索の記録」の件数の文献)と、その他の情報源の文献を、スクリーニングの対象に取り込む</li><li>担当委員 2名が、一次(題名・抄録)の可否を、相手の判定を見ずに入力する。除外には理由を選ぶ。一次では、アウトカムを理由に除外せず、抄録で判断できない文献は残す(Minds 第4章)</li>
           <li>一次の結果が採用・保留の文献について、全文を読み、二次の可否を入力する</li><li>${need("承認")} 2名の判定が不一致の文献は、協議して「協議の結論」を記録する(担当委員。決まらない場合は SR委員長)</li><li>採用した文献を、「論文」の画面に登録する</li></ol>
         <p class="note">相手の判定は、自分がその文献のその段階を判定した後に表示される(2名独立)。2名の判定がそろった後は、自分の判定を変更できない。結果は、2名の判定の一致、または協議の結論である。</p>
         <div class="card"><h3>文献選択の流れ図(Minds SR-2 文献検索フローチャート)</h3>${flowHtml}
@@ -427,7 +427,7 @@
         if (b.dataset.final) { const p = rowOf(b), st = b.dataset.final; const ja = st === "s1" ? "一次" : "二次";
           $("#finalBox").innerHTML = `<div class="card"><h3>協議の結論(${ja}) PMID ${esc(p.pmid)}</h3><p>${esc(p.title)}</p>
             <p>判定: ${[...(p.mine[st]?.decision ? [`${esc(me)}: ${esc(p.mine[st].decision)}${p.mine[st].reason ? `(${esc(p.mine[st].reason)})` : ""}`] : []), ...p[st + "_others"].map((o) => `${esc(o.reviewer)}: ${esc(o.decision)}${o.reason ? `(${esc(o.reason)})` : ""}`)].join("、")}</p>
-            <div class="row"><label>結論 ${sel(st === "s1" ? ["採用", "除外", "保留"] : ["採用", "除外"], "", 'id="fDec"', true)}</label><label>除外理由 ${sel(d.reasons, "", 'id="fReason"', true)}</label><label>協議の内容(結論の理由) <input id="fWhy" size="50"></label>
+            <div class="row"><label>結論 ${sel(st === "s1" ? ["採用", "除外", "保留"] : ["採用", "除外"], "", 'id="fDec"', true)}</label><label>除外理由 ${sel(d.reasons.filter((o) => st === "s2" || !d.reasons_s2_only.includes(o)), "", 'id="fReason"', true)}</label><label>協議の内容(結論の理由) <input id="fWhy" size="50"></label>
               <button id="fBtn" class="approve">承認: 協議の結論を記録する</button></div></div>`;
           $("#finalBox").scrollIntoView({ behavior: "smooth" });
           $("#fBtn").addEventListener("click", async () => { try { const r = await api(`/screening/${cqid}/${p.pmid}/final`, "PUT", { stage: st, decision: $("#fDec").value, reason: $("#fReason").value, why: $("#fWhy").value });
