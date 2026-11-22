@@ -17,6 +17,9 @@ DynamoDB 1テーブル(pk, sk):
   ABS/<cq>#<pmid>             抄録(一覧を軽くするため、文献の記録と分ける)
   SCRIMP/<cq>#<id>            対象の取り込みの記録(追加した PMID、登録済みのため重複として除いた PMID)
   SCRMETA/<cq>                流れ図の件数の保存(rev: 記録の変更の回数。flow_rev が rev と同じなら、保存した件数は最新)
+  ACCESS/<email>              利用申請(氏名・所属・状態。承認で USER と Cognito のグループが付く)
+  VOTE/<cq>#<回>              電子投票のラウンド(投票者の固定、状態、集計)  VOTEEXCL/<cq>  投票除外(COI)
+  VOTED/<cq>#<回>#<email>     投票済みの記録(選択は持たない)  BALLOT/<cq>#<回>#<乱数>  投票(メールアドレス・時刻を持たない。無記名)
   AUDIT/<時刻>#<id>           作成経過の記録。追記のみ
   PHASE/current               現在の段階
 """
@@ -231,6 +234,15 @@ def dashboard(user):
         if n["etd_status"] == "協議中":
             approvals.append({"kind": "EtD・推奨の確定", "target": f"{c['id']} {c['title']}", "record": "状態 協議中。" + (f"投票 合意率 {n['etd_agreement']}%" if n["etd_agreement"] is not None else "投票の記録なし"),
                               "approver": "統括委員会", "can": "統括委員会" in g, "page": "etd", "q": {"cq": c["id"]}})
+    if g & ROLE_ADMIN:
+        pend = [a for a in query("ACCESS") if a.get("status") == "承認待ち"]
+        if pend: approvals.append({"kind": "利用申請の承認", "target": f"{len(pend)}件", "record": "承認待ち: " + "、".join(f"{a['name']}({a.get('affiliation', '')})" for a in pend[:8]) + ("…" if len(pend) > 8 else ""), "approver": "統括委員会(委員長)", "can": True, "page": "access", "q": {}})
+    my_votes = []
+    if g & (ROLE_GROUP | ROLE_ADMIN):
+        for c in query("CQ"):
+            r = (vote_rounds(c["id"]) or [None])[-1]
+            if r and r["status"] == "受付中" and user["email"] in r["eligible"] and not get("VOTED", f"{c['id']}#{r['round']}#{user['email']}"):
+                my_votes.append({"cq": c["id"], "title": c["title"], "round": int(r["round"]), "deadline": r.get("deadline", "")})
     soron = sorted(query("SORON"), key=lambda s: s["key"]) if soron_view else []
     is_author = lambda s: bool(name) and any(name.startswith(a) for a in re.split("[・]", s.get("author", "")) if a)
     my_soron = [s for s in soron if is_author(s)]
@@ -239,7 +251,7 @@ def dashboard(user):
             approvals.append({"kind": "総論の査読・完了", "target": f"総論{s['label']} {s['title']}", "record": "状態 査読中。" + (f"原稿 {s['file']}" if s.get("file") else "原稿の記録なし"),
                               "approver": "統括委員会(査読コメントは統括委員会・事務局)", "can": bool(g & ROLE_ADMIN), "page": "soron", "q": {}})
     return {"user": user, "phase": (get("PHASE", "current") or {}).get("phase", ""), "cq": out_cq, "my_cq": [{"id": c["id"], "title": c["title"], "progress": c["progress"]} for c in out_cq if c["mine"]],
-            "my_f45_todo": todo[:50], "my_f45_todo_count": len(todo), "approvals": approvals[:200], "approvals_count": len(approvals),
+            "my_votes": my_votes, "my_f45_todo": todo[:50], "my_f45_todo_count": len(todo), "approvals": approvals[:200], "approvals_count": len(approvals),
             "my_soron": [{"key": s["key"], "label": s["label"], "title": s["title"], "status": s["status"]} for s in my_soron],
             "soron_summary": {st: sum(1 for s in soron if s.get("status") == st) for st in SORON_STATES},
             "audit": sorted(query("AUDIT"), key=lambda a: a["sk"], reverse=True)[:20]}
@@ -273,13 +285,15 @@ def handler(event, context=None):
         return resp(400, {"error": f"項目がありません: {e}"})
 
 
-SORON_ONLY = {"me", "meta", "dashboard", "soron", "audit", "docs"}  # 総説執筆者だけの利用者が使える範囲(SRの流れとは分離)
-SR_ONLY = {"me", "meta", "dashboard", "cq", "papers", "f45", "sr8", "etd", "gl2023", "screening", "search", "audit", "export", "docs"}
+SORON_ONLY = {"me", "meta", "dashboard", "soron", "audit", "docs", "access"}  # 総説執筆者だけの利用者が使える範囲(SRの流れとは分離)
+SR_ONLY = {"me", "meta", "dashboard", "cq", "papers", "f45", "sr8", "etd", "gl2023", "screening", "search", "audit", "export", "docs", "access"}
 
 
 def route(method, parts, body, user):
     head = parts[0] if parts else ""
     g = set(user["groups"])
+    if not g and head not in ("me", "access"):
+        raise Forbidden("利用の承認を待っています。統括委員長の承認の後、もう一度ログインしてください")
     if g and g <= {"総説執筆者", "外部評価委員"} and head not in SORON_ONLY:
         raise Forbidden("総説の流れの画面だけを利用できます")
     if g and g <= {"SR委員"} and head not in SR_ONLY:
@@ -321,6 +335,11 @@ def route(method, parts, body, user):
         return soron(method, parts, body, user)
     if head == "docs":
         return docs(method, parts, body, user)
+    if head == "access":
+        return access(method, parts, body, user)
+    if head == "vote":
+        if not (g & (ROLE_GROUP | ROLE_ADMIN)): raise Forbidden("推奨の投票は、統括委員会・作成グループ(事務局は、運営)に限ります")
+        return vote(method, parts, body, user)
     if head == "sync":
         # POST /sync/log : 統括委員長の Mac が、ポータル → 共有ドライブへ転送した内容を、作成経過の記録に残す(転送の内容を後で確認できるようにする)
         require(user, ROLE_ADMIN)
@@ -361,6 +380,185 @@ def invite(email, name, roles):
     for g in set(roles) - current: idp.admin_add_user_to_group(UserPoolId=USER_POOL, Username=email, GroupName=g)
     for g in current - set(roles): idp.admin_remove_user_from_group(UserPoolId=USER_POOL, Username=email, GroupName=g)
     return True
+
+
+# ---------- 利用申請(自己登録 → 統括委員長の承認) ----------
+# 委員は、ポータルの「Sign up」で自分のアカウントを作り(メールの確認コード)、氏名を申請する。統括委員長が承認するまで、ポータルの内容は何も見えない。
+# 承認すると、役割(Cognito のグループ)が付く。氏名から、企画書の名簿に基づく役割の候補を示す(候補であり、承認する人が決める)。
+def roster_roles(name):
+    plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
+    norm = lambda x: re.sub(r"[\s　]", "", re.sub(r"[((].*?[))]", "", str(x)))
+    n = norm(name)
+    if not n: return []
+    roles = []
+    add = lambda r: roles.append(r) if r not in roles else None
+    for key, role in (("統括委員会", "統括委員会"), ("診療ガイドライン作成グループ委員", "作成グループ"), ("SRチーム委員(仮案)", "SR委員"), ("外部評価委員(仮)", "外部評価委員")):
+        for m in plan.get("体制", {}).get(key, []):
+            if norm(m) == n:
+                add(role)
+                if role == "SR委員" and "委員長" in m: add("SR委員長")
+    # 総論の執筆者(企画書は姓だけの表記が多い): 名簿の氏名(フルネーム)に一致し、その姓が執筆者の表記で始まる場合だけ、候補にする(同姓の別人を候補にしない)
+    authors = {x for v in plan["総論"].values() for x in re.split("[・]", v.rpartition(":")[2]) if x}
+    if any(norm(m) == n and any(n.startswith(x) for x in authors) for lst in plan.get("体制", {}).values() for m in lst): add("総説執筆者")
+    return roles
+
+
+def grant(email, roles):
+    """Cognito のグループを、役割に合わせる(利用者のアカウントは、本人が作成済み)"""
+    if not USER_POOL: return False
+    idp = boto3.client("cognito-idp")
+    current = {g["GroupName"] for g in idp.admin_list_groups_for_user(Username=email, UserPoolId=USER_POOL).get("Groups", [])}
+    for g in set(roles) - current: idp.admin_add_user_to_group(UserPoolId=USER_POOL, Username=email, GroupName=g)
+    for g in current - set(roles): idp.admin_remove_user_from_group(UserPoolId=USER_POOL, Username=email, GroupName=g)
+    return True
+
+
+def access(method, parts, body, user):
+    # GET  /access/me                 自分の申請の状態
+    # POST /access/request            申請(氏名・所属)。承認の前は、これだけが使える
+    # GET  /access                    申請の一覧(統括委員会・事務局)
+    # POST /access/<email>/approve    承認(役割を付ける)  / POST /access/<email>/reject  却下
+    me = user["email"]; sub = parts[1] if len(parts) > 1 else ""
+    if method == "GET" and sub == "me": return resp(200, {"email": me, "groups": user["groups"], "request": get("ACCESS", me)})
+    if method == "POST" and sub == "request":
+        if user["groups"]: return resp(409, {"error": "すでに承認されています"})
+        name = re.sub(r"[\s　]+", "", str(body.get("name", ""))); aff = str(body.get("affiliation", "")).strip()[:100]
+        if not name or len(name) > 40: return resp(400, {"error": "氏名(企画書の表記。例: 華井明子)を入力してください"})
+        old = get("ACCESS", me)
+        if old and old.get("status") == "承認済み": return resp(200, old)
+        rec = put("ACCESS", me, {"email": me, "name": name, "affiliation": aff, "status": "承認待ち", "requested_at": now(), "suggest": roster_roles(name)})
+        audit(user, "利用申請", name, f"所属: {aff}。名簿に基づく役割の候補: {'・'.join(rec['suggest']) or 'なし(名簿に氏名がない)'}"); return resp(200, rec)
+    require(user, ROLE_ADMIN)
+    if method == "GET" and not sub: return resp(200, sorted(query("ACCESS"), key=lambda a: (a.get("status") != "承認待ち", a.get("requested_at", ""))))
+    a = get("ACCESS", sub.lower()) if sub else None
+    if not a: return resp(404, {"error": "申請がありません"})
+    act = parts[2] if len(parts) > 2 else ""
+    if method == "POST" and act == "approve":
+        roles = [g for g in body.get("roles", []) if g in GROUPS]; name = re.sub(r"[\s　]+", "", str(body.get("name") or a["name"]))
+        if not roles: return resp(400, {"error": "役割を 1つ以上、選んでください"})
+        put("USER", a["email"], {"email": a["email"], "name": name, "roles": roles}); granted = grant(a["email"], roles)
+        a.update({"status": "承認済み", "approved_by": user["name"] or user["email"], "approved_at": now(), "roles": roles, "name": name}); put("ACCESS", a["email"], a)
+        audit(user, "利用申請の承認", name, "役割: " + "・".join(roles)); return resp(200, {**a, "granted": granted})
+    if method == "POST" and act == "reject":
+        a.update({"status": "却下", "rejected_by": user["name"] or user["email"], "rejected_at": now(), "reason": str(body.get("reason", ""))[:200]}); put("ACCESS", a["email"], a)
+        audit(user, "利用申請の却下", a["name"], a.get("reason", "")); return resp(200, a)
+    return resp(405, {"error": "方法が不正です"})
+
+
+# ---------- 電子投票(推奨の強さ)。ポータルが意思決定の場になる ----------
+# 投票者: 統括委員会・作成グループの利用者。そのCQのSR担当と、統括委員会が登録した投票除外(COI)は、除く(ラウンドの開始時に固定する)。患者代表は含めない。
+# 1人 1票(ラウンドごと)。無記名: 「誰が投票したか」(VOTED)と「何に投票したか」(BALLOT)を、結び付かない形で別に記録する。ラウンドが終了するまで、集計を誰にも見せない。
+# 成立: 参加者が投票者の 75% 以上、かつ、最多の選択肢が参加者(棄権を含む)の 80% 以上(前回Scope)。最大 3回。3回で成立しなければ「推奨なし」。
+VOTE_CHOICES = ["1", "2", "3", "4", "5", "棄権"]
+VOTE_MAX_ROUNDS = 3
+
+
+def vote_pool(c, excl):
+    """投票者のメールアドレスと、除外した人数(SR担当、COI)"""
+    voters, sr_ex, coi_ex = [], [], []
+    for u in query("USER"):
+        if not (set(u.get("roles", [])) & {"統括委員会", "作成グループ"}): continue
+        if is_assignee({"name": u.get("name", "")}, c): sr_ex.append(u["email"]); continue
+        if u["email"] in {e["email"] for e in excl}: coi_ex.append(u["email"]); continue
+        voters.append(u["email"])
+    return sorted(voters), sr_ex, coi_ex
+
+
+def vote_rounds(cqid):
+    return sorted(query("VOTE", f"{cqid}#"), key=lambda r: int(r["round"]))
+
+
+def vote_tally(r):
+    ballots = query("BALLOT", f"{r['cq']}#{r['round']}#"); n = len(r["eligible"])
+    counts = [sum(1 for b in ballots if b["choice"] == str(i)) for i in range(1, 6)]; abst = sum(1 for b in ballots if b["choice"] == "棄権"); part = len(ballots)
+    top = max(counts) if counts else 0; leaders = [i + 1 for i, v in enumerate(counts) if v == top and top]
+    part_pct = round(100 * part / n, 1) if n else 0; agree = round(100 * top / part, 1) if part else 0
+    passed = bool(n and part * 100 >= 75 * n and part and top * 100 >= 80 * part and len(leaders) == 1)
+    res = {"counts": counts, "abstain": abst, "participants": part, "eligible": n, "participation_pct": part_pct, "agreement_pct": agree, "passed": passed, "strength": leaders[0] if passed else None}
+    res["final_none"] = (not passed) and int(r["round"]) >= VOTE_MAX_ROUNDS
+    return res
+
+
+def vote(method, parts, body, user):
+    # GET  /vote/<cq>                 状態(推奨文案、ラウンド、自分の投票の可否と済み)。ラウンドの終了後の集計
+    # PUT  /vote/<cq>/exclusions      投票除外(COI)の登録(統括委員会・事務局)
+    # POST /vote/<cq>/open            ラウンドの開始(統括委員会・事務局)
+    # POST /vote/<cq>/cast            投票(投票者本人。1回だけ。変更できない)
+    # POST /vote/<cq>/close           ラウンドの終了と集計(統括委員会・事務局)
+    if len(parts) < 2: return resp(400, {"error": "CQ が必要です"})
+    cqid = parts[1]; c = get("CQ", cqid)
+    if not c: return resp(404, {"error": "ありません"})
+    admin = bool(set(user["groups"]) & ROLE_ADMIN); me = user["email"]; act = parts[2] if len(parts) > 2 else ""
+    etd_ = get("ETD", cqid) or {}; rounds = vote_rounds(cqid); cur = rounds[-1] if rounds else None
+    excl = (get("VOTEEXCL", cqid) or {}).get("items", [])
+    if method == "GET":
+        out = []
+        for r in rounds:
+            voted = len(query("VOTED", f"{cqid}#{r['round']}#"))
+            out.append({"round": int(r["round"]), "status": r["status"], "opened_at": r["opened_at"], "deadline": r.get("deadline", ""), "closed_at": r.get("closed_at", ""), "eligible": len(r["eligible"]), "voted": voted,
+                        "sr_excluded": len(r.get("sr_excluded", [])), "coi_excluded": len(r.get("coi_excluded", [])), "rec": r.get("rec", ""), "result": r.get("result") if r["status"] == "終了" else None})
+        mine = {"eligible": bool(cur and me in cur["eligible"]), "round_open": int(cur["round"]) if cur and cur["status"] == "受付中" else None, "voted": bool(cur and get("VOTED", f"{cqid}#{cur['round']}#{me}"))}
+        d = {"cq": cqid, "title": c["title"], "rec": etd_.get("rec_draft", ""), "scope_note": etd_.get("scope_note", ""), "etd_status": etd_.get("status", "下書き"), "strength_labels": STRENGTH, "choices": VOTE_CHOICES,
+             "sr8": [{"outcome": r.get("outcome"), "certainty": r.get("certainty", "")} for r in query("SR8", f"{cqid}#")], "rounds": out, "me": mine, "max_rounds": VOTE_MAX_ROUNDS}
+        if admin:
+            pool, sr_ex, coi_ex = vote_pool(c, excl); name_of = {u["email"]: u.get("name", "") for u in query("USER")}
+            pend = [name_of.get(e, e) for e in (cur["eligible"] if cur and cur["status"] == "受付中" else []) if not get("VOTED", f"{cqid}#{cur['round']}#{e}")]
+            d["admin"] = {"exclusions": excl, "pool": [name_of.get(e, e) for e in pool], "sr_excluded": [name_of.get(e, e) for e in sr_ex], "not_voted": pend}
+        return resp(200, d)
+    if method == "PUT" and act == "exclusions":
+        require(user, ROLE_ADMIN)
+        if cur and cur["status"] == "受付中": return resp(409, {"error": "ラウンドの受付中は、投票除外を変更できません"})
+        items = []
+        for it in body.get("items") or []:
+            e = str(it.get("email", "")).strip().lower(); rs = str(it.get("reason", "")).strip()
+            if not e or not rs: return resp(400, {"error": "投票除外には、メールアドレスと理由が必要です"})
+            items.append({"email": e, "reason": rs[:200]})
+        put("VOTEEXCL", cqid, {"items": items}); audit(user, "投票除外の登録", cqid, f"{len(items)}名: " + "、".join(f"{i['email']}({i['reason']})" for i in items)); return resp(200, {"items": items})
+    if method == "POST" and act == "open":
+        require(user, ROLE_ADMIN)
+        if cur and cur["status"] == "受付中": return resp(409, {"error": "受付中のラウンドがあります"})
+        if cur and cur.get("result", {}).get("passed"): return resp(409, {"error": "すでに成立しています"})
+        n = (int(cur["round"]) + 1) if cur else 1
+        if n > VOTE_MAX_ROUNDS: return resp(409, {"error": f"投票は最大 {VOTE_MAX_ROUNDS} 回です。成立しなかったため、推奨なしとして確定します"})
+        if not str(etd_.get("rec_draft", "")).strip(): return resp(409, {"error": "推奨文案が未記入です。「EtD・推奨」に、推奨文案を書いてから開始します"})
+        if etd_.get("status") == "確定": return resp(409, {"error": "EtD・推奨は確定済みです"})
+        pool, sr_ex, coi_ex = vote_pool(c, excl)
+        if len(pool) < 3: return resp(409, {"error": f"投票者が {len(pool)} 名です。投票者(統括委員会・作成グループ)の利用申請の承認を確認してください"})
+        dl = str(body.get("deadline", "")).strip()
+        if dl and not re.match(r"^\d{4}-\d{2}-\d{2}$", dl): return resp(400, {"error": "締切は 年-月-日 で入力してください"})
+        put("VOTE", f"{cqid}#{n}", {"cq": cqid, "round": n, "status": "受付中", "opened_at": now(), "opened_by": user["name"] or me, "deadline": dl, "eligible": pool, "sr_excluded": sr_ex,
+                                    "coi_excluded": [e for e in excl if e["email"] in coi_ex], "rec": etd_.get("rec_draft", "")})
+        audit(user, "投票ラウンドの開始", cqid, f"第{n}回。投票者 {len(pool)}名(SR担当の除外 {len(sr_ex)}名、COIの除外 {len(coi_ex)}名)。締切 {dl or 'なし'}"); return resp(200, {"round": n, "eligible": len(pool)})
+    if method == "POST" and act == "cast":
+        if not cur or cur["status"] != "受付中": return resp(409, {"error": "受付中の投票がありません"})
+        if int(body.get("round", 0)) != int(cur["round"]): return resp(409, {"error": "ラウンドが変わりました。画面を読み込み直してください"})
+        if me not in cur["eligible"]: raise Forbidden("この CQ の投票者ではありません(SR担当、投票除外、または投票権のない役割)")
+        ch = str(body.get("choice", ""))
+        if ch not in VOTE_CHOICES: return resp(400, {"error": "選択肢が不正です"})
+        from botocore.exceptions import ClientError
+        try: table().put_item(Item={"pk": "VOTED", "sk": f"{cqid}#{cur['round']}#{me}", "email": me, "at": now()}, ConditionExpression="attribute_not_exists(pk)")
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException": return resp(409, {"error": "すでに投票済みです(投票は 1回だけで、変更できません)"})
+            raise
+        try: table().put_item(Item={"pk": "BALLOT", "sk": f"{cqid}#{cur['round']}#{uuid.uuid4().hex}", "choice": ch})   # 無記名: メールアドレス・時刻を持たせない
+        except Exception:
+            table().delete_item(Key={"pk": "VOTED", "sk": f"{cqid}#{cur['round']}#{me}"}); raise
+        audit(user, "投票", cqid, f"第{cur['round']}回に投票した(選択は記録に残さない)"); return resp(200, {"ok": True})
+    if method == "POST" and act == "close":
+        require(user, ROLE_ADMIN)
+        if not cur or cur["status"] != "受付中": return resp(409, {"error": "受付中のラウンドがありません"})
+        res = vote_tally(cur); cur.update({"status": "終了", "closed_at": now(), "closed_by": user["name"] or me, "result": res}); put("VOTE", cur["sk"], cur)
+        e = get("ETD", cqid) or {"cq": cqid, "considerations": {}, "status": "下書き"}
+        top = max(res["counts"]) if res["participants"] else 0
+        e["vote"] = {"round": int(cur["round"]), "counts": res["counts"], "denominator": res["participants"], "eligible": res["eligible"], "abstain": res["abstain"], "coi_excluded": len(cur.get("coi_excluded", [])), "sr_excluded": len(cur.get("sr_excluded", [])),
+                     "agreement": round(100 * top / res["participants"]) if res["participants"] else None, "date": now()[:10], "note": "電子投票(ポータル)。分母は参加者数(棄権を含む)"}
+        if res["passed"]: e["strength"] = STRENGTH[res["strength"] - 1]
+        elif res["final_none"]: e["strength"] = STRENGTH[2]
+        if e.get("status") in (None, "下書き"): e["status"] = "協議中"
+        put("ETD", cqid, e)
+        audit(user, "投票ラウンドの終了", cqid, f"第{cur['round']}回。参加 {res['participants']}/{res['eligible']}名、最多 {top}票(参加者の {res['agreement_pct']}%)。" + ("成立" if res["passed"] else "推奨なし(3回で成立せず)" if res["final_none"] else "不成立"))
+        return resp(200, res)
+    return resp(405, {"error": "方法が不正です"})
 
 
 # ---------- CQ ----------
@@ -633,15 +831,11 @@ def etd(method, parts, body, user):
         if e.get("status") == "確定" and body.get("status") != "下書き": require(user, {"統括委員会"})
         for k in ("rec_draft", "scope_note", "narrative"):
             if k in body: e[k] = str(body[k])
-        if "strength" in body: e["strength"] = body["strength"] if body["strength"] in STRENGTH else ""
+        if "strength" in body and not e.get("vote"): e["strength"] = body["strength"] if body["strength"] in STRENGTH else ""   # 投票の後は、推奨の強さは投票の結果で決まる
         if "certainty" in body: e["certainty"] = body["certainty"] if body["certainty"] in CERT else ""
         if "considerations" in body:
             e["considerations"] = {k: {"text": str((body["considerations"].get(k) or {}).get("text", "")), "evidence": [str(x) for x in (body["considerations"].get(k) or {}).get("evidence", [])][:30]} for k, _ in ETD_CONSIDERATIONS}
-        if "vote" in body:
-            v = body["vote"]; counts = [int(x or 0) for x in (v.get("counts") or [0, 0, 0, 0, 0])][:5]
-            denom = int(v.get("denominator") or sum(counts)); top = max(counts) if counts else 0
-            e["vote"] = {"round": int(v.get("round") or 1), "counts": counts, "denominator": denom, "coi_excluded": int(v.get("coi_excluded") or 0), "sr_excluded": int(v.get("sr_excluded") or 0),
-                         "agreement": round(100 * top / denom) if denom else None, "date": str(v.get("date", "")), "note": str(v.get("note", ""))}
+        if body.get("vote"): return resp(400, {"error": "投票は、「推奨の投票」の画面で行います(票数の入力はできません)"})
         if "status" in body and body["status"] in ("下書き", "協議中", "確定"):
             if body["status"] == "確定": require(user, {"統括委員会"})
             e["status"] = body["status"]

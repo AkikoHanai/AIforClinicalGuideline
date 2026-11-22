@@ -82,7 +82,7 @@
         ["7", "SR-5 を照合し、確定する", "評価した 2名", "評価した2名(照合)、またはSR委員長", "f45", "SR-5"],
         ["8", "SR-8 を記入する(確定したSR-5 から。化学療法の分類で層別)", "担当委員、SR委員長", "", "sr8", "SR-8"],
         ["9", "EtD・推奨文案・解説を書く(状態を「協議中」にする)", "作成グループ", "", "etd", "EtD・推奨"],
-        ["10", "推奨作成の投票(メールで集めた結果)を記録し、確定する", "作成グループ(記録)", "統括委員会(投票: 75%以上の参加、80%以上の一致)", "etd", "EtD・推奨"]];
+        ["10", "推奨の電子投票を行い、結果を確定する(統括委員会がラウンドを開始・終了し、投票者が各自で投票する)", "統括委員会・作成グループ(投票)", "統括委員会(確定。投票: 75%以上の参加、80%以上の一致)", "vote", "推奨の投票"]];
       const srCards = !showSr ? "" : `
         <div class="card"><h3>作業手順(SRの流れ)</h3>
           <div class="scroll"><table><tr><th class="nw">手順</th><th>作業</th><th>行う人</th><th>承認(確定)</th><th>画面</th></tr>
@@ -114,6 +114,8 @@
           <p>SR-5 の未提出(担当 CQ の 論文×アウトカム): <b>${d.my_f45_todo_count}</b> 件${d.my_f45_todo_count > 10 ? "(先頭の 10 件を表示)" : ""}</p>
           <ul class="plain">${d.my_f45_todo.slice(0, 10).map((t) => `<li><a href="${href("f45", { cq: t.cq, pmid: t.pmid, outcome: t.outcome })}">${esc(t.cq)} PMID ${esc(t.pmid)} / ${esc(t.outcome)}</a></li>`).join("")}</ul>
           <p>担当 CQ: ${d.my_cq.length ? d.my_cq.map((c) => `<a href="${href("papers", { cq: c.id })}">${esc(c.id)} ${esc(c.title)}</a>`).join("、") : "なし"}</p></div>` : ""}
+        ${(d.my_votes || []).length ? `<div class="card"><h3>投票してください</h3><p class="note need"><span class="approve">要投票</span> 受付中の投票があります。投票は、1回だけで、変更できません。</p>
+          <ul class="plain">${d.my_votes.map((v) => `<li><a href="${href("vote", { cq: v.cq })}">${esc(v.cq)} ${esc(v.title)}(第${v.round}回${v.deadline ? "。締切 " + esc(v.deadline) : ""})</a></li>`).join("")}</ul></div>` : ""}
         ${srCards}${soronCard}
         <div class="card"><h3>作成経過の記録(最新20件)</h3><div class="scroll">${auditTable(d.audit)}</div></div>`;
       $("#phaseBtn")?.addEventListener("click", async () => { await api("/phase", "PUT", { phase: $("#phaseSel").value }); toast("段階を変更しました"); render(); });
@@ -270,7 +272,7 @@
         <ol class="steps"><li>左の 2023年版の記述(推奨文・推奨の強さ・エビデンスの確実性・解説・投票)と、SR-8 の確実性を確認する</li>
           <li>右に 2028年版の案を書く。推奨文には、適用するがん腫・化学療法の分類を明記する。4つの考慮事項には、根拠(論文の段落 ID、2023年版の段落 ID)を書く</li>
           <li>状態を「協議中」にして保存する</li>
-          <li>推奨作成の投票(メールで集めた結果)を記録する(投票権のある委員の75%以上が参加、80%以上の一致で決定、最大3回。投票除外(直接評価した論文の筆頭著者、そのCQのSR担当者)は分母から除く)</li>
+          <li>推奨の投票は、「推奨の投票」の画面で、投票者が各自で行う(投票権のある委員の75%以上が参加、80%以上の一致で決定、最大3回。投票除外(直接評価した論文の筆頭著者、そのCQのSR担当者)は分母から除く)</li>
           <li><span class="approve">承認</span> 統括委員会が確定する</li></ol>
         <div class="split">
           <div class="card"><h3>2023年版</h3>${g ? `<p><b>推奨文</b> ${esc(g.rec)}</p><p>強さ ${esc(g.strength)} / 確実性 ${esc(g.certainty)} ${g.votes ? `/ 投票 分母 ${g.votes.denominator} 分布 ${(g.votes.counts || []).join("・")} (COI除外 ${g.votes.coi} SR除外 ${g.votes.sr})` : ""}</p>
@@ -282,11 +284,8 @@
             <label class="small">適用範囲・2023年版からの変更点 <input id="scope" value="${esc(e.scope_note || "")}" size="60" ${ed ? "" : "readonly"}></label>
             <table class="form" style="margin-top:8px"><tr><th>考慮事項</th><th>内容</th><th>根拠(段落ID)</th></tr>
               ${cons.map(([k, ja]) => `<tr><td>${esc(ja)}</td><td><textarea data-ck="${k}" data-f="text" rows="3" cols="40" ${ed ? "" : "readonly"}>${esc(e.considerations?.[k]?.text || "")}</textarea></td><td><input data-ck="${k}" data-f="evidence" value="${esc((e.considerations?.[k]?.evidence || []).join(","))}" size="18" ${ed ? "" : "readonly"}></td></tr>`).join("")}</table>
-            <h3 style="margin-top:12px">投票の記録</h3>
-            <div class="row"><label class="small">回 <input id="vround" value="${esc(e.vote?.round ?? 1)}" size="2"></label><label class="small">日付 <input id="vdate" type="date" value="${esc(e.vote?.date || "")}"></label>
-              ${[1, 2, 3, 4, 5].map((i) => `<label class="small">${i} <input data-v="${i - 1}" value="${esc(e.vote?.counts?.[i - 1] ?? "")}" size="2"></label>`).join("")}
-              <label class="small">分母 <input id="vden" value="${esc(e.vote?.denominator ?? "")}" size="3"></label><label class="small">投票除外(筆頭著者) <input id="vcoi" value="${esc(e.vote?.coi_excluded ?? "")}" size="2"></label><label class="small">投票除外(SR担当) <input id="vsr" value="${esc(e.vote?.sr_excluded ?? "")}" size="2"></label>
-              ${e.vote?.agreement !== undefined && e.vote?.agreement !== null ? `<b>合意率 ${e.vote.agreement}%</b>` : ""}</div>
+            <h3 style="margin-top:12px">投票</h3>
+            <p>${e.vote?.round ? `第${e.vote.round}回(${esc(e.vote.date)}): ${(e.vote.counts || []).map((n, i) => `${i + 1}: ${n}票`).join("、")}、棄権 ${e.vote.abstain ?? 0}。参加 ${e.vote.denominator} / ${e.vote.eligible ?? "—"}名。最多の選択肢 ${e.vote.agreement ?? "—"}%` : "投票の記録はありません"}<br><a href="#vote?cq=${esc(cqid)}"><b>「推奨の投票」の画面を開く</b></a>(電子投票。委員が、自分で投票する)</p>
             <label class="small">解説(推奨の理由。根拠の段落ID付き)<br><textarea id="narr" rows="6" cols="60" ${ed ? "" : "readonly"}>${esc(e.narrative || "")}</textarea></label>
             <p class="note ${e.status === "協議中" ? "need" : ""}"><span class="approve">承認</span> 確定は、投票の記録のあとに統括委員会が行う。${e.status === "協議中" ? "状態は協議中。確定の記録がない。" : e.status === "確定" ? "確定の記録あり。" : "作成グループが書き終えたら、状態を「協議中」にして保存する。"}</p>
             <div class="row">${ed ? `<button id="etdSave" class="primary">保存</button> 状態 ${sel(["下書き", "協議中"].concat(e.status === "確定" ? ["確定"] : []), e.status, 'id="etdStatus"')} ${can("統括委員会") && e.status !== "確定" ? '<button id="etdFix" class="approve">承認: 確定する(統括委員会)</button>' : ""} <button id="etdDraft">Claude下書きを作る(SR-8・SR-5・2023年版を根拠に)</button>` : ""} <button id="exportBtn">Minds書類(xlsx)を出力</button></div>
@@ -298,9 +297,7 @@
       $("#exportBtn")?.addEventListener("click", async () => { try { const r = await api("/export/" + cqid); toast(`出力しました(${r.sheets.join("・")})`); if (r.url) window.open(r.url, "_blank"); } catch (e2) { toast(e2.message, true); } });
       $("#etdCopy")?.addEventListener("click", () => { const a = e.ai_draft; $("#rec").value = a.rec_draft || ""; cons.forEach(([k]) => { m.querySelector(`[data-ck="${k}"][data-f="text"]`).value = a.considerations?.[k]?.text || ""; m.querySelector(`[data-ck="${k}"][data-f="evidence"]`).value = (a.considerations?.[k]?.evidence || []).join(","); }); $("#narr").value = a.narrative || ""; toast("取り込みました。確認・修正して保存してください"); });
       const saveEtd = async (status) => { const considerations = {}; cons.forEach(([k]) => (considerations[k] = { text: m.querySelector(`[data-ck="${k}"][data-f="text"]`).value, evidence: m.querySelector(`[data-ck="${k}"][data-f="evidence"]`).value.split(/[,\s]+/).filter(Boolean) }));
-        const counts = [0, 1, 2, 3, 4].map((i) => m.querySelector(`[data-v="${i}"]`).value);
-        try { await api("/etd/" + cqid, "PUT", { rec_draft: $("#rec").value, strength: $("#strength")?.value, certainty: $("#cert")?.value, scope_note: $("#scope").value, considerations, narrative: $("#narr").value, status: status || $("#etdStatus").value,
-          vote: { round: $("#vround").value, date: $("#vdate").value, counts, denominator: $("#vden").value, coi_excluded: $("#vcoi").value, sr_excluded: $("#vsr").value } }); toast(status ? "確定しました" : "保存しました"); render(); } catch (e2) { toast(e2.message, true); } };
+        try { await api("/etd/" + cqid, "PUT", { rec_draft: $("#rec").value, strength: $("#strength")?.value, certainty: $("#cert")?.value, scope_note: $("#scope").value, considerations, narrative: $("#narr").value, status: status || $("#etdStatus").value }); toast(status ? "確定しました" : "保存しました"); render(); } catch (e2) { toast(e2.message, true); } };
       $("#etdSave")?.addEventListener("click", () => saveEtd());
       $("#etdFix")?.addEventListener("click", () => { if (confirm("この CQ の EtD・推奨を確定しますか(統括委員会の承認として記録されます)")) saveEtd("確定"); });
     },
@@ -466,9 +463,62 @@
         try { for (;;) { const r = await api(`/screening/${cqid}/fetch`, "POST", {}); n += r.fetched; if (!r.remaining || !r.asked) break; } toast(`${n} 件の題名・抄録を取得しました`); render(); } catch (e) { toast(e.message, true); $("#iFetch").disabled = false; } });
     },
 
+    async access(m) {
+      const list = await api("/access"); const pend = list.filter((a) => a.status === "承認待ち"); const G = S.meta.groups;
+      const roleBoxes = (a) => G.map((g) => `<label class="tag"><input type="checkbox" class="aRole" value="${esc(g)}" ${(a.suggest || []).includes(g) ? "checked" : ""}> ${esc(g)}</label>`).join("");
+      m.innerHTML = `<h2>利用申請(承認)</h2><p class="note">委員は、ポータルの「Sign up」でアカウントを作り、氏名と所属を申請する。<span class="approve">承認</span> 統括委員長が、委員であることを確認して承認する(役割を付ける)。承認の前は、何も見えない。氏名が企画書の名簿と一致した申請には、名簿に基づく役割の候補を入れてある(候補であり、承認する人が決める)。承認された委員は、もう一度ログインする。</p>
+        <div class="card"><h3>承認待ち(${pend.length}件)</h3>
+          ${pend.length ? `<div class="row"><button id="aAll" class="approve">承認: 名簿に一致する申請(${pend.filter((a) => (a.suggest || []).length).length}件)を、候補の役割で一括承認する</button></div>` : ""}
+          <table><tr><th>申請日</th><th>氏名</th><th>メールアドレス</th><th>所属</th><th>役割(候補を入れてある)</th><th>操作</th></tr>
+          ${pend.map((a) => `<tr data-email="${esc(a.email)}"><td class="nw">${esc((a.requested_at || "").slice(0, 10))}</td><td>${esc(a.name)}${(a.suggest || []).length ? "" : ' <span class="tag warn">名簿にない氏名</span>'}</td><td>${esc(a.email)}</td><td>${esc(a.affiliation || "")}</td><td>${roleBoxes(a)}</td>
+            <td class="nw"><button class="approve" data-ok>承認</button> <button data-no>却下</button></td></tr>`).join("") || '<tr><td colspan="6" class="muted">承認待ちの申請はありません</td></tr>'}</table></div>
+        <div class="card"><h3>処理済み</h3><table><tr><th>氏名</th><th>メールアドレス</th><th>状態</th><th>役割・理由</th></tr>
+          ${list.filter((a) => a.status !== "承認待ち").map((a) => `<tr><td>${esc(a.name)}</td><td>${esc(a.email)}</td><td>${esc(a.status)}</td><td>${esc((a.roles || []).join("・") || a.reason || "")}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">なし</td></tr>'}</table></div>`;
+      const approve = async (email, roles) => api(`/access/${encodeURIComponent(email)}/approve`, "POST", { roles });
+      m.querySelectorAll("button[data-ok]").forEach((b) => b.addEventListener("click", async () => { const tr = b.closest("tr"); const roles = [...tr.querySelectorAll(".aRole:checked")].map((c) => c.value);
+        try { await approve(tr.dataset.email, roles); toast("承認しました"); render(); } catch (e) { toast(e.message, true); } }));
+      m.querySelectorAll("button[data-no]").forEach((b) => b.addEventListener("click", async () => { const why = window.prompt("却下の理由(申請した人に表示されます)", "委員ではない"); if (why === null) return;
+        try { await api(`/access/${encodeURIComponent(b.closest("tr").dataset.email)}/reject`, "POST", { reason: why }); render(); } catch (e) { toast(e.message, true); } }));
+      $("#aAll")?.addEventListener("click", async () => { const t = pend.filter((a) => (a.suggest || []).length); if (!confirm(`次の ${t.length} 件を、候補の役割で承認します。メールアドレスが、委員のものであることを確認しましたか。\n\n` + t.map((a) => `${a.name} <${a.email}> ${a.suggest.join("・")}`).join("\n"))) return;
+        try { for (const a of t) await approve(a.email, a.suggest); toast(`${t.length}件を承認しました`); render(); } catch (e) { toast(e.message, true); } });
+    },
+
+    async vote(m) {
+      const q = Q(); const cqid = q.cq || S.cqs[0]?.id; const d = await api("/vote/" + cqid); const adm = d.admin, me = d.me; const L = d.strength_labels; const cur = d.rounds[d.rounds.length - 1];
+      const lab = (i) => i === "棄権" ? "棄権" : L[Number(i) - 1];
+      const resultHtml = (r) => !r.result ? "" : `<table><tr><th>選択肢</th>${r.result.counts.map((_, i) => `<th>${esc(L[i])}</th>`).join("")}<th>棄権</th><th>参加 / 投票者</th><th>参加率</th><th>最多の割合(参加者に対して)</th><th>判定</th></tr>
+        <tr><td>票数</td>${r.result.counts.map((n) => `<td class="num">${n}</td>`).join("")}<td class="num">${r.result.abstain}</td><td class="num">${r.result.participants} / ${r.result.eligible}</td><td class="num">${r.result.participation_pct}%</td><td class="num">${r.result.agreement_pct}%</td>
+        <td>${r.result.passed ? `<span class="tag ok">成立: ${esc(L[r.result.strength - 1])}</span>` : r.result.final_none ? '<span class="tag warn">3回で成立せず: 推奨なし</span>' : '<span class="tag warn">不成立</span>'}</td></tr></table>`;
+      m.innerHTML = `<h2>推奨の投票(電子投票)</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
+        <ol class="steps"><li>統括委員会が、推奨文案を確認し、投票のラウンドを開始する(投票者は、統括委員会・作成グループから、そのCQのSR担当と、投票除外を除いた委員)</li><li>投票者が、各自でログインして、投票する(1回だけ。変更できない。無記名)</li>
+          <li><span class="approve">承認</span> 統括委員会が、ラウンドを終了し、集計する(参加が投票者の75%以上、最多の選択肢が参加者の80%以上で成立。最大${d.max_rounds}回。3回で成立しなければ「推奨なし」)</li><li>成立した強さが、EtD・推奨に入る。統括委員会が、EtD・推奨を確定する</li></ol>
+        <div class="card"><h3>${esc(d.cq)} ${esc(d.title)}</h3><p><b>推奨文案</b><br>${d.rec ? esc(d.rec) : '<span class="muted">未記入(「EtD・推奨」に、推奨文案を書く)</span>'}</p>${d.scope_note ? `<p class="small">適用範囲・変更点: ${esc(d.scope_note)}</p>` : ""}
+          <p class="small">SR-8 の確実性: ${d.sr8.map((s) => `${esc(s.outcome)} ${esc(s.certainty || "未記入")}`).join("、") || "未記入"} / EtD の状態: ${esc(d.etd_status)} / <a href="#etd?cq=${esc(cqid)}">EtD・推奨を開く</a></p></div>
+        <div class="card"><h3>あなたの投票</h3>
+          ${me.round_open && me.eligible && !me.voted ? `<p class="note need"><span class="approve">要投票</span> 第${me.round_open}回が受付中です${cur.deadline ? "(締切 " + esc(cur.deadline) + ")" : ""}。投票は、1回だけで、変更できません。</p>
+            ${["1", "2", "3", "4", "5", "棄権"].map((c) => `<div><label><input type="radio" name="vc" value="${c}"> ${esc(lab(c))}</label></div>`).join("")}<p><button id="vGo" class="primary">投票する</button></p>`
+          : me.round_open && me.voted ? `<p>第${me.round_open}回に投票しました。結果は、ラウンドの終了の後に表示されます。</p>`
+          : me.round_open ? '<p class="muted">この CQ の投票者ではありません(SR担当、投票除外、または投票権のない役割)。</p>' : '<p class="muted">受付中の投票はありません。</p>'}</div>
+        ${adm ? `<div class="card"><h3>運営(統括委員会・事務局)</h3>
+          <p>投票者(${adm.pool.length}名): ${esc(adm.pool.join("、")) || "なし"}${adm.sr_excluded.length ? `<br>SR担当のため除く: ${esc(adm.sr_excluded.join("、"))}` : ""}</p>
+          ${cur && cur.status === "受付中" ? `<p>第${cur.round}回: 投票済み ${cur.voted} / ${cur.eligible}名。未投票: ${esc(adm.not_voted.join("、")) || "なし"}(メールで、投票をお願いする)</p><p><button id="vClose" class="approve">承認: 第${cur.round}回を終了し、集計する</button></p>`
+            : `<div class="row"><label class="small">投票除外(COI。1行に 1名: メールアドレス,理由) <textarea id="vExcl" rows="3" cols="60">${esc((adm.exclusions || []).map((x) => x.email + "," + x.reason).join("\n"))}</textarea></label><button id="vExclSave">投票除外を保存</button></div>
+              <div class="row"><label class="small">締切(任意) <input id="vDl" type="date"></label><button id="vOpen" class="primary">${cur ? `第${cur.round + 1}回を開始する` : "第1回を開始する"}</button></div>`}</div>` : ""}
+        <div class="card"><h3>結果</h3>${d.rounds.map((r) => `<h4>第${r.round}回(${esc(r.opened_at.slice(0, 10))}〜${esc((r.closed_at || "").slice(0, 10)) || "受付中"}。投票者 ${r.eligible}名、SR担当の除外 ${r.sr_excluded}名、投票除外 ${r.coi_excluded}名)</h4>${r.result ? resultHtml(r) : `<p class="muted">受付中。投票済み ${r.voted} / ${r.eligible}名。集計は、終了の後に表示されます。</p>`}`).join("") || '<p class="muted">まだ投票は行われていません。</p>'}</div>`;
+      $("#cqSel").addEventListener("change", () => go("vote", { cq: $("#cqSel").value }));
+      $("#vGo")?.addEventListener("click", async () => { const c = document.querySelector('input[name=vc]:checked')?.value; if (!c) return toast("選択肢を選んでください", true);
+        if (!confirm(`「${lab(c)}」に投票します。投票は 1回だけで、変更できません。よろしいですか。`)) return;
+        try { await api(`/vote/${cqid}/cast`, "POST", { round: me.round_open, choice: c }); toast("投票しました"); render(); } catch (e) { toast(e.message, true); } });
+      $("#vOpen")?.addEventListener("click", async () => { try { await api(`/vote/${cqid}/open`, "POST", { deadline: $("#vDl").value }); toast("投票を開始しました"); render(); } catch (e) { toast(e.message, true); } });
+      $("#vClose")?.addEventListener("click", async () => { if (!confirm(`未投票 ${adm.not_voted.length}名のまま集計します。終了すると、投票できなくなります。よろしいですか。`)) return;
+        try { await api(`/vote/${cqid}/close`, "POST", {}); toast("集計しました"); render(); } catch (e) { toast(e.message, true); } });
+      $("#vExclSave")?.addEventListener("click", async () => { const items = $("#vExcl").value.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const [e, ...r] = l.split(/[,、]/); return { email: e.trim(), reason: r.join(",").trim() }; });
+        try { await api(`/vote/${cqid}/exclusions`, "PUT", { items }); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } });
+    },
+
     async users(m) {
       const list = await api("/users"); const ed = isAdmin();
-      m.innerHTML = `<h2>利用者(ログイン)</h2><p class="small">ログイン用の登録だけを行う。名簿と COI は Google フォーム・ドライブで管理する。氏名は企画書の表記(例: 華井明子)と一致させる。担当 CQ・総論の抽出に使う。</p>
+      m.innerHTML = `<h2>利用者(登録済み)</h2><p class="small">利用者は、ポータルの「Sign up」で自分で登録し、「利用申請(承認)」で承認する。この画面は、承認済みの利用者の一覧と、例外の直接登録(招待メールを送る)に使う。名簿と COI は Google フォーム・ドライブで管理する。氏名は企画書の表記(例: 華井明子)と一致させる。担当 CQ・総論の抽出に使う。</p>
         ${ed ? `<div class="card"><div class="row"><input id="uEmail" placeholder="メールアドレス" size="28"><input id="uName" placeholder="氏名" size="12">${S.meta.groups.map((g) => `<label class="tag"><input type="checkbox" class="uRole" value="${esc(g)}"> ${esc(g)}</label>`).join("")}<button id="uAdd" class="primary">登録して招待</button></div>
           <div class="row"><button id="seedBtn">初期データの作成(企画書の CQ・総論。既にある項目は変えない)</button></div></div>` : ""}
         <table style="margin-top:12px"><tr><th>氏名</th><th>メールアドレス</th><th>役割</th>${ed ? "<th></th>" : ""}</tr>${list.map((u) => `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${(u.roles || []).map((r) => tag(r, "")).join("")}</td>${ed ? `<td><button data-del="${esc(u.email)}">削除</button></td>` : ""}</tr>`).join("")}</table>`;
@@ -498,13 +548,27 @@
     } catch (e) { m.innerHTML = `<p class="note need">${esc(e.message)}</p>`; }
   }
 
+  // ---------- 利用申請(承認の前) ----------
+  async function showGate() {
+    $("#gate").classList.remove("hidden"); const a = await api("/access/me"), r = a.request, box = $("#gateBody");
+    const out = '<p><button id="gateOut">ログアウト</button></p>';
+    if (r && r.status === "承認待ち") box.innerHTML = `<p>申請を受け付けました(${esc(r.name)}、${esc(r.affiliation || "")})。統括委員長が承認した後に、ポータルを使えます。</p><p>承認されたら、一度ログアウトして、もう一度ログインしてください。</p>${out}`;
+    else if (r && r.status === "却下") box.innerHTML = `<p class="note need">申請は承認されませんでした。${esc(r.reason || "")}<br>委員の方は、統括委員長にメールで連絡してください。</p>${out}`;
+    else if (r && r.status === "承認済み") box.innerHTML = `<p>承認されました。一度ログアウトして、もう一度ログインしてください。</p>${out}`;
+    else { box.innerHTML = `<p>ログインしました(${esc(a.email)})。利用の申請をしてください。統括委員長が、委員であることを確認して承認します。</p>
+      <div class="row"><label>氏名(企画書の表記。例: 華井明子) <input id="gName" size="16"></label></div><div class="row"><label>所属 <input id="gAff" size="30"></label></div>
+      <p><button id="gateReq" class="primary">申請する</button> <button id="gateOut">ログアウト</button></p>`;
+      $("#gateReq").addEventListener("click", async () => { try { await api("/access/request", "POST", { name: $("#gName").value, affiliation: $("#gAff").value }); showGate(); } catch (e) { toast(e.message, true); } }); }
+    $("#gateOut").addEventListener("click", logout);
+  }
+
   async function boot() {
     const code = new URLSearchParams(location.search).get("code");
     if (code) { try { await exchange(code); } catch (e) { toast(e.message, true); } }
     const t = sessionStorage.getItem("id_token");
     if (!t || !tokenValid(t)) { $("#login").classList.remove("hidden"); $("#loginBtn").addEventListener("click", login); return; }
     S.token = t;
-    try { S.me = await api("/me"); S.meta = await api("/meta"); } catch (e) { $("#login").classList.remove("hidden"); $("#loginBtn").addEventListener("click", login); return toast(e.message, true); }
+    try { S.me = await api("/me"); if (!S.me.groups.length) return showGate(); S.meta = await api("/meta"); } catch (e) { $("#login").classList.remove("hidden"); $("#loginBtn").addEventListener("click", login); return toast(e.message, true); }
     $("#meName").textContent = S.me.name || S.me.email; $("#meGroups").textContent = S.me.groups.join("・") || "(グループ未設定)";
     $("#logoutBtn").addEventListener("click", logout);
     // 表示する流れ: SR(担当委員・SR委員長・作成グループ・統括・事務局)、総説(総説執筆者・統括・事務局)、事務局(統括・事務局)
@@ -512,6 +576,7 @@
     document.querySelector('.navsec[data-flow="sr"]').classList.toggle("hidden", !showSr);
     document.querySelector('.navsec[data-flow="soron"]').classList.toggle("hidden", !showSoron);
     document.querySelector('.navsec[data-flow="admin"]').classList.toggle("hidden", !showAdmin);
+    document.querySelector('a[data-page="vote"]').classList.toggle("hidden", !can("統括委員会", "作成グループ", "事務局"));   // 投票者・運営だけ
     $("#app").classList.remove("hidden");
     window.addEventListener("hashchange", render); render();
   }

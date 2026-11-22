@@ -11,7 +11,12 @@
   <h1>GL作成ポータル</h1>
   <p>がん薬物療法に伴う末梢神経障害診療ガイドライン2028年版</p>
   <button id="loginBtn" class="primary">ログイン</button>
-  <p>招待された委員だけがログインできます。招待メールの仮パスワードでログインしてください。</p>
+  <p>初めての方は、「ログイン」を押して表示される画面の「Sign up」で、ご自身のアカウントを作ってください(メールアドレスと、メールで届く確認コード)。ログインの後に、氏名と所属を申請します。統括委員長の承認の後に、使えるようになります。</p>
+  <p>委員以外は、承認されません。</p>
+</div>
+<div id="gate" class="login hidden">
+  <h1>GL作成ポータル</h1>
+  <div id="gateBody"></div>
 </div>
 <div id="app" class="app hidden">
   <nav class="side">
@@ -24,11 +29,13 @@
       <a href="#papers" data-page="papers">手順5 論文(PDF・本文)</a>
       <a href="#f45" data-page="f45">手順6・7 SR-5(評価・確定)</a>
       <a href="#sr8" data-page="sr8">手順8 SR-8</a>
-      <a href="#etd" data-page="etd">手順9・10 EtD・推奨(確定)</a></div>
+      <a href="#etd" data-page="etd">手順9 EtD・推奨(確定)</a>
+      <a href="#vote" data-page="vote">手順10 推奨の投票</a></div>
     <div class="navsec" data-flow="soron"><div class="navh">総説の流れ(総論A〜N)</div>
       <a href="#soron" data-page="soron">総論の執筆・査読</a></div>
     <div class="navsec" data-flow="admin"><div class="navh">事務局</div>
-      <a href="#users" data-page="users">利用者(ログイン)</a></div>
+      <a href="#access" data-page="access">利用申請(承認)</a>
+      <a href="#users" data-page="users">利用者(登録済み)</a></div>
     <a href="#docs" data-page="docs">手順書</a>
     <a href="#audit" data-page="audit">作成経過の記録</a>
     <div class="me"><span id="meName"></span><span id="meGroups"></span><button id="logoutBtn" class="link">ログアウト</button></div>

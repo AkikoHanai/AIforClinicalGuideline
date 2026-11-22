@@ -144,8 +144,8 @@ def test_etd_2023_reference_and_vote(env):
     assert call("PUT", "/etd/P1", {"rec_draft": "x"}, R1)[0] == 403  # SR委員は EtD を書けない
     body = {"rec_draft": "タキサン系薬剤によるCIPNの予防に冷却療法を提案する", "strength": "2 弱く推奨", "certainty": "C(弱)",
             "considerations": {"benefit_harm": {"text": "Grade2以上の減少", "evidence": ["12345678-p009", "GL2023-P1-p001"]}},
-            "vote": {"round": 1, "counts": [0, 13, 2, 0, 0], "denominator": 15, "coi_excluded": 1, "sr_excluded": 2, "date": "2027-09-01"}}
-    c, e = call("PUT", "/etd/P1", body, dict(email="g@example.org", groups=("作成グループ",))); assert c == 200 and e["vote"]["agreement"] == 87
+            }
+    c, e = call("PUT", "/etd/P1", body, dict(email="g@example.org", groups=("作成グループ",))); assert c == 200 and call("PUT", "/etd/P1", {"vote": {"counts": [0, 13, 2, 0, 0]}}, dict(email="g@example.org", groups=("作成グループ",)))[0] == 400
     assert call("PUT", "/etd/P1", {"status": "確定"}, dict(email="g@example.org", groups=("作成グループ",)))[0] == 403  # 確定は統括委員会
     assert call("PUT", "/etd/P1", {"status": "確定"})[1]["status"] == "確定"
     assert call("GET", "/cq/P1")[1]["stages"]["EtD"] == "確定"
@@ -262,8 +262,8 @@ def test_dashboard_counts_and_approvals(env):
     assert call("GET", "/dashboard", who=R1)[1]["approvals"] == []  # 確定の記録があれば出さない
     # EtD: 協議中は統括委員会の確定待ち。作成グループには can=False で示す
     G = dict(email="g@example.org", groups=("作成グループ",))
-    call("PUT", "/etd/P1", {"rec_draft": "x", "status": "協議中", "vote": {"round": 1, "counts": [0, 13, 2, 0, 0], "denominator": 15}}, G)
-    a = call("GET", "/dashboard", who=G)[1]["approvals"]; assert [x["kind"] for x in a] == ["EtD・推奨の確定"] and a[0]["can"] is False and "合意率 87%" in a[0]["record"]
+    call("PUT", "/etd/P1", {"rec_draft": "x", "status": "協議中"}, G)
+    a = call("GET", "/dashboard", who=G)[1]["approvals"]; assert [x["kind"] for x in a] == ["EtD・推奨の確定"] and a[0]["can"] is False and "投票の記録なし" in a[0]["record"]
     assert call("GET", "/dashboard")[1]["approvals"][0]["can"] is True  # 統括委員会
     # 総説執筆者だけの利用者には、SR の記録を返さない
     d = call("GET", "/dashboard", who=dict(email="w@example.org", groups=("総説執筆者",)))[1]; assert d["cq"] == [] and d["approvals"] == []
@@ -505,3 +505,73 @@ def test_sr8_has_minds_sr8_columns(env):
     r = call("GET", "/export/P1", who=R1)[1]; wb = openpyxl.load_workbook(io.BytesIO(boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read()))
     head = [c.value for c in wb["SR-8"][1]]; row = {h: c.value for h, c in zip(head, wb["SR-8"][2])}
     assert row["研究デザイン／研究数"] == "RCT 1件" and row["対照群 (%)"] == 50.0 and row["介入群 (%)"] == 33.3 and row["効果指標 統合値"] == "0.67" and row["絶対効果"] == "-167/1000" and row["重要性(1〜9)"] == 9 and row["エビデンスの強さ"] == "B(中)"
+
+
+def test_self_registration_and_approval(env):
+    """自己登録: 承認の前は、何も見えない。申請 → 統括委員長が承認(役割が付く)。名簿に基づく役割の候補を示す。委員以外は、承認されない"""
+    cog = boto3.client("cognito-idp"); pool = cog.create_user_pool(PoolName="t")["UserPool"]["Id"]; H.USER_POOL = pool
+    try:
+        for g in H.GROUPS: cog.create_group(GroupName=g, UserPoolId=pool)
+        cog.admin_create_user(UserPoolId=pool, Username="new@example.org"); cog.admin_create_user(UserPoolId=pool, Username="stranger@example.org")
+        N = dict(email="new@example.org", groups=()); S = dict(email="stranger@example.org", groups=())
+        assert call("GET", "/me", who=N)[0] == 200
+        for path in ("/cq", "/dashboard", "/papers/P1", "/screening/P1", "/soron", "/audit", "/users", "/docs", "/gl2023", "/etd/P1", "/vote/P1"):
+            assert call("GET", path, who=N)[0] == 403, path                                                                                # 承認の前は、何も見えない
+        assert call("POST", "/access/request", {"name": ""}, N)[0] == 400
+        c, r = call("POST", "/access/request", {"name": "元雄 良治", "affiliation": "A大学"}, N); assert c == 200 and r["status"] == "承認待ち" and r["name"] == "元雄良治" and r["suggest"] == ["SR委員", "総説執筆者"]   # 氏名から、SR担当と総論K(元雄)の候補
+        assert call("POST", "/access/request", {"name": "山田太郎"}, S)[1]["suggest"] == []                                                   # 名簿にない氏名は、候補なし
+        assert call("POST", "/access/request", {"name": "華井明子"}, dict(email="x@example.org", groups=()))[1]["suggest"] == ["統括委員会", "総説執筆者"]
+        assert call("GET", "/access", who=N)[0] == 403 and call("POST", "/access/new@example.org/approve", {"roles": ["SR委員"]}, N)[0] == 403   # 本人は承認できない
+        d = call("GET", "/dashboard")[1]; assert any(a["kind"] == "利用申請の承認" for a in d["approvals"])                                         # 承認待ちが、進捗ボードに出る
+        assert [a["status"] for a in call("GET", "/access")[1]][0] == "承認待ち"
+        assert call("POST", "/access/new@example.org/approve", {"roles": []})[0] == 400
+        c, a = call("POST", "/access/new@example.org/approve", {"roles": ["SR委員"]}); assert c == 200 and a["status"] == "承認済み" and a["granted"] is True
+        assert [g["GroupName"] for g in cog.admin_list_groups_for_user(Username="new@example.org", UserPoolId=pool)["Groups"]] == ["SR委員"]
+        assert next(u for u in call("GET", "/users")[1] if u["email"] == "new@example.org")["roles"] == ["SR委員"] and any(x["action"] == "利用申請の承認" for x in call("GET", "/audit")[1])
+        assert call("GET", "/cq", who=dict(email="new@example.org", groups=("SR委員",)))[0] == 200                                           # 再ログインの後(グループが付いたトークン)
+        assert call("POST", "/access/stranger@example.org/reject", {"reason": "委員ではない"})[1]["status"] == "却下" and call("GET", "/cq", who=S)[0] == 403
+    finally:
+        H.USER_POOL = ""
+
+
+def test_electronic_vote(env):
+    """電子投票: 投票者は統括委員会・作成グループからSR担当と投票除外を除いた人。1人1票・変更不可・無記名。終了まで集計は見えない。75%参加・80%一致で成立。最大3回"""
+    G = lambda i: dict(email=f"g{i}@example.org", groups=("作成グループ",))
+    for i, nm in enumerate(["荒尾晴惠", "神林祐子", "内藤陽一", "中島寿久", "菊池健"], 1): call("POST", "/users", {"email": f"g{i}@example.org", "name": nm, "roles": ["作成グループ"]})
+    call("POST", "/users", {"email": "jimu@example.org", "name": "事務", "roles": ["事務局"]})
+    assert call("POST", "/vote/P1/open", {}, G(1))[0] == 403 and call("GET", "/vote/P1", who=R1)[0] == 403                                           # 投票は、統括委員会・作成グループ
+    assert call("POST", "/vote/P1/open", {})[0] == 409                                                                                             # 推奨文案が未記入
+    call("PUT", "/etd/P1", {"rec_draft": "タキサン系薬剤によるCIPNの予防に冷却療法を提案する", "status": "協議中"}, G(1))
+    assert call("PUT", "/vote/P1/exclusions", {"items": [{"email": "g4@example.org"}]})[0] == 400
+    assert call("PUT", "/vote/P1/exclusions", {"items": [{"email": "g4@example.org", "reason": "直接評価した論文の筆頭著者"}]})[0] == 200
+    c, o = call("POST", "/vote/P1/open", {"deadline": "2027-05-31"}); assert c == 200 and o["round"] == 1 and o["eligible"] == 4                      # 統括委員長 + g1,g2,g3(g4は COI、g5 菊池健は P1 のSR担当)
+    assert call("POST", "/vote/P1/open", {})[0] == 409                                                                                             # 受付中は、重ねて開始できない
+    v = call("GET", "/vote/P1", who=G(1))[1]; assert v["me"] == {"eligible": True, "round_open": 1, "voted": False} and v["rounds"][0]["result"] is None and "admin" not in v
+    assert call("GET", "/vote/P1", who=G(4))[1]["me"]["eligible"] is False and call("POST", "/vote/P1/cast", {"round": 1, "choice": "2"}, G(4))[0] == 403 and call("POST", "/vote/P1/cast", {"round": 1, "choice": "2"}, G(5))[0] == 403
+    assert call("POST", "/vote/P1/cast", {"round": 1, "choice": "9"}, G(1))[0] == 400 and call("POST", "/vote/P1/cast", {"round": 2, "choice": "2"}, G(1))[0] == 409
+    assert any(a["cq"] == "P1" for a in call("GET", "/dashboard", who=G(1))[1]["my_votes"])
+    assert call("POST", "/vote/P1/cast", {"round": 1, "choice": "2"}, G(1))[0] == 200 and call("POST", "/vote/P1/cast", {"round": 1, "choice": "1"}, G(1))[0] == 409   # 変更できない
+    assert not call("GET", "/dashboard", who=G(1))[1]["my_votes"]
+    call("POST", "/vote/P1/cast", {"round": 1, "choice": "2"}, G(2)); call("POST", "/vote/P1/cast", {"round": 1, "choice": "棄権"}, G(3))
+    adm = call("GET", "/vote/P1")[1]["admin"]; assert adm["not_voted"] == ["華井明子"] and adm["sr_excluded"] == ["菊池健"] and call("GET", "/vote/P1")[1]["rounds"][0]["voted"] == 3
+    # 無記名: 票(BALLOT)に、メールアドレス・時刻がない。API は、個別の票を返さない
+    ballots = H.query("BALLOT", "P1#1#"); assert sorted(b["choice"] for b in ballots) == ["2", "2", "棄権"] and all(set(b) == {"pk", "sk", "choice"} for b in ballots)
+    assert '"choice"' not in json.dumps(call("GET", "/vote/P1")[1], ensure_ascii=False) and "g1@example.org" not in json.dumps(call("GET", "/vote/P1", who=G(2))[1], ensure_ascii=False)
+    assert call("POST", "/vote/P1/close", {}, G(1))[0] == 403
+    res = call("POST", "/vote/P1/close", {})[1]; assert res["counts"] == [0, 2, 0, 0, 0] and res["abstain"] == 1 and res["participants"] == 3 and res["eligible"] == 4 and res["participation_pct"] == 75.0 and res["agreement_pct"] == 66.7 and res["passed"] is False
+    assert call("POST", "/vote/P1/cast", {"round": 1, "choice": "2"}, dict(email="g1@example.org", groups=("作成グループ",)))[0] == 409
+    e = call("GET", "/etd/P1")[1]["etd"]; assert e["vote"]["counts"] == [0, 2, 0, 0, 0] and e["vote"]["denominator"] == 3 and e["vote"]["eligible"] == 4 and "電子投票" in e["vote"]["note"] and e.get("strength", "") != "2 弱く推奨"
+    # 第2回: 参加 100%、全員が 2 → 成立。推奨の強さが投票で決まる
+    assert call("POST", "/vote/P1/open", {})[1]["round"] == 2
+    for who in (G(1), G(2), G(3), CHAIR): assert call("POST", "/vote/P1/cast", {"round": 2, "choice": "2"}, who)[0] == 200
+    res = call("POST", "/vote/P1/close", {})[1]; assert res["passed"] is True and res["strength"] == 2 and res["agreement_pct"] == 100.0
+    e = call("GET", "/etd/P1")[1]["etd"]; assert e["strength"] == "2 弱く推奨" and e["vote"]["round"] == 2
+    assert call("PUT", "/etd/P1", {"strength": "5 行わないことを強く推奨"}, G(1))[1]["strength"] == "2 弱く推奨"                                      # 投票の後は、手で変えられない
+    assert call("POST", "/vote/P1/open", {})[0] == 409                                                                                             # 成立済み
+    # 3回で成立しない → 推奨なし
+    call("PUT", "/etd/P2", {"rec_draft": "案", "status": "協議中"}, G(1))
+    for n in (1, 2, 3):
+        assert call("POST", "/vote/P2/open", {})[1]["round"] == n
+        for i, who in enumerate((G(1), G(2), G(3), G(4), G(5), CHAIR)): call("POST", "/vote/P2/cast", {"round": n, "choice": str(1 + i % 4)}, who)
+        r3 = call("POST", "/vote/P2/close", {})[1]
+    assert r3["passed"] is False and r3["final_none"] is True and call("GET", "/etd/P2")[1]["etd"]["strength"] == "3 推奨なし" and call("POST", "/vote/P2/open", {})[0] == 409

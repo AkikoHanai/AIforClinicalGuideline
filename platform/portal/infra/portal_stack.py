@@ -36,7 +36,7 @@ class PortalStack(Stack):
         site = f"https://{dist.distribution_domain_name}"
         local = "http://localhost:8000"
 
-        pool = cognito.UserPool(self, "Users", user_pool_name=name, self_sign_up_enabled=False, sign_in_aliases=cognito.SignInAliases(email=True),
+        pool = cognito.UserPool(self, "Users", user_pool_name=name, self_sign_up_enabled=True, sign_in_aliases=cognito.SignInAliases(email=True),
                                 auto_verify=cognito.AutoVerifiedAttrs(email=True), standard_attributes=cognito.StandardAttributes(email=cognito.StandardAttribute(required=True, mutable=True)),
                                 mfa=cognito.Mfa.OPTIONAL, mfa_second_factor=cognito.MfaSecondFactor(sms=False, otp=True),
                                 password_policy=cognito.PasswordPolicy(min_length=12, require_lowercase=True, require_uppercase=True, require_digits=True, require_symbols=False),
@@ -72,7 +72,7 @@ class PortalStack(Stack):
         papers.grant_read_write(fn)
         fn.add_to_role_policy(iam.PolicyStatement(actions=["bedrock:InvokeModel", "bedrock:Converse"], resources=["*"]))
         fn.add_to_role_policy(iam.PolicyStatement(actions=["lambda:InvokeFunction"], resources=[f"arn:aws:lambda:{self.region}:{self.account}:function:*"]))
-        fn.add_to_role_policy(iam.PolicyStatement(actions=["cognito-idp:AdminCreateUser", "cognito-idp:AdminAddUserToGroup", "cognito-idp:AdminRemoveUserFromGroup", "cognito-idp:AdminListGroupsForUser"],
+        fn.add_to_role_policy(iam.PolicyStatement(actions=["cognito-idp:AdminCreateUser", "cognito-idp:AdminAddUserToGroup", "cognito-idp:AdminRemoveUserFromGroup", "cognito-idp:AdminListGroupsForUser", "cognito-idp:AdminGetUser"],
                                                   resources=[pool.user_pool_arn]))
 
         api = apigw.HttpApi(self, "HttpApi", api_name=name,
