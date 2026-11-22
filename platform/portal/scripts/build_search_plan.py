@@ -28,7 +28,8 @@ S = [
  ("N2-1", "N2", "CQ1-運動", asco('("Exercise"[Mesh] OR "Exercise Therapy"[Mesh])'), A, "【運動】検索過程.docx は C の部分だけが記録に残っている(867件)。介入語は委員会提示の語", False, "2021-09-04", "2021/09/05", "前回の検索の終了日(2021年9月4日)の翌日", ["運動の前回の式(介入語の部分)を、検索過程の原本で確認する"]),
  ("N3-1", "N3", "CQ1-鍼灸", asco("acupuncture"), A, "検索式.docx", True, "2021", "2021/07/01", GL, ["記録の検索期間は「2019,9から2021」で、終了の月日がない。開始日を確認する"]),
  ("T1-1", "T1", "CQ2-デュロキセチン", asco("(duloxetine)"), A, "検索過程 武井_デュロキセチン.docx、検索過程 神林＿デュロキセチン.docx", True, "2021-12-12", "2021/12/13", "前回の検索の終了日(2021年12月12日)の翌日", []),
- ("T2-1", "T2", "CQ2-アミトリプチリン", asco("amitriptyline"), A, "2023年版の検索過程の記録がない。介入語は仮の語", False, "", "2021/07/01", GL, ["アミトリプチリンの前回の式と検索の終了日を確認する", "委員会提示の I 節の語「amitriptyline/ketamine」は MeSH になく、PubMed は語句として検索する。アミトリプチリンの文献を検索できないため、仮に「amitriptyline」を置いた(式は未確認)"]),
+ ("T2-1", "T2", "CQ2-アミトリプチリン", asco("amitriptyline/ketamine"), A, "前回Scope(2021-07-02)の ASCO の式の介入語「amitriptyline/ketamine」(担当者が該当しない用語を省いてよい、と前回Scope に記載)。2023年版の検索過程の記録はない", True, "", "2021/07/01", GL, ["「amitriptyline/ketamine」は MeSH になく、PubMed は語句として検索する。2021/07〜2026/10 の件数は 0 に近い(コネクタでの確認: 0 件)。アミトリプチリン全般を拾う案は T2-2"]),
+ ("T2-2", "T2", "CQ2-アミトリプチリン", asco("amitriptyline"), "案(アミトリプチリン全般)", "T2-1 は、外用ゲル(amitriptyline/ketamine)の語句で、アミトリプチリンの内服の文献を拾えない。「amitriptyline」を介入語にした案。統括委員会の承認が必要", False, "", "2021/07/01", GL, ["案である。T2-1 の代わりに使う場合は、統括委員会の承認が必要"]),
  ("T3-1", "T3", "CQ2-プレガバリン", asco("Pregabalin"), A, "検索過程 プレガバリン・ミロガバリン.docx", True, "2021-08-12", "2021/08/13", "前回の検索の終了日(2021年8月12日)の翌日", []),
  ("T3-2", "T3", "CQ2-ミロガバリン", asco("Mirogabalin"), A, "検索過程 プレガバリン・ミロガバリン.docx は、プレガバリンの式だけが記録に残っている。介入語は仮の語", False, "2021-08-12", "2021/08/13", "前回の検索の終了日(2021年8月12日)の翌日", ["ミロガバリンの前回の式を、検索過程の原本で確認する"]),
  ("N4-1", "N4", "CQ2-運動", asco('("Exercise"[Mesh] OR "Exercise Therapy"[Mesh])'), A, "【運動】検索過程.docx は C の部分だけが記録に残っている(867件)。介入語は委員会提示の語", False, "2021-09-04", "2021/09/05", "前回の検索の終了日(2021年9月4日)の翌日", ["運動の前回の式(介入語の部分)を、検索過程の原本で確認する"]),
@@ -36,7 +37,8 @@ S = [
  ("F1-1", "F1", "CQ2-ビタミン-B12", asco('"Vitamin B 12"[Mesh]'), A, "CIPN SR_VB12 検索過程.docx に式が残っていない(2023年版は手引き2017 の式で 2016年6月〜2021年6月)。介入語は委員会提示の語", False, "2021-06", "2021/07/01", "前回の検索の終了月(2021年6月)の翌月", ["ビタミンB12 の前回の式(手引き2017 の式)を確認する"]),
  ("F2-1", "F2", "CQ2-非ステロイド性消炎鎮痛薬-NSAIDs", NSAIDS, T, "NSAIDs 松坂 検索式記録.docx", True, "2021-06-30", "2021/07/01", "前回の検索の終了日(2021年6月30日)の翌日", []),
  ("F3-1", "F3", "CQ2-オピオイド", asco('"Analgesics, Opioid"[Mesh]'), A, "2023年版の検索過程の記録がない(2023年版は手引き2017 の式)。介入語は委員会提示の語", False, "", "2021/07/01", GL, ["オピオイドの前回の式(手引き2017 の式)と検索の終了日を確認する"]),
- ("F4-1", "F4", "CQ2-薬物の併用療法", asco('"Drug Therapy, Combination"[Mesh]'), A, "2023年版の検索過程の記録がない。介入語は委員会提示の語", False, "", "2021/07/01", GL, ["併用療法の前回の式と検索の終了日を確認する"]),
+ ("F4-1", "F4", "CQ2-薬物の併用療法", asco('("combination therapy" OR "combined therapy")'), A, "統括委員長の指示(2026-11-22): 併用療法の語は combination therapy / combined therapy。P節・C節は ASCO の式。前回の式の記録はない", False, "", "2021/07/01", GL, ["件数が 8,000 件を超える(コネクタでの確認: 8,305 件)。ASCO の C 節が「neoplasms/drug therapy」などの MeSH を含み、がん薬物療法の文献の大半に当たり、「combination therapy」はがん薬物療法の一般的な語のため。ポータルに登録できない", "絞り込んだ案は F4-2"]),
+ ("F4-2", "F4", "CQ2-薬物の併用療法", '((survivor OR (survivor AND cancer) OR "cancer survivor" OR cancer)) AND ("combination therapy"[tiab] OR "combined therapy"[tiab]) AND (neuropathy[tiab] OR "chemotherapy-induced peripheral neuropathy"[tiab] OR CIPN[tiab])', "案(神経障害の語を題名・抄録に限定した式)", "F4-1 の C 節を、題名・抄録の神経障害の語に限定した案。コネクタでの確認では 57 件(2021/07〜2026/10)。CIPN の語に限ると 11 件。統括委員会の承認が必要", False, "", "2021/07/01", GL, ["案である。F4-1 の代わりに使う場合は、統括委員会の承認が必要。前回の式ではない"]),
 ]
 
 plan = json.load(open(os.path.join(ROOT, "governance", "approved_plan.json"), encoding="utf-8"))
@@ -46,7 +48,7 @@ for sid, cq, d, q, kind, src, ok, prior_end, start, basis, notes in S:
     assert cq in names and d in dirs and q.count("(") == q.count(")"), sid
     out.append({"id": sid, "cq": cq, "cq_name": names[cq], "dir": d, "database": "PubMed", "query": q, "formula_kind": kind, "formula_source": src, "confirmed": ok, "prior_end": prior_end,
                 "start": start, "start_basis": basis, "end": END, "notes": notes, "full_query": f'({q}) AND ("{start}"[dp] : "{END}"[dp])'})
-for s_ in out: s_["proposal"] = s_["id"] == "N1-3"   # 案は、確認済み・未確認の件数に数えず、--only で指定したときだけ取得する
+for s_ in out: s_["proposal"] = s_["id"] in ("N1-3", "T2-2", "F4-2")   # 案は、確認済み・未確認の件数に数えず、--only で指定したときだけ取得する
 assert {s["cq"] for s in out} == set(names)
 _old = os.path.join(ROOT, "data", "search_plan.json"); _keep = {k: v for k, v in (json.load(open(_old, encoding="utf-8")) if os.path.exists(_old) else {}).items() if k not in ("decision", "date_field", "searches")}   # 確認結果(mesh_check、count_check、recall_check)は残す
 json.dump({**_keep, "decision": "統括委員長の決定(2026-11-20): 検索期間は 2026年10月1日まで。検索式は前回(2023年版)の式。開始日は、前回の検索の終了日の翌日(終了が月だけの記録は翌月の 1 日)",

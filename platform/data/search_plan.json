@@ -85,6 +85,72 @@
    "F4-1(併用療法)は 25,794 件で、ポータルの登録上限(8,000件)を超える。介入語が「Drug Therapy, Combination」(MeSH)で広すぎる。前回の式を確認するまで、取得・登録しない",
    "N2-1 と N4-1(運動)は同じ式で 1,086 件。N3-1 と N5-1(鍼灸)は同じ式で 734 件。P2-1 と T3-1(プレガバリン)は同じ式で 73 件。予防と治療で同じ式のため、同じ文献が両方の CQ に入る(前回も同じ式)",
    "件数は PubMed の更新で変わる(F4-1: 25,789 → 25,794。同日の 2 回の実行)。取得した時点の件数を、検索の記録に使う"
+  ],
+  "counts_connector": {
+   "date": "2026-11-22",
+   "by": "PubMedコネクタ(2021/07/01〜2026/10/01)",
+   "F4 combination therapy / combined therapy + ASCO の C節 + cancer": 8305,
+   "同 題名・抄録の神経障害の語に限定(F4-2 の近似)": 57,
+   "同 CIPN の語に限定": 11,
+   "amitriptyline/ketamine + 神経障害の語 + cancer": 0
+  }
+ },
+ "recall_check": {
+  "date": "2026-11-22",
+  "method": "2023年版の冷却・圧迫の引用文献 13 件(PMID)を、PubMed(コネクタ経由)で、介入語の式ごとに検索し、拾えた件数を数えた。P節・C節は、演算子の上限(20)のため含めていない(P・C は、がん・神経障害の広い語で、介入語が絞り込みを決める)",
+  "pmids": [
+   "32663120",
+   "34912720",
+   "31590108",
+   "32036471",
+   "31811482",
+   "29924336",
+   "27891244",
+   "33424755",
+   "31912787",
+   "35070969",
+   "27620884",
+   "33985457",
+   "31901783"
+  ],
+  "results": [
+   {
+    "formula": "Cryotherapy",
+    "found": 8,
+    "missing": [
+     "32663120",
+     "27891244",
+     "35070969",
+     "27620884",
+     "33985457"
+    ],
+    "note": "N1-1(冷却)の介入語。圧迫の 3件と、cooling の語を使った 1件を拾えない"
+   },
+   {
+    "formula": "\"Compression Bandages\"[Mesh]",
+    "found": 3,
+    "missing": [
+     "冷却の 10件"
+    ],
+    "note": "N1-2(圧迫)の介入語。圧迫の 3件(27620884、33985457、31901783)をすべて拾う"
+   },
+   {
+    "formula": "compression",
+    "found": 3,
+    "missing": [
+     "冷却の 10件"
+    ],
+    "note": "圧迫の 3件をすべて拾う(MeSH と同じ)"
+   },
+   {
+    "formula": "Cryotherapy OR compression OR cooling OR \"frozen glove*\"",
+    "found": 11,
+    "missing": [
+     "32663120",
+     "35070969"
+    ],
+    "note": "N1-3(案)の介入語。拾えない 2件は、ASCOガイドライン(PMID 32663120)とメタアナリシス(PMID 35070969。介入語は neuroprotectants)で、データベース検索の対象ではない(ASCOガイドラインの引用文献、手引き、メタアナリシスの引用文献として入る)"
+   }
   ]
  },
  "decision": "統括委員長の決定(2026-11-20): 検索期間は 2026年10月1日まで。検索式は前回(2023年版)の式。開始日は、前回の検索の終了日の翌日(終了が月だけの記録は翌月の 1 日)",
@@ -269,20 +335,39 @@
    "cq_name": "デュロキセチン以外の抗うつ剤(アミトリプチリン)",
    "dir": "CQ2-アミトリプチリン",
    "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND amitriptyline",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND amitriptyline/ketamine",
    "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "2023年版の検索過程の記録がない。介入語は仮の語",
+   "formula_source": "前回Scope(2021-07-02)の ASCO の式の介入語「amitriptyline/ketamine」(担当者が該当しない用語を省いてよい、と前回Scope に記載)。2023年版の検索過程の記録はない",
+   "confirmed": true,
+   "prior_end": "",
+   "start": "2021/07/01",
+   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
+   "end": "2026/10/01",
+   "notes": [
+    "「amitriptyline/ketamine」は MeSH になく、PubMed は語句として検索する。2021/07〜2026/10 の件数は 0 に近い(コネクタでの確認: 0 件)。アミトリプチリン全般を拾う案は T2-2"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND amitriptyline/ketamine) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": false
+  },
+  {
+   "id": "T2-2",
+   "cq": "T2",
+   "cq_name": "デュロキセチン以外の抗うつ剤(アミトリプチリン)",
+   "dir": "CQ2-アミトリプチリン",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND amitriptyline",
+   "formula_kind": "案(アミトリプチリン全般)",
+   "formula_source": "T2-1 は、外用ゲル(amitriptyline/ketamine)の語句で、アミトリプチリンの内服の文献を拾えない。「amitriptyline」を介入語にした案。統括委員会の承認が必要",
    "confirmed": false,
    "prior_end": "",
    "start": "2021/07/01",
    "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
    "end": "2026/10/01",
    "notes": [
-    "アミトリプチリンの前回の式と検索の終了日を確認する",
-    "委員会提示の I 節の語「amitriptyline/ketamine」は MeSH になく、PubMed は語句として検索する。アミトリプチリンの文献を検索できないため、仮に「amitriptyline」を置いた(式は未確認)"
+    "案である。T2-1 の代わりに使う場合は、統括委員会の承認が必要"
    ],
    "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND amitriptyline) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
-   "proposal": false
+   "proposal": true
   },
   {
    "id": "T3-1",
@@ -426,77 +511,50 @@
    "cq_name": "併用療法による治療",
    "dir": "CQ2-薬物の併用療法",
    "database": "PubMed",
-   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Drug Therapy, Combination\"[Mesh]",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (\"combination therapy\" OR \"combined therapy\")",
    "formula_kind": "ASCO の式(P・C)+介入語",
-   "formula_source": "2023年版の検索過程の記録がない。介入語は委員会提示の語",
+   "formula_source": "統括委員長の指示(2026-11-22): 併用療法の語は combination therapy / combined therapy。P節・C節は ASCO の式。前回の式の記録はない",
    "confirmed": false,
    "prior_end": "",
    "start": "2021/07/01",
    "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
    "end": "2026/10/01",
    "notes": [
-    "併用療法の前回の式と検索の終了日を確認する"
+    "件数が 8,000 件を超える(コネクタでの確認: 8,305 件)。ASCO の C 節が「neoplasms/drug therapy」などの MeSH を含み、がん薬物療法の文献の大半に当たり、「combination therapy」はがん薬物療法の一般的な語のため。ポータルに登録できない",
+    "絞り込んだ案は F4-2"
    ],
-   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND \"Drug Therapy, Combination\"[Mesh]) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND (\"combination therapy\" OR \"combined therapy\")) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
    "proposal": false
+  },
+  {
+   "id": "F4-2",
+   "cq": "F4",
+   "cq_name": "併用療法による治療",
+   "dir": "CQ2-薬物の併用療法",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (\"combination therapy\"[tiab] OR \"combined therapy\"[tiab]) AND (neuropathy[tiab] OR \"chemotherapy-induced peripheral neuropathy\"[tiab] OR CIPN[tiab])",
+   "formula_kind": "案(神経障害の語を題名・抄録に限定した式)",
+   "formula_source": "F4-1 の C 節を、題名・抄録の神経障害の語に限定した案。コネクタでの確認では 57 件(2021/07〜2026/10)。CIPN の語に限ると 11 件。統括委員会の承認が必要",
+   "confirmed": false,
+   "prior_end": "",
+   "start": "2021/07/01",
+   "start_basis": "2023年版 第1章5「文献検索」と CQ の解説の記載(検索期間 2021年6月)",
+   "end": "2026/10/01",
+   "notes": [
+    "案である。F4-1 の代わりに使う場合は、統括委員会の承認が必要。前回の式ではない"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (\"combination therapy\"[tiab] OR \"combined therapy\"[tiab]) AND (neuropathy[tiab] OR \"chemotherapy-induced peripheral neuropathy\"[tiab] OR CIPN[tiab])) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": true
   }
  ],
- "recall_check": {
-  "date": "2026-11-22",
-  "method": "2023年版の冷却・圧迫の引用文献 13 件(PMID)を、PubMed(コネクタ経由)で、介入語の式ごとに検索し、拾えた件数を数えた。P節・C節は、演算子の上限(20)のため含めていない(P・C は、がん・神経障害の広い語で、介入語が絞り込みを決める)",
-  "pmids": [
-   "32663120",
-   "34912720",
-   "31590108",
-   "32036471",
-   "31811482",
-   "29924336",
-   "27891244",
-   "33424755",
-   "31912787",
-   "35070969",
-   "27620884",
-   "33985457",
-   "31901783"
-  ],
-  "results": [
-   {
-    "formula": "Cryotherapy",
-    "found": 8,
-    "missing": [
-     "32663120",
-     "27891244",
-     "35070969",
-     "27620884",
-     "33985457"
-    ],
-    "note": "N1-1(冷却)の介入語。圧迫の 3件と、cooling の語を使った 1件を拾えない"
-   },
-   {
-    "formula": "\"Compression Bandages\"[Mesh]",
-    "found": 3,
-    "missing": [
-     "冷却の 10件"
-    ],
-    "note": "N1-2(圧迫)の介入語。圧迫の 3件(27620884、33985457、31901783)をすべて拾う"
-   },
-   {
-    "formula": "compression",
-    "found": 3,
-    "missing": [
-     "冷却の 10件"
-    ],
-    "note": "圧迫の 3件をすべて拾う(MeSH と同じ)"
-   },
-   {
-    "formula": "Cryotherapy OR compression OR cooling OR \"frozen glove*\"",
-    "found": 11,
-    "missing": [
-     "32663120",
-     "35070969"
-    ],
-    "note": "N1-3(案)の介入語。拾えない 2件は、ASCOガイドライン(PMID 32663120)とメタアナリシス(PMID 35070969。介入語は neuroprotectants)で、データベース検索の対象ではない(ASCOガイドラインの引用文献、手引き、メタアナリシスの引用文献として入る)"
-   }
+ "scope_formula": {
+  "source": "前回Scope(2021-07-02)に記載された ASCO の検索式と運用(統括委員長が 2026-11-22 に提示)",
+  "formula": "(((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND ((Goshajinkigan OR (Calcium and Magnesium) OR Acetyl-L-carnitine OR Alpha-lipoic acid OR Pregabalin OR gabapentin OR Venlafaxine OR duloxetine OR Vitamin E OR Ganglioside-monosialic acid OR amitriptyline/ketamine OR cannabinoid OR nabiximols OR LC07 OR cryotherapy OR scrambler therapy)))",
+  "rules": [
+   "担当者が、自分の担当部分で該当しない用語を省いて検索してよい(例: 牛車腎気丸の担当者は Goshajinkigan 以外の介入語を削除してよい)",
+   "ASCO のガイドラインはサバイバーを対象とするが、本ガイドラインはサバイバーに限らない(P 節の cancer が全がんを含む)",
+   "前回(2023年版)の検索: ASCO の式で全期間 4,290 件、2019〜2021年で 500 件(全件を確認できる件数)",
+   "ASCO ガイドライン 2014・2020 のバイアスリスクの表(quality assessment)は公表されており、そのまま活用する。前回Scope は、Minds の -1/-2 の点数表記は判断が困難なため、ASCO のように ✔ 表記とした"
   ]
  }
 }

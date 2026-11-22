@@ -90,7 +90,7 @@ python3 platform/portal/scripts/sync_drive.py <メールアドレス>           
 
 ## 検索式の用語の確認
 
-`python3 platform/portal/scripts/check_mesh.py` が、検索計画の 17 検索の PubMed の解釈と、MeSH の見出し語を確認する。2026-11-20 の確認結果は `platform/data/search_plan.json` の `mesh_check`。
+`python3 platform/portal/scripts/check_mesh.py` が、検索計画の 17 検索(案を除く)の PubMed の解釈と、MeSH の見出し語を確認する。2026-11-20 の確認結果は `platform/data/search_plan.json` の `mesh_check`。
 
 ## 手順書と依頼書の受け渡し(個別に送付しない)
 
@@ -121,7 +121,7 @@ python3 platform/portal/scripts/check_pubmed.py        # PubMed からの題名�
 ## 検索の実行と、文献選択の別添(統括委員長の決定 2026-11-20)
 
 検索期間は 2026年10月1日まで、検索式は前回(2023年版)の式。検索ごとの式・期間・根拠は `platform/data/search_plan.json`(`scripts/build_search_plan.py` が作る)。
-17 検索のうち、前回の式が記録に残っている 9 検索が「確認済み」、残っていない 8 検索が「未確認」(件数だけを調べ、文献は取得しない)。
+17 検索(案 3 件を除く)のうち、前回の式が確認できた 10 検索が「確認済み」、確認できない 7 検索が「未確認」(件数だけを調べ、文献は取得しない)。
 
 ```
 python3 platform/portal/scripts/run_search.py                    # 全検索の件数(AWS は不要)
