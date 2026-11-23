@@ -2,7 +2,7 @@
 
 がん薬物療法に伴う末梢神経障害診療ガイドライン2028年版の作成を、CIPN診療ガイドライン2023年版の手順(Minds 2020)のとおりに、委員がブラウザで進めるためのポータル。
 千葉大学の AWS アカウント(東京リージョン)に置く。名簿・COI は Google フォーム・ドライブで管理し、ポータルには置かない。
-Google ドライブとの受け渡しは統括委員長の Mac を経由する。
+Google 共有ドライブへの提出物・出力・手順書の転送は、ポータルから直接行う(Mac を介さない。`platform/drive_gas/README.md`)。論文PDFの登録だけが、統括委員長の Mac のフォルダを使う。
 
 ## 2つの流れ(独立)
 | 流れ | 使う人 | 手順 |
@@ -79,16 +79,23 @@ Method・Result の見出しを判定できない PDF は「本文抽出済(節�
 python3 platform/portal/scripts/admin_user.py --outcomes <メールアドレス>
 ```
 
-## 共有ドライブへの転送(ポータル → ドライブ。統括委員長の決定 2026-11-20)
+## 共有ドライブへの転送(ポータル → ドライブ。統括委員長の決定 2026-11-20、直接転送 2026-11-23)
+
+ポータルの Lambda が、統括委員長の Google アカウントで動く Apps Script の Web アプリ(`platform/drive_gas/`)へ送り、共有ドライブ「CIPNガイドライン作成」に置く。Mac を介さない。設定の手順(1回だけ)は `platform/drive_gas/README.md`。
 
 ```
-python3 platform/portal/scripts/sync_drive.py <メールアドレス> --dry-run   # 転送する内容だけを表示する
-python3 platform/portal/scripts/sync_drive.py <メールアドレス>             # 転送する
+python3 platform/portal/scripts/set_drive.py token                  # 合言葉を作る
+python3 platform/portal/scripts/set_drive.py save <メールアドレス>   # URL と合言葉を Secrets Manager に保存し、接続を確かめる
+python3 platform/portal/scripts/set_drive.py sync <メールアドレス>   # 今すぐ転送する(--force: 全てを送り直す)
+python3 platform/portal/scripts/set_drive.py status <メールアドレス> # 状態
 ```
 
-- 転送先: `共有ドライブ/CIPNガイドライン作成`(`DRIVE_DIR` で変える)。`提出/総論/総論X_題名/`(原稿の全ての版、状態.txt)、`提出/SR/<CQ>/`(Minds書類、文献選択の別添)、`依頼書/`、`マニュアル/`。
-- 転送済みの版(同じ名前・同じ大きさ)は飛ばす。転送した内容は、作成経過の記録(「共有ドライブへの転送」)に残る。ドライブからポータルへは戻さない。
+- 自動: 1時間ごと(EventBridge)。変更のあったものだけを送る。手動: ポータルの「共有ドライブへの転送」(統括委員会・事務局)。
+- 転送先: `提出/総論/総論X_題名/`(原稿の全ての版、状態.txt)、`提出/SR/<CQ>/`(Minds書類、文献選択の別添)、`依頼書/`、`マニュアル/<対象>/`。
+- 転送済みの版(同じ識別)は飛ばす(DynamoDB の DRIVEMAP)。Minds書類と文献選択の別添は、CQ の記録が変わったときだけ、同じ名前で置き換える。失敗した項目は、次の転送で再び試す。転送した内容は、作成経過の記録に残る。ドライブからポータルへは戻さない。
+- 接続情報は Secrets Manager の `jascc-gl-portal/drive`(URL と合言葉)。コード・画面・Git に置かない。Web アプリには、ファイルを置く操作と接続の確認だけがあり、閲覧・削除・移動・共有設定の変更はない。
 - 共有ドライブのメンバーは、委員に限る。
+- 組織の設定で Web アプリを「全員」に公開できないときは、従来の `sync_drive.py`(Mac のフォルダへ転送)を使う。
 
 ## 検索式の用語の確認
 

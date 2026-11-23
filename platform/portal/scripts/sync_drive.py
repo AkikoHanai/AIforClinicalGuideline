@@ -1,4 +1,5 @@
-"""ポータルの提出物・出力・手順書を、Google 共有ドライブ「CIPNガイドライン作成」へ転送する(統括委員長の Mac で実行。ポータル → ドライブ)。
+"""(予備)ポータルの提出物・出力・手順書を、Google 共有ドライブ「CIPNガイドライン作成」へ転送する(統括委員長の Mac で実行。ポータル → ドライブ)。
+通常は、ポータルが共有ドライブへ直接転送する(Mac を介さない。platform/drive_gas/README.md)。このスクリプトは、組織の設定で Web アプリを公開できないときの予備。
   python3 platform/portal/scripts/sync_drive.py <メールアドレス>
   DRIVE_DIR=<パス> python3 platform/portal/scripts/sync_drive.py <メールアドレス>     ドライブの場所を変えるとき
   python3 platform/portal/scripts/sync_drive.py <メールアドレス> --dry-run             転送する内容だけを表示する

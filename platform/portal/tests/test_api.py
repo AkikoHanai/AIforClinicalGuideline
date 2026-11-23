@@ -491,6 +491,40 @@ def test_sync_to_shared_drive(env, tmp_path):
     assert call("POST", "/sync/log", {"copied": 1}, R1)[0] == 403
 
 
+def test_direct_drive_sync_without_mac(env, monkeypatch):
+    """Mac を介さず、ポータル(Lambda)が共有ドライブの受け口へ転送する。転送済みの版は飛ばし、記録が変わった出力だけ置き換え、失敗は次の起動で再び試す。接続情報は、設定がなければ動かない。"""
+    import drive as D
+    s3c = boto3.client("s3"); s3c.put_bucket_versioning(Bucket=H.BUCKET, VersioningConfiguration={"Status": "Enabled"})
+    assert call("GET", "/drive/status")[1]["configured"] is False and call("POST", "/drive/sync", {})[0] == 400 and call("GET", "/drive/status", who=R1)[0] == 403
+    W = dict(email="w@example.org", groups=("総説執筆者",)); call("POST", "/users", {"email": "w@example.org", "name": "内藤太郎", "roles": ["総説執筆者"]})
+    for body in (b"first draft", b"second draft, longer"):
+        c, r = call("POST", "/soron/A/upload-url", {"filename": "総論A_内藤.docx"}, W); s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=body)
+    call("POST", "/docs/upload-url", {"filename": "4_SR委員の手順書.docx"}); s3c.put_object(Bucket=H.BUCKET, Key="docs/4_SR委員の手順書.docx", Body=b"manual")
+    store, fail = {}, set(); cfg = {"url": "https://script.google.com/macros/s/x/exec", "token": "t"}
+    monkeypatch.setattr(D, "config", lambda: cfg)
+    def fake_put(c_, path, data, overwrite=False, mime=""):
+        k = "/".join(path)
+        if any(f in k for f in fail): raise RuntimeError("quota")
+        if k in store and not overwrite: return {"ok": True, "action": "same", "id": k}
+        act = "updated" if k in store else "created"; store[k] = data; return {"ok": True, "action": act, "id": k}
+    monkeypatch.setattr(D, "put", fake_put); monkeypatch.setattr(D, "ping", lambda c_: {"ok": True, "root": "CIPNガイドライン作成"})
+    assert call("POST", "/drive/test", {})[1]["root"] == "CIPNガイドライン作成"
+    c, r = call("POST", "/drive/sync", {}); assert c == 200 and r["failed"] == 0 and r["copied"] > 5
+    subm = [k for k in store if k.startswith("提出/総論/総論A_")]
+    assert len(subm) == 3 and sorted(store[k] for k in subm if k.endswith(".docx")) == [b"first draft", b"second draft, longer"] and "状態: " in store[[k for k in subm if k.endswith("状態.txt")][0]].decode()
+    assert store["マニュアル/SR委員/4_SR委員の手順書.docx"] == b"manual" and any(k.startswith("提出/SR/P1_") and k.endswith("文献選択の別添_P1.xlsx") for k in store)
+    st = call("GET", "/drive/status")[1]; assert st["configured"] and st["status"]["state"] == "完了" and st["mapped"] == r["copied"] and "started_ts" not in st["status"]
+    c, r2 = call("POST", "/drive/sync", {}); assert r2["copied"] == 0 and call("GET", "/drive/status")[1]["status"]["skipped"] >= 8              # 変更がなければ何も送らない
+    n0 = len(store); c, _ = call("PUT", "/soron/A", {"review": "表1の出典を追記してください"}); c, r3 = call("POST", "/drive/sync", {})                  # 状態.txt だけが変わる
+    assert r3["copied"] == 1 and "表1の出典" in store[[k for k in store if k.endswith("総論A_内藤_状態.txt") or (k.startswith("提出/総論/総論A_") and k.endswith("状態.txt"))][0]].decode() and len(store) == n0
+    s3c.put_object(Bucket=H.BUCKET, Key="soron/A/総論A_内藤.docx", Body=b"third draft"); fail.add("総論A_"); c, r4 = call("POST", "/drive/sync", {})   # 失敗は記録し、記録に残さない
+    assert r4["failed"] == 1 and call("GET", "/drive/status")[1]["status"]["state"] == "完了(失敗あり)" and not any(b"third draft" == v for v in store.values())
+    fail.clear(); c, r5 = call("POST", "/drive/sync", {}); assert r5["copied"] == 1 and r5["failed"] == 0 and any(v == b"third draft" for v in store.values())  # 次の起動で再び試す
+    c, r6 = call("POST", "/drive/sync", {"force": True}); assert r6["copied"] == len(call("GET", "/drive/status")[1]["status"]["files"]) and r6["copied"] >= 10  # 全て送り直す
+    a = [x for x in call("GET", "/audit")[1] if x["action"] == "共有ドライブへの転送"]; assert a and "失敗 1件" in " ".join(x["detail"] for x in a)
+    monkeypatch.setattr(D, "config", lambda: None); assert H.run_drive_sync({"task": "drive_sync"})["reason"] == "未設定"                                    # 自動起動は、接続情報がなければ何もしない
+
+
 def test_sr8_has_minds_sr8_columns(env):
     """SR-8(絶対効果指標の結果を記入する場合)の列: 研究デザイン／研究数、群ごとの分母・分子、効果指標の統合値・CI、絶対効果、重要性。ポータルは統合値を計算せず、委員が記入する"""
     register_paper("11111111"); o = "CIPN Grade2以上の発生"
