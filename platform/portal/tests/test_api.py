@@ -481,10 +481,10 @@ def test_sync_to_shared_drive(env, tmp_path):
     drive = str(tmp_path / "CIPNガイドライン作成"); os.makedirs(drive)
     cp, sk = SD.sync(Tok(), drive, fetch=fetch)
     rel = lambda: sorted(os.path.relpath(os.path.join(d, f), drive) for d, _, fs in os.walk(drive) for f in fs)
-    files = rel(); sub = [f for f in files if f.startswith(os.path.join("提出", "総論", "総論A_"))]
+    files = rel(); sub = [f for f in files if f.startswith(os.path.join("総論", "総論A_"))]
     assert len(sub) == 3 and sorted(open(os.path.join(drive, f), "rb").read() for f in sub if f.endswith(".docx")) == [b"first draft", b"second draft, longer"]
     st = open(os.path.join(drive, [f for f in sub if f.endswith("状態.txt")][0]), encoding="utf-8").read(); assert "査読コメント" in st and "表1の出典を追記してください" in st and "状態: 修正中" not in st or True
-    assert os.path.exists(os.path.join(drive, "マニュアル", "SR委員", "4_SR委員の手順書.docx")) and any(f.startswith(os.path.join("提出", "SR", "P1_")) and f.endswith("文献選択の別添_P1.xlsx") for f in files)
+    assert os.path.exists(os.path.join(drive, "マニュアル", "SR委員", "4_SR委員の手順書.docx")) and any(f.startswith("CQ1-牛車腎気丸") and f.endswith(os.path.join("ポータル", "文献選択の別添_P1.xlsx")) for f in files)
     cp2, sk2 = SD.sync(Tok(), drive, fetch=fetch); assert not [p for p in cp2 if "総論" in p or "マニュアル" in p] and len(sk2) >= 4                  # 転送済みは飛ばす
     n = len(rel()); SD.sync(Tok(), str(tmp_path / "d2"), dry=True, fetch=fetch) if os.path.isdir(str(tmp_path / "d2")) else None; assert len(rel()) == n
     assert any(a["action"] == "共有ドライブへの転送" and "転送" in a["detail"] for a in call("GET", "/audit")[1])
@@ -508,23 +508,34 @@ def test_sync_drive_finds_folder_runs_from_any_directory(env, tmp_path, monkeypa
     drive = os.path.join(cs, "GoogleDrive-chair@example.org", "共有ドライブ", "CIPNガイドライン作成")
     assert SD.find_drive(home) == [drive]
     os.makedirs(os.path.join(home, "e", "Library", "CloudStorage", "GoogleDrive-e@example.org", "Shared drives", "CIPNガイドライン作成")); assert len(SD.find_drive(os.path.join(home, "e"))) == 1   # 英語表示
+    import unicodedata
+    existing = os.path.join(drive, "新規ガイドライン作成", unicodedata.normalize("NFD", "CQ1-牛車腎気丸")); os.makedirs(existing)                   # 既存の目次どおりのフォルダ(macOS の NFD でも見つける)
+    os.makedirs(os.path.join(drive, "新規ガイドライン作成", "総論", "総論A_旧い題名")); os.makedirs(os.path.join(drive, ".hidden", "CQ1-牛車腎気丸"))
     asked = []; monkeypatch.setattr("builtins.input", lambda *a: asked.append(1) or "chair@example.org")
     SD.main(["--dry-run"], session=lambda email: Tok(), fetch=fetch, home=home)                                 # 初回: メールアドレスを尋ねて保存。--dry-run は、何も置かない
-    assert asked == [1] and json.load(open(os.path.join(home, ".jascc_gl_portal.json"), encoding="utf-8"))["email"] == "chair@example.org" and not os.listdir(drive)
+    assert asked == [1] and json.load(open(os.path.join(home, ".jascc_gl_portal.json"), encoding="utf-8"))["email"] == "chair@example.org" and not [f for _d, _, fs in os.walk(drive) for f in fs]
     monkeypatch.setattr("builtins.input", lambda *a: (_ for _ in ()).throw(AssertionError("2回目は尋ねない")))
     seen = []; SD.main([], session=lambda email: seen.append(email) or Tok(), fetch=fetch, home=home)           # 2回目: 保存したメールアドレスで、自動で見つけたフォルダへ転送
-    assert seen == ["chair@example.org"] and any(f.endswith("総論A_内藤.docx") for d, _, fs in os.walk(drive) for f in fs) and os.path.isdir(os.path.join(drive, "提出", "SR")) and not [f for d, _, fs in os.walk(drive) for f in fs if f.endswith(".part")]
+    assert seen == ["chair@example.org"] and not [f for d, _, fs in os.walk(drive) for f in fs if f.endswith(".part")]
+    placed = sorted(os.path.relpath(os.path.join(d, f), drive) for d, _, fs in os.walk(drive) for f in fs)
+    assert any(x.startswith(os.path.join("新規ガイドライン作成", "総論", "総論A_旧い題名")) and x.endswith("総論A_内藤.docx") for x in placed)                # 既存の総論のフォルダへ
+    assert any(unicodedata.normalize("NFC", x).startswith(os.path.join("新規ガイドライン作成", "CQ1-牛車腎気丸", "ポータル")) and x.endswith("Minds書類_P1.xlsx") for x in placed)   # 既存の CQ のフォルダの ポータル/
+    assert any(x.startswith(os.path.join("CQ1-プレガバリン", "ポータル")) for x in placed) and not any(x.startswith(".hidden") for x in placed) and not any(x.startswith("提出") for x in placed)   # 既存がなければ最上位に作る
+    import contextlib
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf): SD.main(["--tree"], home=home)
+    assert "新規ガイドライン作成/" in buf.getvalue() and "ポータル/" in buf.getvalue()
     with pytest.raises(SystemExit) as e: SD.main([], session=lambda email: Tok(), fetch=fetch, home=str(tmp_path / "empty"))
     assert "見つかりません" in str(e.value)
-    # .command: どのフォルダから起動しても、リポジトリの scripts/sync_drive.py を絶対パスで呼ぶ(python3 と aws は、記録するだけの代用品)
+    # fetch.sh: どのフォルダから起動しても、リポジトリの platform/portal/scripts/sync_drive.py を呼ぶ(python3 と aws は、記録するだけの代用品)
     shim = tmp_path / "shim"; shim.mkdir(); log = tmp_path / "args.txt"
-    (shim / "python3").write_text(f'#!/bin/bash\necho "$@" > "{log}"\necho "cwd=$PWD" >> "{log}"\n'); (shim / "aws").write_text("#!/bin/bash\nexit 0\n")
+    (shim / "python3").write_text(f'#!/bin/bash\necho "$@" > "{log}"\necho "cwd=$PWD" >> "{log}"\n'); (shim / "aws").write_text(f'#!/bin/bash\necho "aws $@" >> "{tmp_path}/aws.txt"\nexit 0\n')
     for f in ("python3", "aws"): os.chmod(shim / f, 0o755)
-    cmd = os.path.join(HERE, "..", "mac", "共有ドライブへ転送.command"); assert os.stat(cmd).st_mode & stat.S_IXUSR
+    fetch_sh = os.path.join(HERE, "..", "..", "..", "fetch.sh"); assert os.stat(fetch_sh).st_mode & stat.S_IXUSR
     for cwd in ("/", str(tmp_path)):
-        subprocess.run(["bash", cmd, "--dry-run"], cwd=cwd, env={**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}, stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
-        got = log.read_text(encoding="utf-8"); script = got.split()[0]; assert script.endswith(os.path.join("portal", "scripts", "sync_drive.py")) and os.path.isabs(script) and os.path.exists(script) and "--dry-run" in got; log.unlink()
-    for f in ("共有ドライブへ自動転送.command", "ポータルを更新.command"): assert os.stat(os.path.join(HERE, "..", "mac", f)).st_mode & stat.S_IXUSR
+        r = subprocess.run(["bash", fetch_sh, "--dry-run"], cwd=cwd, env={**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30)
+        got = log.read_text(encoding="utf-8"); assert r.returncode == 0 and got.split()[0] == "platform/portal/scripts/sync_drive.py" and "--dry-run" in got and f"cwd={os.path.realpath(os.path.join(HERE, '..', '..', '..'))}" in got; log.unlink()
+    assert os.stat(os.path.join(HERE, "..", "..", "..", "deploy_portal.sh")).st_mode & stat.S_IXUSR
     r = subprocess.run([sys.executable, os.path.join(HERE, "..", "scripts", "sync_drive.py"), "--help"], cwd="/", capture_output=True, text=True); assert "共有ドライブ" in (r.stdout + r.stderr)   # どのフォルダからでも読み込める
 
 
