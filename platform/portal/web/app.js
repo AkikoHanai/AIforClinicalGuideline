@@ -535,27 +535,6 @@
         ${list.map((d) => `<tr><td>${esc(d.name.replace(/\.docx$/, ""))}</td><td>${esc(d.target)}</td><td class="nw">${esc(d.updated)}</td><td class="nw"><a href="${esc(d.url)}" target="_blank" rel="noopener">Word を開く</a></td></tr>`).join("") || '<tr><td colspan="4" class="muted">登録された手順書はありません(事務局が登録します)</td></tr>'}</table>`;
     },
 
-    async drive(m) {
-      if (!isAdmin()) { m.innerHTML = "<h2>共有ドライブへの転送</h2><p>統括委員会・事務局に限ります。</p>"; return; }
-      const d = await api("/drive/status"), st = d.status || {};
-      const row = (k, v) => `<tr><th class="nw">${k}</th><td>${v}</td></tr>`;
-      m.innerHTML = `<h2>共有ドライブへの転送</h2>
-        <p class="note">提出物(総論の原稿の全ての版・状態)、SRの出力(Minds書類・文献選択の別添)、依頼書、手順書を、共有ドライブ「CIPNガイドライン作成」へ、ポータルから直接転送します。統括委員長のパソコンは使いません。${esc(d.schedule)}。転送済みで変更のないものは送りません。</p>
-        ${d.configured ? "" : '<div class="card">接続情報が未設定です。platform/drive_gas/README.md の手順で、設定してください。</div>'}
-        <table>${row("接続情報", d.configured ? "設定済み" : "未設定")}${row("転送済みの件数", d.mapped + "件")}${row("直近の状態", esc(st.state || "まだ実行していません"))}
-          ${st.started ? row("開始", esc(st.started.slice(0, 16).replace("T", " ")) + (st.by ? `(${esc(st.by)})` : "")) : ""}${st.finished ? row("終了", esc(st.finished.slice(0, 16).replace("T", " "))) : ""}
-          ${st.total !== undefined ? row("今回の件数", `対象 ${st.total}件、転送 ${st.copied}件、失敗 ${st.failed}件、変更なし ${st.skipped}件`) : ""}
-          ${st.message ? row("内容", esc(st.message)) : ""}</table>
-        ${(st.errors || []).length ? `<div class="card"><h3>失敗した項目(次の転送で再び試します)</h3>${st.errors.map((e) => `<div class="small">${esc(e)}</div>`).join("")}</div>` : ""}
-        ${(st.files || []).length ? `<div class="card"><h3>今回、転送したファイル</h3>${st.files.map((e) => `<div class="small">${esc(e)}</div>`).join("")}</div>` : ""}
-        <div class="row"><button id="dTest" ${d.configured ? "" : "disabled"}>接続を確認</button><button id="dSync" ${d.configured ? "" : "disabled"}>今すぐ転送</button><button id="dForce" ${d.configured ? "" : "disabled"}>全てを送り直す</button><button id="dReload">状態を更新</button></div>
-        <p class="small">「全てを送り直す」は、共有ドライブ側でファイルを消したときに使います。同じ名前のファイルは置き換え、ドライブの版の履歴に残ります。</p>`;
-      $("#dReload").addEventListener("click", render);
-      $("#dTest")?.addEventListener("click", async () => { try { const r = await api("/drive/test", "POST", {}); toast(`接続できました: ${r.root}`); } catch (e) { toast(e.message, true); } });
-      const run = (force) => async () => { if (force && !confirm("転送済みのものも含め、全てを送り直します。よろしいですか")) return; try { await api("/drive/sync", "POST", { force }); toast("転送を始めました。数分後に「状態を更新」を押してください"); } catch (e) { toast(e.message, true); } };
-      $("#dSync")?.addEventListener("click", run(false)); $("#dForce")?.addEventListener("click", run(true));
-    },
-
     async audit(m) { const list = await api("/audit"); m.innerHTML = `<h2>作成経過の記録</h2><p class="small">全ての操作が追記される。更新・削除の操作はない。${list.length}件</p>${auditTable(list)}`; },
   };
 

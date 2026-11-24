@@ -16,8 +16,6 @@ DynamoDB 1テーブル(pk, sk):
   SCR/<cq>#<pmid>#<担当>      担当委員ごとの判定(一次・二次の可否、除外理由、全文の状態、変更の履歴)
   ABS/<cq>#<pmid>             抄録(一覧を軽くするため、文献の記録と分ける)
   SCRIMP/<cq>#<id>            対象の取り込みの記録(追加した PMID、登録済みのため重複として除いた PMID)
-  DRIVEMAP/<ドライブ内のパス>  共有ドライブへ転送済みの版(sig: 版の識別。同じなら転送しない)
-  DRIVESYNC/current           共有ドライブへの直近の転送の状態(件数・失敗)
   SCRMETA/<cq>                流れ図の件数の保存(rev: 記録の変更の回数。flow_rev が rev と同じなら、保存した件数は最新)
   ACCESS/<email>              利用申請(氏名・所属・状態。承認で USER と Cognito のグループが付く)
   VOTE/<cq>#<回>              電子投票のラウンド(投票者の固定、状態、集計)  VOTEEXCL/<cq>  投票除外(COI)
@@ -265,8 +263,6 @@ def handler(event, context=None):
         return run_draft45(event)
     if event.get("task") == "draft_etd":
         return run_draft_etd(event)
-    if event.get("task") == "drive_sync":  # 共有ドライブへの転送(非同期、または EventBridge の1時間ごとの起動)
-        return run_drive_sync(event, context)
     method = (event.get("requestContext") or {}).get("http", {}).get("method") or event.get("httpMethod", "GET")
     path = event.get("rawPath") or event.get("path") or "/"
     path, _, q = path.partition("?")
@@ -349,8 +345,6 @@ def route(method, parts, body, user):
         require(user, ROLE_ADMIN)
         if method != "POST": return resp(405, {"error": "方法が不正です"})
         audit(user, "共有ドライブへの転送", "ポータル → 共有ドライブ", f"転送 {int(body.get('copied', 0))}件、変更なしで飛ばした {int(body.get('skipped', 0))}件。" + str(body.get("detail", ""))[:800]); return resp(200, {"ok": True})
-    if head == "drive":
-        require(user, ROLE_ADMIN); return drive_api(method, parts, body, user)
     if head == "screening":
         return screening(method, parts, body, user)
     if head == "search":
@@ -358,125 +352,6 @@ def route(method, parts, body, user):
     if head == "audit":
         return resp(200, sorted(query("AUDIT"), key=lambda a: a["sk"], reverse=True))
     return resp(404, {"error": "ありません"})
-
-
-# ---------- 共有ドライブへの直接転送(Mac を介さない。ポータル → ドライブ) ----------
-# 提出/総論/総論<項目>_<題名>/   原稿の全ての版(<日時>_<版ID末尾>_<ファイル名>)と 状態.txt
-# 提出/SR/<CQ>_<名称>/           Minds書類、文献選択の別添(記録が変わったときだけ、同じ名前で置き換える)
-# 依頼書/                        総論の依頼書(Word)
-# マニュアル/<対象>/             手順書(Word)
-DRIVE_BUDGET = 230   # 1回の起動で転送に使う秒数(Lambda の上限 300秒の内)
-DRIVE_ROUNDS = 8     # 時間内に終わらないとき、続きを自動で起動する回数の上限
-DRIVE_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-DRIVE_DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-dsafe = lambda x: re.sub(r'[\\/:*?"<>|\n\r]', "_", str(x)).strip()[:80]
-
-
-def cq_signature(cqid):
-    """CQ の記録(検索・スクリーニング・論文・SR-5/8・EtD・投票)が変わったかを見る識別。変わらなければ、出力を作り直して転送しない。"""
-    import hashlib
-    h = hashlib.sha1()
-    for pk, pre in (("PAPER", f"{cqid}#"), ("F45", f"{cqid}#"), ("SR8", f"{cqid}#"), ("SEARCH", f"{cqid}#")):
-        for r in sorted(query(pk, pre), key=lambda r: r["sk"]): h.update(f"{pk}|{r['sk']}|{r.get('updated_at', '')}".encode())
-    for pk in ("CQ", "ETD", "GL2023"):
-        r = get(pk, cqid) or {}; h.update(f"{pk}|{r.get('updated_at', '')}".encode())
-    h.update(f"rev|{(get('SCRMETA', cqid) or {}).get('rev', 0)}".encode())
-    return h.hexdigest()[:16]
-
-
-def drive_items():
-    """転送する項目を、順に返す: {path, sig, load(): bytes, overwrite, mime}。sig が転送済みと同じなら、load は呼ばない。"""
-    import hashlib
-    for s_ in sorted(query("SORON"), key=lambda x: x["key"]):
-        folder = ["提出", "総論", f"総論{s_['label']}_{dsafe(s_['title'])}"]
-        txt = "\n".join([f"総論{s_['label']} {s_['title']}", f"担当: {s_.get('author', '')}", f"状態: {s_.get('status', '')}", f"期限: {s_.get('due', '')}",
-                         f"最新の原稿: {s_.get('file', '')}({s_.get('file_by', '')}、{s_.get('file_at', '')})", f"査読コメント({s_.get('review_by', '')}、{s_.get('review_at', '')}):", s_.get("review", ""), f"備考: {s_.get('note', '')}"]) + "\n"
-        data = txt.encode("utf-8")
-        yield {"path": folder + ["状態.txt"], "sig": hashlib.sha1(data).hexdigest()[:16], "load": lambda d=data: d, "overwrite": True, "mime": "text/plain"}
-        if not BUCKET: continue
-        for v in sorted(s3().list_object_versions(Bucket=BUCKET, Prefix=f"soron/{s_['key']}/").get("Versions", []), key=lambda x: x["LastModified"]):
-            stamp = v["LastModified"].isoformat()[:19].replace("-", "").replace(":", "").replace("T", "-")
-            name = f"{stamp}_{v['VersionId'][-6:]}_{dsafe(v['Key'].split('/')[-1])}"
-            yield {"path": folder + [name], "sig": v["VersionId"], "overwrite": False, "mime": "application/octet-stream",
-                   "load": lambda k=v["Key"], vid=v["VersionId"]: s3().get_object(Bucket=BUCKET, Key=k, VersionId=vid)["Body"].read()}
-    for c in sorted(query("CQ"), key=lambda x: x["id"]):
-        folder = ["提出", "SR", f"{c['id']}_{dsafe(c['title'])}"]; sig = cq_signature(c["id"])
-        yield {"path": folder + [f"Minds書類_{c['id']}.xlsx"], "sig": sig, "load": lambda i=c["id"], cc=c: minds_book(i, cc), "overwrite": True, "mime": DRIVE_XLSX}
-        yield {"path": folder + [f"文献選択の別添_{c['id']}.xlsx"], "sig": sig, "load": lambda i=c["id"], cc=c: screening_book(i, cc)[0], "overwrite": True, "mime": DRIVE_XLSX}
-    if not BUCKET: return
-    for g in sorted(query("GL2023S"), key=lambda x: x["sk"]):
-        if g.get("docx_key"):
-            try: etag = s3().head_object(Bucket=BUCKET, Key=g["docx_key"])["ETag"]
-            except Exception: continue
-            yield {"path": ["依頼書", dsafe(os.path.basename(g["docx_key"]))], "sig": etag, "overwrite": True, "mime": DRIVE_DOCX,
-                   "load": lambda k=g["docx_key"]: s3().get_object(Bucket=BUCKET, Key=k)["Body"].read()}
-    objs = s3().list_objects_v2(Bucket=BUCKET, Prefix="docs/").get("Contents", [])
-    for k, target, _roles in DOCS:
-        o = next((x for x in objs if k in x["Key"]), None)
-        if o:
-            yield {"path": ["マニュアル", dsafe(target), o["Key"].split("/", 1)[1]], "sig": o["ETag"], "overwrite": True, "mime": DRIVE_DOCX,
-                   "load": lambda kk=o["Key"]: s3().get_object(Bucket=BUCKET, Key=kk)["Body"].read()}
-
-
-def run_drive_sync(event, context=None):
-    """共有ドライブへの転送。転送済み(同じ sig)は飛ばす。時間内に終わらないときは、続きを自分自身で起動する。失敗した項目は、次の起動で再び試す。"""
-    import drive
-    cfg = drive.config(); st = get("DRIVESYNC", "current") or {}; rnd = int(event.get("round", 1)); by = event.get("by") or "自動(1時間ごと)"
-    if not cfg:
-        if event.get("by"): put("DRIVESYNC", "current", {"state": "未設定", "message": "共有ドライブへの接続情報(Secrets Manager の jascc-gl-portal/drive)がありません"})
-        return {"ok": False, "reason": "未設定"}
-    if rnd == 1:
-        if st.get("state") == "実行中" and time.time() - float(st.get("started_ts", 0)) < 900: return {"ok": False, "reason": "実行中"}
-        st = {"state": "実行中", "started": now(), "started_ts": time.time(), "by": by, "copied": 0, "failed": 0, "errors": [], "failed_paths": [], "files": []}
-        put("DRIVESYNC", "current", st)
-    force = bool(event.get("force")); mp = {r["sk"]: r for r in query("DRIVEMAP")}; deadline = time.time() + DRIVE_BUDGET; total = 0; more = False
-    for it in drive_items():
-        total += 1; key = "/".join(it["path"]); old = mp.get(key)
-        if not force and old and old.get("sig") == it["sig"]: continue
-        if force and rnd > 1 and old and old.get("sig") == it["sig"] and old.get("at", "") >= st["started"]: continue   # この実行で転送済み
-        if key in st["failed_paths"]: continue
-        if time.time() > deadline: more = True; continue
-        try:
-            data = it["load"](); r = drive.put(cfg, it["path"], data, overwrite=it["overwrite"], mime=it["mime"])
-            put("DRIVEMAP", key, {"sig": it["sig"], "at": now(), "bytes": len(data), "action": r.get("action", ""), "drive_id": r.get("id", "")})
-            st["copied"] += 1; st["files"].append(key)
-        except Exception as e:
-            st["failed"] += 1; st["failed_paths"].append(key); st["errors"].append(f"{key}: {str(e)[:150]}")
-    st["errors"] = st["errors"][:20]; st["files"] = st["files"][:200]
-    if more and rnd < DRIVE_ROUNDS and FUNCTION:
-        put("DRIVESYNC", "current", st)
-        boto3.client("lambda").invoke(FunctionName=FUNCTION, InvocationType="Event", Payload=json.dumps({"task": "drive_sync", "by": by, "round": rnd + 1, "force": force}, ensure_ascii=False).encode())
-        return {"ok": True, "continued": rnd + 1}
-    st.update({"state": "未完了(続きは次回)" if more else ("完了(失敗あり)" if st["failed"] else "完了"), "finished": now(), "total": total, "skipped": max(0, total - st["copied"] - st["failed"]), "rounds": rnd})
-    put("DRIVESYNC", "current", st)
-    if st["copied"] or st["failed"]:
-        audit({"name": by, "email": ""}, "共有ドライブへの転送", "ポータル → 共有ドライブ", f"転送 {st['copied']}件、失敗 {st['failed']}件、変更なし {st['skipped']}件。" + "; ".join(st["files"])[:600])
-    return {"ok": True, "copied": st["copied"], "failed": st["failed"]}
-
-
-def drive_api(method, parts, body, user):
-    # GET  /drive/status        接続の有無、直近の転送の状態、転送済みの件数
-    # POST /drive/test          共有ドライブへ接続できるかを確かめる(フォルダ名を返す)
-    # POST /drive/sync          今すぐ転送する(force=true で、転送済みも含め全てを送り直す)
-    import drive
-    sub = parts[1] if len(parts) > 1 else "status"
-    cfg = drive.config()
-    if method == "GET" and sub == "status":
-        st = dict(get("DRIVESYNC", "current") or {}); st.pop("started_ts", None)
-        return resp(200, {"configured": bool(cfg), "status": st, "mapped": len(query("DRIVEMAP")), "schedule": "1時間ごとに自動で転送し、変更のあったものだけを送る"})
-    if method == "POST" and sub == "test":
-        if not cfg: return resp(400, {"error": "接続情報がありません。platform/drive_gas/README.md の手順 4 を行ってください"})
-        try: r = drive.ping(cfg)
-        except Exception as e: return resp(502, {"error": f"接続できません: {e}"})
-        audit(user, "共有ドライブの接続確認", "ポータル → 共有ドライブ", str(r.get("root", ""))); return resp(200, {"ok": True, "root": r.get("root", "")})
-    if method == "POST" and sub == "sync":
-        if not cfg: return resp(400, {"error": "接続情報がありません。platform/drive_gas/README.md の手順 4 を行ってください"})
-        cur = get("DRIVESYNC", "current") or {}
-        if cur.get("state") == "実行中" and time.time() - float(cur.get("started_ts", 0)) < 900: return resp(409, {"error": "転送の実行中です。終わってから、もう一度押してください"})
-        ev = {"task": "drive_sync", "by": user.get("name") or user.get("email", ""), "force": bool(body.get("force"))}
-        if FUNCTION: boto3.client("lambda").invoke(FunctionName=FUNCTION, InvocationType="Event", Payload=json.dumps(ev, ensure_ascii=False).encode()); return resp(202, {"started": True})
-        return resp(200, run_drive_sync(ev))
-    return resp(405, {"error": "方法が不正です"})
 
 
 # ---------- 利用者(ログイン用。名簿ではない) ----------

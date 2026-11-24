@@ -6,7 +6,7 @@
 import os
 import aws_cdk as cdk
 from aws_cdk import (Duration, RemovalPolicy, Stack, aws_apigatewayv2 as apigw, aws_apigatewayv2_authorizers as authz, aws_apigatewayv2_integrations as integ,
-                     aws_cloudfront as cf, aws_cloudfront_origins as origins, aws_cognito as cognito, aws_dynamodb as ddb, aws_events as events, aws_events_targets as targets, aws_iam as iam, aws_lambda as lam,
+                     aws_cloudfront as cf, aws_cloudfront_origins as origins, aws_cognito as cognito, aws_dynamodb as ddb, aws_iam as iam, aws_lambda as lam,
                      aws_logs as logs, aws_s3 as s3, aws_s3_deployment as s3deploy)
 from constructs import Construct
 
@@ -64,9 +64,9 @@ class PortalStack(Stack):
                                                               callback_urls=[site + "/", local + "/"], logout_urls=[site + "/", local + "/"]),
                                  prevent_user_existence_errors=True, id_token_validity=Duration.hours(8), access_token_validity=Duration.hours(8), refresh_token_validity=Duration.days(7))
 
-        fn = lam.Function(self, "Api", runtime=lam.Runtime.PYTHON_3_12, handler="handler.handler", code=lam.Code.from_asset(API_DIR), timeout=Duration.seconds(300), memory_size=1024,
+        fn = lam.Function(self, "Api", runtime=lam.Runtime.PYTHON_3_12, handler="handler.handler", code=lam.Code.from_asset(API_DIR), timeout=Duration.seconds(120), memory_size=1024,
                           environment={"TABLE_NAME": table.table_name, "USER_POOL_ID": pool.user_pool_id, "PAPERS_BUCKET": papers.bucket_name,
-                                       "BEDROCK_MODEL_ID": os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5"), "DRIVE_SECRET": "jascc-gl-portal/drive"},
+                                       "BEDROCK_MODEL_ID": os.environ.get("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5")},
                           log_retention=logs.RetentionDays.ONE_YEAR)
         table.grant_read_write_data(fn)
         papers.grant_read_write(fn)
@@ -74,11 +74,6 @@ class PortalStack(Stack):
         fn.add_to_role_policy(iam.PolicyStatement(actions=["lambda:InvokeFunction"], resources=[f"arn:aws:lambda:{self.region}:{self.account}:function:*"]))
         fn.add_to_role_policy(iam.PolicyStatement(actions=["cognito-idp:AdminCreateUser", "cognito-idp:AdminAddUserToGroup", "cognito-idp:AdminRemoveUserFromGroup", "cognito-idp:AdminListGroupsForUser", "cognito-idp:AdminGetUser"],
                                                   resources=[pool.user_pool_arn]))
-
-        # 共有ドライブへの直接転送(Mac を介さない): 接続情報(Apps Script の URL と合言葉)は Secrets Manager の jascc-gl-portal/drive(scripts/set_drive.py が保存)。読み取りだけを許す
-        fn.add_to_role_policy(iam.PolicyStatement(actions=["secretsmanager:GetSecretValue"], resources=[f"arn:aws:secretsmanager:{self.region}:{self.account}:secret:jascc-gl-portal/drive-*"]))
-        events.Rule(self, "DriveSync", schedule=events.Schedule.rate(Duration.hours(1)), description="共有ドライブへの転送(変更のあったものだけ。接続情報がなければ何もしない)",
-                    targets=[targets.LambdaFunction(fn, event=events.RuleTargetInput.from_object({"task": "drive_sync"}), retry_attempts=0)])
 
         api = apigw.HttpApi(self, "HttpApi", api_name=name,
                             cors_preflight=apigw.CorsPreflightOptions(allow_origins=[site, local], allow_methods=[apigw.CorsHttpMethod.ANY], allow_headers=["Authorization", "Content-Type"], max_age=Duration.hours(1)))

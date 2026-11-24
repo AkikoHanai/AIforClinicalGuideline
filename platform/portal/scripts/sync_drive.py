@@ -1,8 +1,11 @@
-"""(予備)ポータルの提出物・出力・手順書を、Google 共有ドライブ「CIPNガイドライン作成」へ転送する(統括委員長の Mac で実行。ポータル → ドライブ)。
-通常は、ポータルが共有ドライブへ直接転送する(Mac を介さない。platform/drive_gas/README.md)。このスクリプトは、組織の設定で Web アプリを公開できないときの予備。
-  python3 platform/portal/scripts/sync_drive.py <メールアドレス>
-  DRIVE_DIR=<パス> python3 platform/portal/scripts/sync_drive.py <メールアドレス>     ドライブの場所を変えるとき
-  python3 platform/portal/scripts/sync_drive.py <メールアドレス> --dry-run             転送する内容だけを表示する
+"""ポータルの提出物・出力・手順書を、Google 共有ドライブ「CIPNガイドライン作成」へ転送する(統括委員長の Mac。ポータル → ドライブ)。
+Google Drive for desktop の同期フォルダへ書き込むと、Google Drive for desktop が共有ドライブへ同期する(Apps Script など、Google 側の設定は不要。学術アカウントでよい)。
+使い方: platform/portal/mac/共有ドライブへ転送.command をダブルクリックする(どのフォルダからでも動く。場所の指定・コードの修正は要らない)。
+  共有ドライブへ自動転送.command ... 30分ごとに繰り返す(ウィンドウを開いたままにする)
+直接実行するとき(どのフォルダからでもよい。リポジトリの場所は、このファイルの位置から決まる):
+  python3 <このファイル> [メールアドレス] [--dry-run] [--watch[=分]] [--drive <フォルダ>]
+メールアドレスは、初回だけ尋ね、~/.jascc_gl_portal.json に保存する。
+共有ドライブのフォルダは、自動で見つける(~/Library/CloudStorage/GoogleDrive-*/共有ドライブ/CIPNガイドライン作成。英語表示の Shared drives も)。環境変数 DRIVE_DIR か --drive で指定もできる。
 ドライブの中の構成(なければ作る):
   提出/総論/総論<項目>_<題名>/   原稿の全ての版(<日時>_<版ID末尾>_<ファイル名>)、状態.txt(状態・期限・提出者・査読コメント)
   提出/SR/<CQ>_<名称>/           Minds書類(xlsx)、文献選択の別添(xlsx)。出力のたびに、同じ名前で置き換える(ドライブの版の履歴に残る)
@@ -12,10 +15,32 @@
 注意: 共有ドライブのメンバーは、委員に限る(学生を含めない。委員以外に資料を見せない)。
 ポータルでは役割ごとに見える範囲を分けているが、ドライブのフォルダは、ドライブの共有設定で分ける(例: マニュアル/統括委員会 は統括委員会だけ)。
 文献選択の別添と Minds書類は、各委員の判定を、その段階を 2名が判定した後だけ載せる(2名独立)。"""
-import datetime, os, re, sys, urllib.request
+import datetime, json, os, re, sys, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-DRIVE = os.environ.get("DRIVE_DIR", "/Users/ahanai/Library/CloudStorage/GoogleDrive-akiko.hanai@faculty.gs.chiba-u.jp/共有ドライブ/CIPNガイドライン作成")
+DRIVE_NAME = "CIPNガイドライン作成"
+
+
+def find_drive(home=None, name=DRIVE_NAME):
+    """Google Drive for desktop の同期フォルダの中から、共有ドライブ「CIPNガイドライン作成」を見つける。見つけた場所の一覧を返す(先頭を使う)。"""
+    import glob
+    home = home or os.path.expanduser("~"); found = []
+    for base in (os.path.join(home, "Library", "CloudStorage", "GoogleDrive-*"), "/Volumes/GoogleDrive*", os.path.join(home, "Google Drive*")):
+        for shared in ("共有ドライブ", "Shared drives"):
+            found += [p for p in sorted(glob.glob(os.path.join(base, shared, name))) if os.path.isdir(p)]
+    return found
+
+
+def drive_help(home=None):
+    """見つからないときの案内(見つかった Google ドライブと、その中の共有ドライブの名前)"""
+    import glob
+    home = home or os.path.expanduser("~"); lines = []
+    for base in sorted(glob.glob(os.path.join(home, "Library", "CloudStorage", "GoogleDrive-*"))):
+        names = [x for sh in ("共有ドライブ", "Shared drives") for x in sorted(os.listdir(os.path.join(base, sh)))] if any(os.path.isdir(os.path.join(base, sh)) for sh in ("共有ドライブ", "Shared drives")) else []
+        lines.append(f"  {base}  → 共有ドライブ: {', '.join(names) if names else '(なし。Google Drive for desktop の「共有ドライブ」が表示されているか確認)'}")
+    return "\n".join(lines) or "  Google Drive for desktop の同期フォルダ(~/Library/CloudStorage/GoogleDrive-...)が見つかりません。アプリが起動し、ログイン済みか確認してください"
+
+
 safe = lambda s: re.sub(r'[\\/:*?"<>|\n\r]', "_", str(s)).strip()[:80]
 
 
@@ -29,13 +54,12 @@ def place(dest, data, copied, skipped, dry, overwrite=False):
         skipped.append(dest); return
     if not dry:
         os.makedirs(os.path.dirname(dest), exist_ok=True)
-        with open(dest + ".part", "wb") as fh: fh.write(data)
-        os.replace(dest + ".part", dest)
+        with open(dest, "wb") as fh: fh.write(data)   # 一時ファイルを作らない(Google Drive for desktop が一時ファイルを同期しないように)
     copied.append(dest)
 
 
-def sync(tok, drive=DRIVE, dry=False, fetch=get_bytes):
-    if not os.path.isdir(drive): sys.exit(f"共有ドライブのフォルダがありません: {drive}(Google Drive for desktop が同期済みか確認)")
+def sync(tok, drive, dry=False, fetch=get_bytes):
+    if not os.path.isdir(drive): sys.exit(f"共有ドライブのフォルダがありません: {drive}")
     copied, skipped, rel = [], [], lambda p: os.path.relpath(p, drive)
     # 1. 総論の原稿(全ての版)と状態
     for s in tok.call("GET", "/soron"):
@@ -72,8 +96,50 @@ def sync(tok, drive=DRIVE, dry=False, fetch=get_bytes):
     return copied, skipped
 
 
+def settings(argv, home=None):
+    """引数から (メールアドレス, 共有ドライブのフォルダ, オプション) を決める。"""
+    home = home or os.path.expanduser("~"); conf = os.path.join(home, ".jascc_gl_portal.json")
+    opts = {"dry": "--dry-run" in argv, "watch": None}
+    for x in argv:
+        if x == "--watch": opts["watch"] = 30
+        elif x.startswith("--watch="): opts["watch"] = max(1, int(x.split("=", 1)[1]))
+    pos, skip = [], False
+    for k, x in enumerate(argv):
+        if skip: skip = False; continue
+        if x == "--drive": skip = True; continue
+        if not x.startswith("--"): pos.append(x)
+    drive = (argv[argv.index("--drive") + 1] if "--drive" in argv else "") or os.environ.get("DRIVE_DIR", "")
+    if not drive:
+        found = find_drive(home)
+        if not found: sys.exit(f"共有ドライブ「{DRIVE_NAME}」の同期フォルダが見つかりません。見つかった Google ドライブ:\n{drive_help(home)}")
+        drive = found[0]
+        if len(found) > 1: print("共有ドライブが複数見つかりました。最初のものを使います:", *found, sep="\n  ")
+    cfg = json.load(open(conf, encoding="utf-8")) if os.path.exists(conf) else {}
+    email = (pos[0] if pos else "") or os.environ.get("JASCC_EMAIL", "") or cfg.get("email", "")
+    if not email:
+        email = input("ポータルのメールアドレス(統括委員会のもの。初回だけ尋ねます): ").strip()
+    if email and cfg.get("email") != email:
+        cfg["email"] = email; json.dump(cfg, open(conf, "w", encoding="utf-8"), ensure_ascii=False)
+    return email, drive, opts
+
+
+def main(argv, session=None, fetch=get_bytes, home=None):
+    email, drive, opts = settings(argv, home); print(f"共有ドライブ: {drive}\nポータルの利用者: {email}")
+    if session is None:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from admin_user import Session
+        session = Session
+    import time
+    while True:
+        try: sync(session(email), drive, dry=opts["dry"], fetch=fetch)
+        except SystemExit: raise
+        except Exception as e:
+            if not opts["watch"]: raise
+            print("転送に失敗しました(次の回に再び試します):", e)
+        if not opts["watch"]: return
+        print(f"{opts['watch']}分後に、もう一度転送します(止めるときは Ctrl+C)"); time.sleep(opts["watch"] * 60)
+
+
 if __name__ == "__main__":
-    a = [x for x in sys.argv[1:] if not x.startswith("--")]
-    if not a: sys.exit(__doc__)
-    from admin_user import token
-    sync(token(a[0]), dry="--dry-run" in sys.argv)
+    if "-h" in sys.argv or "--help" in sys.argv: sys.exit(__doc__)
+    main(sys.argv[1:])

@@ -491,38 +491,41 @@ def test_sync_to_shared_drive(env, tmp_path):
     assert call("POST", "/sync/log", {"copied": 1}, R1)[0] == 403
 
 
-def test_direct_drive_sync_without_mac(env, monkeypatch):
-    """Mac を介さず、ポータル(Lambda)が共有ドライブの受け口へ転送する。転送済みの版は飛ばし、記録が変わった出力だけ置き換え、失敗は次の起動で再び試す。接続情報は、設定がなければ動かない。"""
-    import drive as D
+def test_sync_drive_finds_folder_runs_from_any_directory(env, tmp_path, monkeypatch):
+    """Mac の Google Drive for desktop の同期フォルダを自動で見つけ、メールアドレスは初回だけ尋ねて保存し、どのフォルダからでも .command で動く(場所・コードの手修正を要しない)。"""
+    import importlib, subprocess, stat, urllib.parse
+    sys.path.insert(0, os.path.join(HERE, "..", "scripts")); SD = importlib.import_module("sync_drive")
     s3c = boto3.client("s3"); s3c.put_bucket_versioning(Bucket=H.BUCKET, VersioningConfiguration={"Status": "Enabled"})
-    assert call("GET", "/drive/status")[1]["configured"] is False and call("POST", "/drive/sync", {})[0] == 400 and call("GET", "/drive/status", who=R1)[0] == 403
     W = dict(email="w@example.org", groups=("総説執筆者",)); call("POST", "/users", {"email": "w@example.org", "name": "内藤太郎", "roles": ["総説執筆者"]})
-    for body in (b"first draft", b"second draft, longer"):
-        c, r = call("POST", "/soron/A/upload-url", {"filename": "総論A_内藤.docx"}, W); s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=body)
-    call("POST", "/docs/upload-url", {"filename": "4_SR委員の手順書.docx"}); s3c.put_object(Bucket=H.BUCKET, Key="docs/4_SR委員の手順書.docx", Body=b"manual")
-    store, fail = {}, set(); cfg = {"url": "https://script.google.com/macros/s/x/exec", "token": "t"}
-    monkeypatch.setattr(D, "config", lambda: cfg)
-    def fake_put(c_, path, data, overwrite=False, mime=""):
-        k = "/".join(path)
-        if any(f in k for f in fail): raise RuntimeError("quota")
-        if k in store and not overwrite: return {"ok": True, "action": "same", "id": k}
-        act = "updated" if k in store else "created"; store[k] = data; return {"ok": True, "action": act, "id": k}
-    monkeypatch.setattr(D, "put", fake_put); monkeypatch.setattr(D, "ping", lambda c_: {"ok": True, "root": "CIPNガイドライン作成"})
-    assert call("POST", "/drive/test", {})[1]["root"] == "CIPNガイドライン作成"
-    c, r = call("POST", "/drive/sync", {}); assert c == 200 and r["failed"] == 0 and r["copied"] > 5
-    subm = [k for k in store if k.startswith("提出/総論/総論A_")]
-    assert len(subm) == 3 and sorted(store[k] for k in subm if k.endswith(".docx")) == [b"first draft", b"second draft, longer"] and "状態: " in store[[k for k in subm if k.endswith("状態.txt")][0]].decode()
-    assert store["マニュアル/SR委員/4_SR委員の手順書.docx"] == b"manual" and any(k.startswith("提出/SR/P1_") and k.endswith("文献選択の別添_P1.xlsx") for k in store)
-    st = call("GET", "/drive/status")[1]; assert st["configured"] and st["status"]["state"] == "完了" and st["mapped"] == r["copied"] and "started_ts" not in st["status"]
-    c, r2 = call("POST", "/drive/sync", {}); assert r2["copied"] == 0 and call("GET", "/drive/status")[1]["status"]["skipped"] >= 8              # 変更がなければ何も送らない
-    n0 = len(store); c, _ = call("PUT", "/soron/A", {"review": "表1の出典を追記してください"}); c, r3 = call("POST", "/drive/sync", {})                  # 状態.txt だけが変わる
-    assert r3["copied"] == 1 and "表1の出典" in store[[k for k in store if k.endswith("総論A_内藤_状態.txt") or (k.startswith("提出/総論/総論A_") and k.endswith("状態.txt"))][0]].decode() and len(store) == n0
-    s3c.put_object(Bucket=H.BUCKET, Key="soron/A/総論A_内藤.docx", Body=b"third draft"); fail.add("総論A_"); c, r4 = call("POST", "/drive/sync", {})   # 失敗は記録し、記録に残さない
-    assert r4["failed"] == 1 and call("GET", "/drive/status")[1]["status"]["state"] == "完了(失敗あり)" and not any(b"third draft" == v for v in store.values())
-    fail.clear(); c, r5 = call("POST", "/drive/sync", {}); assert r5["copied"] == 1 and r5["failed"] == 0 and any(v == b"third draft" for v in store.values())  # 次の起動で再び試す
-    c, r6 = call("POST", "/drive/sync", {"force": True}); assert r6["copied"] == len(call("GET", "/drive/status")[1]["status"]["files"]) and r6["copied"] >= 10  # 全て送り直す
-    a = [x for x in call("GET", "/audit")[1] if x["action"] == "共有ドライブへの転送"]; assert a and "失敗 1件" in " ".join(x["detail"] for x in a)
-    monkeypatch.setattr(D, "config", lambda: None); assert H.run_drive_sync({"task": "drive_sync"})["reason"] == "未設定"                                    # 自動起動は、接続情報がなければ何もしない
+    c, r = call("POST", "/soron/A/upload-url", {"filename": "総論A_内藤.docx"}, W); s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"draft")
+    class Tok:
+        def call(self, method, path, body=None): return call(method, path, body)[1]
+    def fetch(url):
+        u = urllib.parse.urlparse(url); q = urllib.parse.parse_qs(u.query); kw = {"VersionId": q["versionId"][0]} if "versionId" in q else {}
+        return s3c.get_object(Bucket=H.BUCKET, Key=urllib.parse.unquote(u.path.lstrip("/")), **kw)["Body"].read()
+    home = str(tmp_path / "home"); cs = os.path.join(home, "Library", "CloudStorage")
+    os.makedirs(os.path.join(cs, "GoogleDrive-other@example.org", "共有ドライブ", "別の共有ドライブ")); os.makedirs(os.path.join(cs, "GoogleDrive-chair@example.org", "共有ドライブ", "CIPNガイドライン作成"))
+    drive = os.path.join(cs, "GoogleDrive-chair@example.org", "共有ドライブ", "CIPNガイドライン作成")
+    assert SD.find_drive(home) == [drive]
+    os.makedirs(os.path.join(home, "e", "Library", "CloudStorage", "GoogleDrive-e@example.org", "Shared drives", "CIPNガイドライン作成")); assert len(SD.find_drive(os.path.join(home, "e"))) == 1   # 英語表示
+    asked = []; monkeypatch.setattr("builtins.input", lambda *a: asked.append(1) or "chair@example.org")
+    SD.main(["--dry-run"], session=lambda email: Tok(), fetch=fetch, home=home)                                 # 初回: メールアドレスを尋ねて保存。--dry-run は、何も置かない
+    assert asked == [1] and json.load(open(os.path.join(home, ".jascc_gl_portal.json"), encoding="utf-8"))["email"] == "chair@example.org" and not os.listdir(drive)
+    monkeypatch.setattr("builtins.input", lambda *a: (_ for _ in ()).throw(AssertionError("2回目は尋ねない")))
+    seen = []; SD.main([], session=lambda email: seen.append(email) or Tok(), fetch=fetch, home=home)           # 2回目: 保存したメールアドレスで、自動で見つけたフォルダへ転送
+    assert seen == ["chair@example.org"] and any(f.endswith("総論A_内藤.docx") for d, _, fs in os.walk(drive) for f in fs) and os.path.isdir(os.path.join(drive, "提出", "SR")) and not [f for d, _, fs in os.walk(drive) for f in fs if f.endswith(".part")]
+    with pytest.raises(SystemExit) as e: SD.main([], session=lambda email: Tok(), fetch=fetch, home=str(tmp_path / "empty"))
+    assert "見つかりません" in str(e.value)
+    # .command: どのフォルダから起動しても、リポジトリの scripts/sync_drive.py を絶対パスで呼ぶ(python3 と aws は、記録するだけの代用品)
+    shim = tmp_path / "shim"; shim.mkdir(); log = tmp_path / "args.txt"
+    (shim / "python3").write_text(f'#!/bin/bash\necho "$@" > "{log}"\necho "cwd=$PWD" >> "{log}"\n'); (shim / "aws").write_text("#!/bin/bash\nexit 0\n")
+    for f in ("python3", "aws"): os.chmod(shim / f, 0o755)
+    cmd = os.path.join(HERE, "..", "mac", "共有ドライブへ転送.command"); assert os.stat(cmd).st_mode & stat.S_IXUSR
+    for cwd in ("/", str(tmp_path)):
+        subprocess.run(["bash", cmd, "--dry-run"], cwd=cwd, env={**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}, stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
+        got = log.read_text(encoding="utf-8"); script = got.split()[0]; assert script.endswith(os.path.join("portal", "scripts", "sync_drive.py")) and os.path.isabs(script) and os.path.exists(script) and "--dry-run" in got; log.unlink()
+    for f in ("共有ドライブへ自動転送.command", "ポータルを更新.command"): assert os.stat(os.path.join(HERE, "..", "mac", f)).st_mode & stat.S_IXUSR
+    r = subprocess.run([sys.executable, os.path.join(HERE, "..", "scripts", "sync_drive.py"), "--help"], cwd="/", capture_output=True, text=True); assert "共有ドライブ" in (r.stdout + r.stderr)   # どのフォルダからでも読み込める
 
 
 def test_sr8_has_minds_sr8_columns(env):
