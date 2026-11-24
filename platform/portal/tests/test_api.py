@@ -481,10 +481,10 @@ def test_sync_to_shared_drive(env, tmp_path):
     drive = str(tmp_path / "CIPNガイドライン作成"); os.makedirs(drive)
     cp, sk = SD.sync(Tok(), drive, fetch=fetch)
     rel = lambda: sorted(os.path.relpath(os.path.join(d, f), drive) for d, _, fs in os.walk(drive) for f in fs)
-    files = rel(); sub = [f for f in files if f.startswith(os.path.join("総論", "総論A_"))]
+    files = rel(); sub = [f for f in files if f.startswith(os.path.join("ポータル出力", "総論", "総論A_"))]
     assert len(sub) == 3 and sorted(open(os.path.join(drive, f), "rb").read() for f in sub if f.endswith(".docx")) == [b"first draft", b"second draft, longer"]
     st = open(os.path.join(drive, [f for f in sub if f.endswith("状態.txt")][0]), encoding="utf-8").read(); assert "査読コメント" in st and "表1の出典を追記してください" in st and "状態: 修正中" not in st or True
-    assert os.path.exists(os.path.join(drive, "マニュアル", "SR委員", "4_SR委員の手順書.docx")) and any(f.startswith("CQ1-牛車腎気丸") and f.endswith(os.path.join("ポータル", "文献選択の別添_P1.xlsx")) for f in files)
+    assert os.path.exists(os.path.join(drive, "ポータル出力", "マニュアル", "SR委員", "4_SR委員の手順書.docx")) and any(f.startswith(os.path.join("ポータル出力", "CQ1-牛車腎気丸")) and f.endswith("文献選択の別添_P1.xlsx") for f in files)
     cp2, sk2 = SD.sync(Tok(), drive, fetch=fetch); assert not [p for p in cp2 if "総論" in p or "マニュアル" in p] and len(sk2) >= 4                  # 転送済みは飛ばす
     n = len(rel()); SD.sync(Tok(), str(tmp_path / "d2"), dry=True, fetch=fetch) if os.path.isdir(str(tmp_path / "d2")) else None; assert len(rel()) == n
     assert any(a["action"] == "共有ドライブへの転送" and "転送" in a["detail"] for a in call("GET", "/audit")[1])
@@ -519,12 +519,17 @@ def test_sync_drive_finds_folder_runs_from_any_directory(env, tmp_path, monkeypa
     assert seen == ["chair@example.org"] and not [f for d, _, fs in os.walk(drive) for f in fs if f.endswith(".part")]
     placed = sorted(os.path.relpath(os.path.join(d, f), drive) for d, _, fs in os.walk(drive) for f in fs)
     assert any(x.startswith(os.path.join("新規ガイドライン作成", "総論", "総論A_旧い題名")) and x.endswith("総論A_内藤.docx") for x in placed)                # 既存の総論のフォルダへ
-    assert any(unicodedata.normalize("NFC", x).startswith(os.path.join("新規ガイドライン作成", "CQ1-牛車腎気丸", "ポータル")) and x.endswith("Minds書類_P1.xlsx") for x in placed)   # 既存の CQ のフォルダの ポータル/
-    assert any(x.startswith(os.path.join("CQ1-プレガバリン", "ポータル")) for x in placed) and not any(x.startswith(".hidden") for x in placed) and not any(x.startswith("提出") for x in placed)   # 既存がなければ最上位に作る
+    assert any(unicodedata.normalize("NFC", x).startswith(os.path.join("新規ガイドライン作成", "CQ1-牛車腎気丸")) and x.endswith("Minds書類_P1.xlsx") and "ポータル" not in x for x in placed)   # 既存の CQ のフォルダの中
+    assert any(x.startswith(os.path.join("新規ガイドライン作成", "ポータル出力", "CQ1-プレガバリン")) for x in placed) and not any(x.startswith(".hidden") for x in placed)   # 既存がなければ、新規ガイドライン作成/ポータル出力/ に作る
+    assert sorted(os.listdir(os.path.join(drive, "新規ガイドライン作成"))) == sorted(["ポータル出力", unicodedata.normalize("NFD", "CQ1-牛車腎気丸"), "総論"]) and not any(x.startswith(("提出", "マニュアル", "依頼書", "CQ")) for x in placed)   # 既存の構成に、新しいフォルダを作らない
     import contextlib
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf): SD.main(["--tree"], home=home)
-    assert "新規ガイドライン作成/" in buf.getvalue() and "ポータル/" in buf.getvalue()
+    assert "新規ガイドライン作成/" in buf.getvalue() and "ポータル出力/" in buf.getvalue()
+    os.makedirs(os.path.join(drive, "新規ガイドライン作成", "Chap4_SR", "SR_１")); open(os.path.join(drive, "新規ガイドライン作成", "Chap4_SR", "SR_１", "a.xlsx"), "w").close()
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf): SD.main(["--tree=4", "Chap4_SR", "--files"], home=home)                     # 深さ・フォルダ名・ファイル名
+    assert "SR_１/" in buf.getvalue() and "a.xlsx" in buf.getvalue() and "ポータル出力" not in buf.getvalue() and SD.Layout(drive).find(["SR_1"]).endswith("SR_１")   # 全角の違いを同じとみなす
     with pytest.raises(SystemExit) as e: SD.main([], session=lambda email: Tok(), fetch=fetch, home=str(tmp_path / "empty"))
     assert "見つかりません" in str(e.value)
     # fetch.sh: どのフォルダから起動しても、リポジトリの platform/portal/scripts/sync_drive.py を呼ぶ(python3 と aws は、記録するだけの代用品)

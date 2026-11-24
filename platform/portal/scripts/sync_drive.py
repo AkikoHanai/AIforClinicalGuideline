@@ -7,12 +7,12 @@ Google Drive for desktop の同期フォルダへ書き込むと、Google Drive 
   python3 <このファイル> [メールアドレス] [--dry-run] [--tree] [--watch[=分]] [--drive <フォルダ>]
 メールアドレスは、初回だけ尋ね、~/.jascc_gl_portal.json に保存する。
 共有ドライブのフォルダは、自動で見つける(~/Library/CloudStorage/GoogleDrive-*/共有ドライブ/CIPNガイドライン作成。英語表示の Shared drives も)。環境変数 DRIVE_DIR か --drive で指定もできる。
-ドライブの中の置き場所(共有ドライブの既存のフォルダを、深さ4まで調べる。同じ名前のフォルダがあればそこへ置き、なければ最上位に作る):
-  CQ・FRQ     企画書の dir の名前(例: CQ1-牛車腎気丸、CQ2-デュロキセチン)のフォルダの中の ポータル/ に、Minds書類(xlsx)、文献選択の別添(xlsx)。出力のたびに、同じ名前で置き換える(ドライブの版の履歴に残る)
-  総論        「総論A」「総論I-1」などで始まるフォルダに、原稿の全ての版(<日時>_<版ID末尾>_<ファイル名>)、状態.txt(状態・期限・提出者・査読コメント)。なければ 総論/総論<項目>_<題名>/
+ドライブの中の置き場所(共有ドライブの既存のフォルダを、深さ4まで調べる。同じ名前のフォルダがあればそこへ置き、なければ 新規ガイドライン作成/ポータル出力/ に作る。既存のフォルダの構成には作らない):
+  CQ・FRQ     企画書の dir の名前(例: CQ1-牛車腎気丸、CQ2-デュロキセチン)のフォルダがあれば、その中に。なければ ポータル出力/<dir の名前>/ に、Minds書類(xlsx)、文献選択の別添(xlsx)。出力のたびに、同じ名前で置き換える(ドライブの版の履歴に残る)
+  総論        「総論A」「総論I-1」などで始まるフォルダに、原稿の全ての版(<日時>_<版ID末尾>_<ファイル名>)、状態.txt(状態・期限・提出者・査読コメント)。なければ ポータル出力/総論/総論<項目>_<題名>/
   依頼書/     総論の依頼書(Word。2023年版の全文入り)
   マニュアル/<対象>/  手順書(Word)。対象(全委員、SR委員、SR委員長、作成グループ、総論の執筆者、統括委員会)ごとのフォルダに分ける
-  共有ドライブの構成を確かめるには --tree(フォルダの構成を表示する)。置き場所は --dry-run で、置く前に確かめられる。
+  共有ドライブの構成を確かめるには --tree[=深さ] [フォルダ名] [--files](フォルダの構成を表示する。例: --tree=4 Chap4_SR --files)。置き場所は --dry-run で、置く前に確かめられる。
 転送済みの版(同じ名前・同じ大きさ)は、飛ばす。転送した内容は、ポータルの「作成経過の記録」に残る。
 注意: 共有ドライブのメンバーは、委員に限る(学生を含めない。委員以外に資料を見せない)。
 ポータルでは役割ごとに見える範囲を分けているが、ドライブのフォルダは、ドライブの共有設定で分ける(例: マニュアル/統括委員会 は統括委員会だけ)。
@@ -61,15 +61,16 @@ def place(dest, data, copied, skipped, dry, overwrite=False):
 
 
 def nfc(x):
+    """フォルダ名の比較用。NFD(macOS)と全角・半角の違い(SR_１ と SR_1 など)を同じとみなす。"""
     import unicodedata
-    return unicodedata.normalize("NFC", x)
+    return unicodedata.normalize("NFKC", x)
 
 
 class Layout:
-    """共有ドライブの既存のフォルダ(ガイドラインの目次に沿った構成)を、深さ4まで調べ、置き場所を決める。既存の同名のフォルダがあれば、そこへ置く。なければ、最上位に作る。"""
+    """共有ドライブの既存のフォルダ(ガイドラインの目次に沿った構成)を、深さ4まで調べ、置き場所を決める。既存の同名のフォルダがあれば、そこへ置く。なければ、新規ガイドライン作成/ポータル出力/ に作る(既存の構成には作らない)。"""
 
     def __init__(self, root, depth=4):
-        self.root = root; self.dirs = []   # (NFC の名前, パス)
+        self.root = root; self.dirs = []   # (比較用の名前, パス)
         def walk(path, d):
             try: names = sorted(os.listdir(path))
             except OSError: return
@@ -79,6 +80,8 @@ class Layout:
                 self.dirs.append((nfc(n), q))
                 if d < depth: walk(q, d + 1)
         walk(root, 1)
+        # 既存の目次に沿ったフォルダ(Chap2_準備 〜 Chap8_公開後調整)を汚さないため、置き場所が決まっていないものは、ここへまとめる
+        self.out = os.path.join(self.find(["新規ガイドライン作成"]) or root, "ポータル出力")
 
     def find(self, names, prefix=False):
         """名前が完全に一致するフォルダ(なければ、prefix=True のとき、名前で始まり、次の文字が英数字・- でないフォルダ)。浅いものを優先する。"""
@@ -90,20 +93,30 @@ class Layout:
 
     def soron(self, s):
         found = self.find([f"総論{s['label']}", f"総論{s['key']}"], prefix=True)
-        return found or os.path.join(self.root, "総論", f"総論{s['label']}_{safe(s['title'])}")
+        return found or os.path.join(self.out, "総論", f"総論{s['label']}_{safe(s['title'])}")
 
     def cq(self, c):
         names = c.get("dirs") or []; found = self.find(names)
-        return os.path.join(found or os.path.join(self.root, safe((names or [f"{c['id']}_{c['title']}"])[0])), "ポータル")
+        return found or os.path.join(self.out, safe((names or [f"{c['id']}_{c['title']}"])[0]))
 
     def top(self, name):
-        return self.find([name]) or os.path.join(self.root, name)
+        return self.find([name]) or os.path.join(self.out, name)
 
 
-def tree(root, depth=3):
-    """共有ドライブのフォルダの構成(フォルダだけ)を、深さ3まで表示する。"""
+def tree(root, depth=3, sub=None, files=False):
+    """共有ドライブのフォルダの構成を表示する。sub: そのフォルダの名前(例: Chap4_SR)から表示する。files: ファイル名(各フォルダ 8件まで)も表示する。"""
+    if sub:
+        hit = Layout(root, depth=5).find([sub], prefix=True)
+        if not hit: sys.exit(f"フォルダが見つかりません: {sub}")
+        root = hit
     def walk(path, d, pre):
-        for n in sorted(x for x in os.listdir(path) if not x.startswith(".") and os.path.isdir(os.path.join(path, x))):
+        try: names = sorted(x for x in os.listdir(path) if not x.startswith("."))
+        except OSError: return
+        dirs = [x for x in names if os.path.isdir(os.path.join(path, x))]; fl = [x for x in names if x not in dirs]
+        if files:
+            for x in fl[:8]: print(f"{pre}{x}")
+            if len(fl) > 8: print(f"{pre}…(ほか {len(fl) - 8} ファイル)")
+        for n in dirs:
             print(f"{pre}{n}/")
             if d < depth: walk(os.path.join(path, n), d + 1, pre + "  ")
     print(root); walk(root, 1, "  ")
@@ -164,7 +177,7 @@ def settings(argv, home=None, need_email=True):
         found = find_drive(home)
         if not found: sys.exit(f"共有ドライブ「{DRIVE_NAME}」の同期フォルダが見つかりません。見つかった Google ドライブ:\n{drive_help(home)}")
         drive = found[0]
-        if len(found) > 1: print("共有ドライブが複数見つかりました。最初のものを使います:", *found, sep="\n  ")
+        if len({os.path.realpath(x) for x in found}) > 1: print("共有ドライブが複数見つかりました。最初のものを使います:", *found, sep="\n  ")
     cfg = json.load(open(conf, encoding="utf-8")) if os.path.exists(conf) else {}
     email = (pos[0] if pos else "") or os.environ.get("JASCC_EMAIL", "") or cfg.get("email", "")
     if not email and not need_email: return "", drive, opts
@@ -176,8 +189,11 @@ def settings(argv, home=None, need_email=True):
 
 
 def main(argv, session=None, fetch=get_bytes, home=None):
-    if "--tree" in argv:
-        _, drive, _ = settings([x for x in argv if x != "--tree"], home, need_email=False); return tree(drive)
+    tr = [x for x in argv if x == "--tree" or x.startswith("--tree=")]
+    if tr:
+        rest = [x for x in argv if x not in tr]; depth = int(tr[0].split("=", 1)[1]) if "=" in tr[0] else 3
+        _, drive, _ = settings([x for x in rest if x != "--files"], home, need_email=False)
+        pos = [x for x in rest if not x.startswith("--") and x != drive and "@" not in x]; return tree(drive, depth, pos[0] if pos else None, "--files" in rest)
     email, drive, opts = settings(argv, home); print(f"共有ドライブ: {drive}\nポータルの利用者: {email}")
     if session is None:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
