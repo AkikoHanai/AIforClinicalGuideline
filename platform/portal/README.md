@@ -134,6 +134,17 @@ python3 platform/portal/scripts/admin_user.py --chair <メールアドレス> <�
 
 パスワードは 12文字以上で、大文字・小文字・数字を含む。
 
+## 「Failed to fetch」が出るとき(統括委員長)
+
+ブラウザから API・Cognito に届いていない(通信の失敗)。API の許可設定(CORS)、API の URL、学内ネットワーク・ブラウザの拡張機能が原因になる。
+
+```
+python3 platform/portal/scripts/check_site.py
+```
+
+ブラウザと同じ要求(画面の origin からの事前確認 OPTIONS、認証なしの GET、Cognito のトークン取得)を送り、`[NG]` の行で原因を示す。AWS の権限があれば、API Gateway の CORS・ルートの認可・Lambda の状態も表示する。`[NG]` がなければ、Cmd+Shift+R で再読み込み、別のブラウザまたはシークレットウィンドウで試す。
+API のルートは、メソッドを明示する(GET・POST・PUT・DELETE・PATCH)。`ANY` にすると、OPTIONS にも認可が掛かり、ブラウザの事前確認が 401 で止まる。展開(`./deploy_portal.sh`)で反映される。
+
 ## 検索式の用語の確認
 
 `python3 platform/portal/scripts/check_mesh.py` が、検索計画の 17 検索(案を除く)の PubMed の解釈と、MeSH の見出し語を確認する。2026-11-20 の確認結果は `platform/data/search_plan.json` の `mesh_check`。

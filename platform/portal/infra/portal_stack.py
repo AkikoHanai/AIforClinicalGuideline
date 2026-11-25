@@ -78,7 +78,10 @@ class PortalStack(Stack):
         api = apigw.HttpApi(self, "HttpApi", api_name=name,
                             cors_preflight=apigw.CorsPreflightOptions(allow_origins=[site, local], allow_methods=[apigw.CorsHttpMethod.ANY], allow_headers=["Authorization", "Content-Type"], max_age=Duration.hours(1)))
         auth = authz.HttpJwtAuthorizer("Jwt", f"https://cognito-idp.{self.region}.amazonaws.com/{pool.user_pool_id}", jwt_audience=[client.user_pool_client_id])
-        api.add_routes(path="/{proxy+}", methods=[apigw.HttpMethod.ANY], integration=integ.HttpLambdaIntegration("Lambda", fn), authorizer=auth)
+        # メソッドを明示する(ANY にしない)。ANY は OPTIONS にも認可が掛かり、ブラウザの CORS の事前確認が 401 で止まって「Failed to fetch」になる。
+        # OPTIONS のルートがなければ、API Gateway が上の cors_preflight の設定で、事前確認に自動で応答する
+        api.add_routes(path="/{proxy+}", methods=[apigw.HttpMethod.GET, apigw.HttpMethod.POST, apigw.HttpMethod.PUT, apigw.HttpMethod.DELETE, apigw.HttpMethod.PATCH],
+                       integration=integ.HttpLambdaIntegration("Lambda", fn), authorizer=auth)
 
         config = cdk.Fn.join("", ["window.PORTAL_CONFIG=", cdk.Fn.join("", ['{"region":"', self.region, '","userPoolId":"', pool.user_pool_id, '","clientId":"', client.user_pool_client_id,
                                                                            '","domain":"', domain.domain_name, '","apiUrl":"', api.api_endpoint, '"}']), ";"])

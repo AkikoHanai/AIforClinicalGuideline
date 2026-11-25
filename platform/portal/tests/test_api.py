@@ -645,6 +645,40 @@ def test_admin_user_resolves_email_and_lists_pool_users(tmp_path, monkeypatch, c
         assert "【確認OK】" in capsys.readouterr().out
 
 
+def test_check_site_detects_cors_problems(tmp_path, monkeypatch, capsys):
+    """「Failed to fetch」の診断(check_site.py): 画面の origin からの事前確認(OPTIONS)・認証なしの GET に許可のヘッダーが付くか、画面の設定との一致を判定する。"""
+    import threading, http.server, importlib, socket
+    state = {"cors": True, "preflight": 204}
+    class API(http.server.BaseHTTPRequestHandler):
+        def log_message(self, *a): pass
+        def _cors(self):
+            if state["cors"]: self.send_header("Access-Control-Allow-Origin", self.headers.get("Origin", "*")); self.send_header("Access-Control-Allow-Headers", "authorization,content-type"); self.send_header("Access-Control-Allow-Methods", "*")
+        def do_OPTIONS(self): self.send_response(state["preflight"]); self._cors(); self.end_headers()
+        def do_GET(self): self.send_response(401); self._cors(); self.end_headers(); self.wfile.write(b"{}")
+    api = http.server.ThreadingHTTPServer(("127.0.0.1", 0), API); threading.Thread(target=api.serve_forever, daemon=True).start()
+    cfg = {}
+    class Site(http.server.BaseHTTPRequestHandler):
+        def log_message(self, *a): pass
+        def do_GET(self): b = ("window.PORTAL_CONFIG=" + json.dumps(cfg) + ";").encode(); self.send_response(200); self.end_headers(); self.wfile.write(b)
+    site = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Site); threading.Thread(target=site.serve_forever, daemon=True).start()
+    api_url = f"http://127.0.0.1:{api.server_port}"; site_url = f"http://127.0.0.1:{site.server_port}"
+    cfg.update({"apiUrl": api_url, "userPoolId": "p", "clientId": "c", "domain": "dom", "region": "ap-northeast-1"})
+    outs = tmp_path / "o.json"; outs.write_text(json.dumps({"jascc-gl-portal": {"SiteUrl": site_url, "ApiUrl": api_url, "UserPoolId": "p", "ClientId": "c"}}), encoding="utf-8")
+    monkeypatch.setenv("JASCC_OUTPUTS", str(outs)); sys.path.insert(0, os.path.join(HERE, "..", "scripts")); CS = importlib.import_module("check_site")
+    real_http = CS.http; import types; monkeypatch.setattr(CS, "socket", types.SimpleNamespace(getaddrinfo=lambda *a, **k: [(0, 0, 0, "", ("127.0.0.1", 443))]))
+    def fake_http(method, url, headers=None, data=None, timeout=15):
+        if "amazoncognito.com" in url: return 400, {"access-control-allow-origin": headers.get("Origin", "")}, '{"error":"invalid_grant"}'
+        return real_http(method, url, headers, data, timeout)
+    monkeypatch.setattr(CS, "http", fake_http); monkeypatch.setitem(sys.modules, "boto3", None)
+    def run():
+        CS.bad.clear(); rc = CS.main(); return rc, capsys.readouterr().out
+    rc, out = run(); assert rc == 0 and "[NG]" not in out and "事前確認(OPTIONS)に、許可のヘッダーが付いています" in out and "認証なしの GET /me は 401(正常)" in out
+    state["cors"] = False; rc, out = run(); assert rc == 1 and "[NG] API の事前確認(OPTIONS)が通りません" in out and "Failed to fetch" in out and "許可のヘッダーがありません" in out
+    state.update({"cors": True, "preflight": 401}); rc, out = run(); assert rc == 1 and "HTTP 401" in out                                                        # 事前確認が認可で止まる(ANY ルート+認可の典型)
+    state["preflight"] = 204; cfg["apiUrl"] = "http://127.0.0.1:9"; rc, out = run(); assert rc == 1 and "[NG] 画面の設定 apiUrl" in out and "接続できません" in out       # 画面が古い API を指している
+    api.shutdown(); site.shutdown()
+
+
 def test_sr8_has_minds_sr8_columns(env):
     """SR-8(絶対効果指標の結果を記入する場合)の列: 研究デザイン／研究数、群ごとの分母・分子、効果指標の統合値・CI、絶対効果、重要性。ポータルは統合値を計算せず、委員が記入する"""
     register_paper("11111111"); o = "CIPN Grade2以上の発生"

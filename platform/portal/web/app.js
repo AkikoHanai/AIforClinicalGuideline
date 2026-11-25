@@ -21,8 +21,10 @@
   }
   async function exchange(code) {
     const body = new URLSearchParams({ grant_type: "authorization_code", client_id: C.clientId, code, redirect_uri: redirect(), code_verifier: sessionStorage.getItem("pkce") || "" });
-    const r = await fetch(`${authBase()}/oauth2/token`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body });
-    if (!r.ok) throw new Error("トークンの取得に失敗しました");
+    let r;
+    try { r = await fetch(`${authBase()}/oauth2/token`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body }); }
+    catch (e) { const er = new Error(`Cognito のトークン取得に接続できません(${e.message})`); er.status = 0; throw er; }
+    if (!r.ok) { const er = new Error("Cognito のトークン取得に失敗しました(サインインのコードが無効です。もう一度ログインしてください)"); er.status = r.status; throw er; }
     const t = await r.json(); sessionStorage.setItem("id_token", t.id_token);
     history.replaceState({}, "", redirect() + (location.hash || "#dashboard"));
   }
@@ -33,7 +35,7 @@
   async function api(path, method = "GET", body) {
     let r;
     try { r = await fetch(C.apiUrl + path, { method, headers: { Authorization: "Bearer " + S.token, "Content-Type": "application/json" }, body: body !== undefined ? JSON.stringify(body) : undefined }); }
-    catch (e) { const er = new Error("API に接続できません(ネットワーク、または API の許可設定)"); er.status = 0; er.path = path; throw er; }
+    catch (e) { const er = new Error(`API に接続できません(${e.message})`); er.status = 0; er.path = path; throw er; }
     const j = await r.json().catch(() => ({}));
     if (!r.ok) { const er = new Error(j.error || j.message || `エラー(${r.status})`); er.status = r.status; er.path = path; throw er; }
     return j;
@@ -45,7 +47,7 @@
     $("#login").classList.remove("hidden"); $("#app").classList.add("hidden"); $("#gate").classList.add("hidden");
     let box = $("#bootErr"); if (!box) { box = document.createElement("div"); box.id = "bootErr"; box.className = "note need"; $("#login").appendChild(box); }
     box.innerHTML = `<b>サインインは完了しましたが、ポータルを開けませんでした。</b><br>失敗した処理: ${esc(step)}<br>内容: ${esc(e.message || e)}${e.status !== undefined ? `(HTTP ${esc(e.status)})` : ""}<br>
-      サインインした利用者: ${esc(c.email || "(メールアドレスが、トークンにありません)")} / グループ: ${esc(Array.isArray(g) ? g.join("・") : g || "(なし)")}<br>トークンの有効期限: ${c.exp ? esc(new Date(c.exp * 1000).toLocaleString("ja-JP")) : "(不明)"}<br>API: ${esc(C.apiUrl || "(設定がありません)")}<br>
+      サインインした利用者: ${esc(c.email || "(メールアドレスが、トークンにありません)")} / グループ: ${esc(Array.isArray(g) ? g.join("・") : g || "(なし)")}<br>トークンの有効期限: ${c.exp ? esc(new Date(c.exp * 1000).toLocaleString("ja-JP")) : "(不明)"}<br>API: ${esc(C.apiUrl || "(設定がありません)")}<br>${e.status === 0 ? "ブラウザの通信が届いていません。API の許可設定(CORS)、API の URL、学内ネットワーク・ブラウザの拡張機能が考えられます。統括委員長は、platform/portal/scripts/check_site.py を実行してください(原因の行が表示されます)。<br>" : ""}
       <button id="bootRetry">もう一度読み込む</button> <button id="bootOut">サインインをやり直す(ログアウト)</button>`;
     $("#bootRetry").addEventListener("click", () => location.reload()); $("#bootOut").addEventListener("click", logout);
   }
