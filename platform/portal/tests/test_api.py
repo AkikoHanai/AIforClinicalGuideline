@@ -526,6 +526,14 @@ def test_sync_drive_finds_folder_runs_from_any_directory(env, tmp_path, monkeypa
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf): SD.main(["--tree"], home=home)
     assert "新規ガイドライン作成/" in buf.getvalue() and "ポータル出力/" in buf.getvalue()
+    conf = os.path.join(home, ".jascc_gl_portal.json"); SD.main(["--tree=3", "新規ガイドライン作成", "--files"], home=home)
+    assert json.load(open(conf, encoding="utf-8"))["email"] == "chair@example.org"                                   # --tree のフォルダ名を、メールアドレスとして保存しない
+    json.dump({"email": "Chap6_推奨"}, open(conf, "w", encoding="utf-8"))                                            # 誤って保存された値は、使わず、尋ね直す
+    monkeypatch.setattr("builtins.input", lambda *a: "chair@example.org"); seen2 = []
+    SD.main(["--dry-run"], session=lambda email: seen2.append(email) or Tok(), fetch=fetch, home=home); assert seen2 == ["chair@example.org"] and json.load(open(conf, encoding="utf-8"))["email"] == "chair@example.org"
+    with pytest.raises(SystemExit) as e2: SD.main(["Chap6_推奨"], session=lambda email: Tok(), fetch=fetch, home=home)
+    assert "メールアドレスの形ではありません" in str(e2.value)
+    monkeypatch.setattr("builtins.input", lambda *a: (_ for _ in ()).throw(AssertionError("保存済みなので尋ねない")))
     os.makedirs(os.path.join(drive, "新規ガイドライン作成", "Chap4_SR", "SR_１")); open(os.path.join(drive, "新規ガイドライン作成", "Chap4_SR", "SR_１", "a.xlsx"), "w").close()
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf): SD.main(["--tree=4", "Chap4_SR", "--files"], home=home)                     # 深さ・フォルダ名・ファイル名

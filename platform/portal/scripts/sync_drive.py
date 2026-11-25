@@ -205,11 +205,15 @@ def settings(argv, home=None, need_email=True):
         drive = found[0]
         if len({os.path.realpath(x) for x in found}) > 1: print("共有ドライブが複数見つかりました。最初のものを使います:", *found, sep="\n  ")
     cfg = json.load(open(conf, encoding="utf-8")) if os.path.exists(conf) else {}
-    email = (pos[0] if pos else "") or os.environ.get("JASCC_EMAIL", "") or cfg.get("email", "")
+    ok = lambda x: bool(re.fullmatch(r"[^@\s/]+@[^@\s/]+\.[^@\s/]+", x or ""))   # メールアドレスの形のものだけを使う(フォルダ名などを、誤って保存しない)
+    given = [x for x in pos if ok(x)]
+    if pos and not given and need_email: sys.exit(f"メールアドレスの形ではありません: {pos[0]}(メールアドレスは、初回に尋ねて保存します。指定は不要です)")
+    email = (given[0] if given else "") or (os.environ.get("JASCC_EMAIL", "") if ok(os.environ.get("JASCC_EMAIL", "")) else "") or (cfg.get("email", "") if ok(cfg.get("email", "")) else "")
     if not email and not need_email: return "", drive, opts
-    if not email:
+    while not ok(email):
         email = input("ポータルのメールアドレス(統括委員会のもの。初回だけ尋ねます): ").strip()
-    if email and cfg.get("email") != email:
+        if not ok(email): print("メールアドレスの形ではありません。もう一度入力してください")
+    if cfg.get("email") != email:
         cfg["email"] = email; json.dump(cfg, open(conf, "w", encoding="utf-8"), ensure_ascii=False)
     return email, drive, opts
 
