@@ -1,7 +1,8 @@
 """統括委員長の利用者を Cognito に作り、統括委員会のグループに入れる。必要なら初期データ(企画書)を入れる。
   python3 platform/portal/scripts/admin_user.py <メールアドレス> <氏名>           招待メールを送る
   python3 platform/portal/scripts/admin_user.py --users                          利用者プールの利用者の一覧(メールアドレス・氏名・グループ)
-  python3 platform/portal/scripts/admin_user.py --password <メールアドレス>       既存の利用者のパスワードを直接設定する(サインインできないとき。確認コード不要)
+  python3 platform/portal/scripts/admin_user.py --diagnose [<メールアドレス>]    サインインできない原因を調べる(ログイン画面の設定との一致、利用者の状態、大文字・小文字の違い、サインイン試験)
+  python3 platform/portal/scripts/admin_user.py --password <メールアドレス>       既存の利用者のパスワードを直接設定し、直後にサインイン試験をする(確認コード不要)
   python3 platform/portal/scripts/admin_user.py --chair <メールアドレス> <氏名>   統括委員長の利用者を作り(なければ)、パスワードを設定し、統括委員会に入れる(招待メールは送らない)
   python3 platform/portal/scripts/admin_user.py --seed <メールアドレス>            その利用者として POST /admin/seed を実行(仮パスワードの入力を求める)
   python3 platform/portal/scripts/admin_user.py --gl2023 <etd_2023.json> <メールアドレス>   2023年版の記述(run_jascc.sh first が作る)を取り込む
@@ -15,6 +16,30 @@ import boto3
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = json.load(open(os.environ.get("JASCC_OUTPUTS") or os.path.join(HERE, "..", "out", "outputs.json"), encoding="utf-8"))["jascc-gl-portal"]
 idp = boto3.client("cognito-idp", region_name="ap-northeast-1")
+
+
+def live_config(site):
+    """ログイン画面(CloudFront の config.js)が実際に使っている設定。取得できなければ None。"""
+    try:
+        txt = urllib.request.urlopen(site.rstrip("/") + "/config.js", timeout=6).read().decode("utf-8", "replace")
+        return json.loads(txt[txt.index("{"):txt.rindex("}") + 1])
+    except Exception:
+        return None
+
+
+def sync_with_site():
+    """outputs.json(展開のときに保存した値)が古く、ログイン画面が別の利用者プール・クライアントを使っているとき、画面の設定に合わせる。
+    (別のプールの利用者にパスワードを設定しても、画面からは反映されないため。)"""
+    if os.environ.get("JASCC_OUTPUTS") or not OUT.get("SiteUrl"): return
+    live = live_config(OUT["SiteUrl"])
+    if not live: print("(ログイン画面の設定を取得できませんでした。outputs.json の値を使います)"); return
+    diff = [(k, OUT.get(o), live.get(l)) for k, o, l in (("利用者プール", "UserPoolId", "userPoolId"), ("クライアント", "ClientId", "clientId")) if live.get(l) and OUT.get(o) != live.get(l)]
+    if diff:
+        print("【注意】ログイン画面が使っている設定は、outputs.json と違います。画面の設定に合わせます。\n" + "\n".join(f"  {k}: outputs.json={a} / ログイン画面={b}" for k, a, b in diff))
+        OUT["UserPoolId"] = live.get("userPoolId", OUT["UserPoolId"]); OUT["ClientId"] = live.get("clientId", OUT["ClientId"])
+
+
+sync_with_site()
 
 
 def create(email, name):
@@ -40,6 +65,8 @@ def ask_password():
 def chair(email, name):
     """統括委員長の利用者を作り(なければ。招待メールは送らない)、パスワードを設定し、統括委員会のグループに入れる。サインインできないときに使う。"""
     if not EMAIL_RE.fullmatch(email): sys.exit(f"メールアドレスの形ではありません: {email}")
+    stored, allm = find_user(email)
+    if stored and stored != email: sys.exit(f"大文字・小文字だけが違う利用者が、既にいます: {', '.join(allm)}\n(別の利用者を作らないため、止めました。その表記で --password を実行してください)")
     try:
         idp.admin_create_user(UserPoolId=OUT["UserPoolId"], Username=email, MessageAction="SUPPRESS",
                               UserAttributes=[{"Name": "email", "Value": email}, {"Name": "email_verified", "Value": "true"}, {"Name": "name", "Value": name}])
@@ -51,16 +78,83 @@ def chair(email, name):
     print("統括委員会のグループに入れました。ポータルで、このメールアドレスとパスワードでサインインしてください")
 
 
+def find_user(email):
+    """利用者を探す。この利用者プールは、サインインで大文字・小文字を区別する(Akiko@… と akiko@… は別の利用者)。完全一致がなければ、大文字・小文字を無視して探す。
+    戻り値: (保存されているメールアドレス, 一致した全員のリスト)"""
+    try:
+        idp.admin_get_user(UserPoolId=OUT["UserPoolId"], Username=email); exact = [email]
+    except idp.exceptions.UserNotFoundException:
+        exact = []
+    like = [u["email"] for u in pool_users() if u["email"].lower() == email.lower()]
+    allm = list(dict.fromkeys(exact + like))
+    return (exact[0] if exact else (like[0] if like else None)), allm
+
+
+def login_test(email, password):
+    """ポータルのログインと同じ認証(メールアドレスとパスワード)を、実際に行う。戻り値: (成功か, 説明)"""
+    try:
+        r = idp.initiate_auth(ClientId=OUT["ClientId"], AuthFlow="USER_PASSWORD_AUTH", AuthParameters={"USERNAME": email, "PASSWORD": password})
+    except idp.exceptions.NotAuthorizedException as e:
+        return False, f"認証できません(メールアドレスまたはパスワードが違う): {e}"
+    except idp.exceptions.UserNotConfirmedException:
+        return False, "アカウントが確認されていません(確認コードの入力が済んでいません)"
+    except idp.exceptions.PasswordResetRequiredException:
+        return False, "パスワードの再設定が求められています(--password で設定し直してください)"
+    except idp.exceptions.UserNotFoundException:
+        return False, "この利用者プール・クライアントに、この利用者がいません"
+    except Exception as e:
+        return False, f"{type(e).__name__}: {str(e)[:200]}"
+    ch = r.get("ChallengeName")
+    if ch == "NEW_PASSWORD_REQUIRED": return False, "初回のパスワード変更が求められています(--password で設定し直してください)"
+    if ch in ("SOFTWARE_TOKEN_MFA", "MFA_SETUP", "SMS_MFA"): return True, f"パスワードは正しい。サインインのとき、多要素認証({ch})のコードも入力が必要です"
+    return True, "サインインできました(パスワードは正しい)"
+
+
 def reset_password(email):
-    """既存の利用者のパスワードを、直接(確認コード・メールなしで)設定する。"""
-    try: idp.admin_get_user(UserPoolId=OUT["UserPoolId"], Username=email)
-    except idp.exceptions.UserNotFoundException: sys.exit(f"利用者プールに、このメールアドレスの利用者がいません: {email}\n{users_help()}")
+    """既存の利用者のパスワードを、直接(確認コード・メールなしで)設定し、設定した直後に、実際のサインイン試験を行う。
+    メールアドレスの大文字・小文字が違うときは、保存されているものを使い、サインインで入力するメールアドレスを示す。"""
+    stored, allm = find_user(email)
+    if not stored: sys.exit(f"利用者プールに、このメールアドレスの利用者がいません: {email}\n{users_help()}")
+    if len(allm) > 1: print("【注意】大文字・小文字だけが違う利用者が複数います(サインインでは別の利用者として扱われます):", *allm, sep="\n  ")
+    if stored != email: print(f"【注意】入力は {email} ですが、保存されているメールアドレスは {stored} です。サインインでは、この表記(大文字・小文字を含む)を入力してください")
+    u = idp.admin_get_user(UserPoolId=OUT["UserPoolId"], Username=stored)
+    if not u.get("Enabled", True): idp.admin_enable_user(UserPoolId=OUT["UserPoolId"], Username=stored); print("無効になっていた利用者を、有効にしました")
+    if u.get("UserStatus") == "UNCONFIRMED":
+        idp.admin_confirm_sign_up(UserPoolId=OUT["UserPoolId"], Username=stored); print("未確認だった利用者を、確認済みにしました")
+    if {a["Name"]: a["Value"] for a in u.get("UserAttributes", [])}.get("email_verified") != "true":
+        idp.admin_update_user_attributes(UserPoolId=OUT["UserPoolId"], Username=stored, UserAttributes=[{"Name": "email_verified", "Value": "true"}]); print("メールアドレスを、確認済みにしました(「Forgot your password?」のメールが届くようにするため)")
     while True:
+        pw = ask_password()
         try:
-            idp.admin_set_user_password(UserPoolId=OUT["UserPoolId"], Username=email, Password=ask_password(), Permanent=True); break
+            idp.admin_set_user_password(UserPoolId=OUT["UserPoolId"], Username=stored, Password=pw, Permanent=True); break
         except idp.exceptions.InvalidPasswordException as e:
             print("利用者プールの規則に合いません:", str(e).split(":", 1)[-1].strip())
-    print("パスワードを設定しました:", email)
+    print("パスワードを設定しました:", stored)
+    ok, msg = login_test(stored, pw)
+    print(("【確認OK】" if ok else "【確認NG】") + f" 設定した直後のサインイン試験: {msg}")
+    print(f"利用者プール {OUT['UserPoolId']} / クライアント {OUT['ClientId']}")
+    if ok: print(f"ポータルでは、メールアドレス「{stored}」(大文字・小文字もそのまま)と、いま設定したパスワードでサインインしてください")
+    else: print("サインインできない原因は、上の説明のとおりです。--diagnose でも詳しく確認できます")
+
+
+def diagnose(email=None):
+    """サインインできない原因を調べる: ログイン画面の設定との一致、利用者の状態(大文字・小文字の違いを含む)、実際のサインイン試験。"""
+    print(f"outputs.json: 利用者プール {OUT['UserPoolId']} / クライアント {OUT['ClientId']}")
+    live = live_config(OUT["SiteUrl"]) if OUT.get("SiteUrl") else None
+    print(f"ログイン画面({OUT.get('SiteUrl', '')}): " + (f"利用者プール {live.get('userPoolId')} / クライアント {live.get('clientId')} / ドメイン {live.get('domain')}" if live else "設定を取得できませんでした"))
+    if live and (live.get("userPoolId") != OUT["UserPoolId"] or live.get("clientId") != OUT["ClientId"]): print("【不一致】outputs.json と、ログイン画面が使っている設定が違います。(このスクリプトは、画面の設定に合わせて動いています)")
+    elif live: print("一致しています(画面と、このスクリプトは、同じ利用者プール・クライアントを使っています)")
+    if not email: print(users_help()); return
+    stored, allm = find_user(email)
+    if not stored: print(f"この利用者プールに、{email} の利用者はいません(大文字・小文字を無視しても)。\n{users_help()}"); return
+    for m in allm:
+        u = idp.admin_get_user(UserPoolId=OUT["UserPoolId"], Username=m); at = {a["Name"]: a["Value"] for a in u.get("UserAttributes", [])}
+        print(f"利用者 {m}: 状態 {u['UserStatus']}、{'有効' if u.get('Enabled', True) else '無効'}、メール確認 {at.get('email_verified', '')}、多要素認証 {u.get('UserMFASettingList') or 'なし'}、氏名 {at.get('name', '')}")
+    if len(allm) > 1: print("【注意】大文字・小文字だけが違う利用者が複数います。サインインでは別の利用者として扱われます")
+    if stored != email: print(f"【注意】入力は {email} ですが、保存されているのは {stored} です。サインインの画面では、保存されている表記を入力してください")
+    pw = getpass.getpass(f"サインイン試験をします。{stored} のパスワードを入力(試験をしないときは、そのまま Enter。入力は表示されません): ")
+    if pw:
+        ok, msg = login_test(stored, pw); print(("【OK】" if ok else "【NG】"), msg)
 
 
 CONF = os.path.expanduser("~/.jascc_gl_portal.json")
@@ -205,6 +299,8 @@ if __name__ == "__main__":
         outcomes(a[1], *(a[2:3]))
     elif a[:1] == ["--users"]:
         print(users_help())
+    elif a[:1] == ["--diagnose"]:
+        diagnose(a[1] if len(a) > 1 else None)
     elif a[:1] == ["--password"] and len(a) == 2:
         reset_password(a[1])
     elif a[:1] == ["--chair"] and len(a) == 3:

@@ -579,7 +579,7 @@ def test_forms_are_placed_in_minds_form_folders(env, tmp_path):
     cp3, _ = SD.sync(Tok(), drive, fetch=fetch); assert any("chap4_SR_8_P1" in x for x in cp3) and not any("chap4_SR_2_P1" in x for x in cp3)             # 変わった様式だけを置き換える
 
 
-def test_admin_user_resolves_email_and_lists_pool_users(tmp_path, monkeypatch):
+def test_admin_user_resolves_email_and_lists_pool_users(tmp_path, monkeypatch, capsys):
     """スクリプトのメールアドレスは省略できる(保存済み、または統括委員会の唯一の利用者)。プールにいないメールアドレスは、プールの利用者の一覧を示して止まる(UserNotFoundException の長いエラーを出さない)。"""
     outs = tmp_path / "outputs.json"; outs.write_text(json.dumps({"jascc-gl-portal": {"UserPoolId": "x", "ClientId": "y", "ApiUrl": "https://example.invalid"}}), encoding="utf-8")
     monkeypatch.setenv("JASCC_OUTPUTS", str(outs)); sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
@@ -610,6 +610,22 @@ def test_admin_user_resolves_email_and_lists_pool_users(tmp_path, monkeypatch):
         with pytest.raises(SystemExit) as e: AU.reset_password("nobody@example.org")
         assert "nobody@example.org" in str(e.value) and "akiko@example.ac.jp" in str(e.value)
         assert "akiko@example.ac.jp" in AU.users_help() and "統括委員会" in AU.users_help()
+        # 設定した直後のサインイン試験、大文字・小文字の違い、無効・未確認・メール未確認の利用者
+        cl = cog.create_user_pool_client(UserPoolId=pool, ClientName="c", ExplicitAuthFlows=["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"])["UserPoolClient"]["ClientId"]; AU.OUT["ClientId"] = cl
+        assert AU.login_test("akiko@example.ac.jp", "Abcdefghijkl1")[0] is True and AU.login_test("akiko@example.ac.jp", "Wrong-password1")[0] is False
+        cog.admin_create_user(UserPoolId=pool, Username="Mixed.Case@example.org", UserAttributes=[{"Name": "email", "Value": "Mixed.Case@example.org"}, {"Name": "name", "Value": "大文字の人"}])
+        assert AU.find_user("mixed.case@example.org")[0] == "Mixed.Case@example.org" and AU.find_user("nobody@example.org") == (None, [])
+        pw3 = iter(["Mixedcase12345", "Mixedcase12345"]); monkeypatch.setattr(getpass, "getpass", lambda *a: next(pw3)); AU.reset_password("mixed.case@example.org")        # 小文字で入力しても、保存されている表記で設定し、サインインできる
+        out = capsys.readouterr().out; assert "Mixed.Case@example.org" in out and "【確認OK】" in out and "大文字・小文字" in out and "確認済み" in out
+        assert AU.login_test("Mixed.Case@example.org", "Mixedcase12345")[0] is True and AU.login_test("mixed.case@example.org", "Mixedcase12345")[0] is False   # 小文字では、サインインできない(別の利用者として扱われる)
+        with pytest.raises(SystemExit) as e: AU.chair("mixed.case@example.org", "重複")
+        assert "大文字・小文字だけが違う" in str(e.value)
+        monkeypatch.setattr(getpass, "getpass", lambda *a: "Mixedcase12345"); AU.diagnose("mixed.case@example.org"); out = capsys.readouterr().out
+        assert "Mixed.Case@example.org" in out and "CONFIRMED" in out and "【OK】" in out
+        # ログイン画面の設定が outputs.json と違うとき、画面の設定に合わせる
+        monkeypatch.delenv("JASCC_OUTPUTS"); AU.OUT["SiteUrl"] = "https://site.invalid"; AU.OUT["UserPoolId"] = "old-pool"; AU.OUT["ClientId"] = "old-client"
+        monkeypatch.setattr(AU, "live_config", lambda site: {"userPoolId": pool, "clientId": cl, "domain": "d"}); AU.sync_with_site()
+        out = capsys.readouterr().out; assert AU.OUT["UserPoolId"] == pool and AU.OUT["ClientId"] == cl and "old-pool" in out and "画面の設定に合わせます" in out
 
 
 def test_sr8_has_minds_sr8_columns(env):

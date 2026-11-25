@@ -117,15 +117,22 @@ cd ~/AIforClinicalGuideline && git pull && ./fetch.sh
 
 ## サインインできないとき(統括委員長)
 
-ポータルの「Incorrect username or password」は、利用者がいない場合もパスワードが違う場合も、同じ表示になる(利用者の存在を隠す設定)。AWS の権限で、直接確認する。
+ポータルの「Incorrect username or password」は、利用者がいない場合もパスワードが違う場合も、同じ表示になる(利用者の存在を隠す設定)。「Forgot your password?」も、利用者がいない場合は、メールが届かないまま「送った」と表示される。AWS の権限で、直接確認する。
 
 ```
-python3 platform/portal/scripts/admin_user.py --users                           # 利用者の一覧(メールアドレス・氏名・グループ)
-python3 platform/portal/scripts/admin_user.py --password <メールアドレス>        # 一覧にある利用者のパスワードを、直接設定する(確認コード不要)
+python3 platform/portal/scripts/admin_user.py --diagnose [<メールアドレス>]      # 原因を調べる
+python3 platform/portal/scripts/admin_user.py --password <メールアドレス>        # パスワードを直接設定し、直後にサインイン試験をする
+python3 platform/portal/scripts/admin_user.py --users                            # 利用者の一覧(メールアドレス・氏名・グループ)
 python3 platform/portal/scripts/admin_user.py --chair <メールアドレス> <氏名>    # 一覧にないとき: 統括委員長の利用者を作り、パスワードを設定し、統括委員会に入れる(招待メールは送らない)
 ```
 
-サインインには、一覧のメールアドレスをそのまま使う。パスワードは 12文字以上で、大文字・小文字・数字を含む。
+確認すること(`--diagnose` が表示する):
+- ログイン画面が使っている利用者プール・クライアント(CloudFront の `config.js`)が、`outputs.json` と一致するか。違うときは、画面の設定に合わせて動く(別のプールの利用者にパスワードを設定しても、画面から反映されないため)。
+- この利用者プールは、サインインでメールアドレスの大文字・小文字を区別する(`Akiko@…` と `akiko@…` は別の利用者)。保存されている表記と、ログイン画面で入力した表記が同じか。
+- 利用者の状態(確認済みか、有効か、メールが確認済みか、多要素認証)。
+- `--password` は、設定した直後に、ポータルと同じ認証(メールアドレスとパスワード)を実際に行い、結果(【確認OK】または【確認NG】)と、サインインで入力するメールアドレスを表示する。
+
+パスワードは 12文字以上で、大文字・小文字・数字を含む。
 
 ## 検索式の用語の確認
 
