@@ -115,6 +115,18 @@ cd ~/AIforClinicalGuideline && git pull && ./fetch.sh
 - 転送済みの版(同じ名前・同じ大きさ)は飛ばす。Minds書類と文献選択の別添は、同じ名前で最新の内容に置き換える(ドライブの版の履歴に残る)。転送した内容は、作成経過の記録(「共有ドライブへの転送」)に残る。ドライブからポータルへは戻さない。
 - 共有ドライブのメンバーは、委員に限る。
 
+## サインインできないとき(統括委員長)
+
+ポータルの「Incorrect username or password」は、利用者がいない場合もパスワードが違う場合も、同じ表示になる(利用者の存在を隠す設定)。AWS の権限で、直接確認する。
+
+```
+python3 platform/portal/scripts/admin_user.py --users                           # 利用者の一覧(メールアドレス・氏名・グループ)
+python3 platform/portal/scripts/admin_user.py --password <メールアドレス>        # 一覧にある利用者のパスワードを、直接設定する(確認コード不要)
+python3 platform/portal/scripts/admin_user.py --chair <メールアドレス> <氏名>    # 一覧にないとき: 統括委員長の利用者を作り、パスワードを設定し、統括委員会に入れる(招待メールは送らない)
+```
+
+サインインには、一覧のメールアドレスをそのまま使う。パスワードは 12文字以上で、大文字・小文字・数字を含む。
+
 ## 検索式の用語の確認
 
 `python3 platform/portal/scripts/check_mesh.py` が、検索計画の 17 検索(案を除く)の PubMed の解釈と、MeSH の見出し語を確認する。2026-11-20 の確認結果は `platform/data/search_plan.json` の `mesh_check`。

@@ -1,5 +1,8 @@
 """統括委員長の利用者を Cognito に作り、統括委員会のグループに入れる。必要なら初期データ(企画書)を入れる。
   python3 platform/portal/scripts/admin_user.py <メールアドレス> <氏名>           招待メールを送る
+  python3 platform/portal/scripts/admin_user.py --users                          利用者プールの利用者の一覧(メールアドレス・氏名・グループ)
+  python3 platform/portal/scripts/admin_user.py --password <メールアドレス>       既存の利用者のパスワードを直接設定する(サインインできないとき。確認コード不要)
+  python3 platform/portal/scripts/admin_user.py --chair <メールアドレス> <氏名>   統括委員長の利用者を作り(なければ)、パスワードを設定し、統括委員会に入れる(招待メールは送らない)
   python3 platform/portal/scripts/admin_user.py --seed <メールアドレス>            その利用者として POST /admin/seed を実行(仮パスワードの入力を求める)
   python3 platform/portal/scripts/admin_user.py --gl2023 <etd_2023.json> <メールアドレス>   2023年版の記述(run_jascc.sh first が作る)を取り込む
   python3 platform/portal/scripts/admin_user.py --outcomes <メールアドレス> [アウトカム名]   全CQ・FRQにアウトカムを登録する(既定は CIPN。統括委員長の決定 2026-11-16)。
@@ -23,6 +26,41 @@ def create(email, name):
         print("既に登録されています:", email)
     idp.admin_add_user_to_group(UserPoolId=OUT["UserPoolId"], Username=email, GroupName="統括委員会")
     print("統括委員会のグループに入れました")
+
+
+def ask_password():
+    """パスワードを 2回入力させる(12文字以上、大文字・小文字・数字を含む。ポータルの利用者プールの規則)。"""
+    while True:
+        a = getpass.getpass("新しいパスワード(12文字以上、大文字・小文字・数字を含む。入力は表示されません): "); b = getpass.getpass("もう一度: ")
+        if a != b: print("2回の入力が違います"); continue
+        if len(a) < 12 or not re.search("[a-z]", a) or not re.search("[A-Z]", a) or not re.search("[0-9]", a): print("12文字以上で、大文字・小文字・数字を含めてください"); continue
+        return a
+
+
+def chair(email, name):
+    """統括委員長の利用者を作り(なければ。招待メールは送らない)、パスワードを設定し、統括委員会のグループに入れる。サインインできないときに使う。"""
+    if not EMAIL_RE.fullmatch(email): sys.exit(f"メールアドレスの形ではありません: {email}")
+    try:
+        idp.admin_create_user(UserPoolId=OUT["UserPoolId"], Username=email, MessageAction="SUPPRESS",
+                              UserAttributes=[{"Name": "email", "Value": email}, {"Name": "email_verified", "Value": "true"}, {"Name": "name", "Value": name}])
+        print("利用者を作りました(招待メールは送りません):", email)
+    except idp.exceptions.UsernameExistsException:
+        print("既に登録されています:", email)
+    reset_password(email)
+    idp.admin_add_user_to_group(UserPoolId=OUT["UserPoolId"], Username=email, GroupName="統括委員会")
+    print("統括委員会のグループに入れました。ポータルで、このメールアドレスとパスワードでサインインしてください")
+
+
+def reset_password(email):
+    """既存の利用者のパスワードを、直接(確認コード・メールなしで)設定する。"""
+    try: idp.admin_get_user(UserPoolId=OUT["UserPoolId"], Username=email)
+    except idp.exceptions.UserNotFoundException: sys.exit(f"利用者プールに、このメールアドレスの利用者がいません: {email}\n{users_help()}")
+    while True:
+        try:
+            idp.admin_set_user_password(UserPoolId=OUT["UserPoolId"], Username=email, Password=ask_password(), Permanent=True); break
+        except idp.exceptions.InvalidPasswordException as e:
+            print("利用者プールの規則に合いません:", str(e).split(":", 1)[-1].strip())
+    print("パスワードを設定しました:", email)
 
 
 CONF = os.path.expanduser("~/.jascc_gl_portal.json")
@@ -165,6 +203,12 @@ if __name__ == "__main__":
         seed(a[1])
     elif a[:1] == ["--outcomes"] and len(a) >= 2:
         outcomes(a[1], *(a[2:3]))
+    elif a[:1] == ["--users"]:
+        print(users_help())
+    elif a[:1] == ["--password"] and len(a) == 2:
+        reset_password(a[1])
+    elif a[:1] == ["--chair"] and len(a) == 3:
+        chair(a[1], a[2])
     elif a[:1] == ["--gl2023"]:
         gl2023(a[1], a[2])
     elif len(a) == 2:

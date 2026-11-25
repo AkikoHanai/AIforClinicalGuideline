@@ -585,7 +585,7 @@ def test_admin_user_resolves_email_and_lists_pool_users(tmp_path, monkeypatch):
     monkeypatch.setenv("JASCC_OUTPUTS", str(outs)); sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
     with mock_aws():
         import importlib; AU = importlib.import_module("admin_user")
-        cog = boto3.client("cognito-idp", region_name="ap-northeast-1"); pool = cog.create_user_pool(PoolName="t")["UserPool"]["Id"]; AU.OUT["UserPoolId"] = pool; AU.idp = cog; AU.CONF = str(tmp_path / "conf.json")
+        cog = boto3.client("cognito-idp", region_name="ap-northeast-1"); pool = cog.create_user_pool(PoolName="t", Policies={"PasswordPolicy": {"MinimumLength": 12, "RequireLowercase": True, "RequireUppercase": True, "RequireNumbers": True, "RequireSymbols": False}})["UserPool"]["Id"]; AU.OUT["UserPoolId"] = pool; AU.idp = cog; AU.CONF = str(tmp_path / "conf.json")
         for g in ("統括委員会", "SR委員"): cog.create_group(UserPoolId=pool, GroupName=g)
         def add(email, name, g): cog.admin_create_user(UserPoolId=pool, Username=email, UserAttributes=[{"Name": "email", "Value": email}, {"Name": "name", "Value": name}]); cog.admin_add_user_to_group(UserPoolId=pool, Username=email, GroupName=g)
         add("faculty@example.ac.jp", "華井明子", "統括委員会"); add("sr@example.org", "元雄良治", "SR委員")
@@ -600,6 +600,16 @@ def test_admin_user_resolves_email_and_lists_pool_users(tmp_path, monkeypatch):
         with pytest.raises(SystemExit) as e: AU.resolve_email(None)                                                                                      # 統括委員会が 2人: 指定が必要
         assert "second@example.org" in str(e.value) and "faculty@example.ac.jp" in str(e.value)
         assert AU.resolve_email("second@example.org") == "second@example.org"
+        # サインインできないとき: --users の一覧、--chair(利用者を作り、パスワードを設定し、統括委員会に入れる)、--password
+        import getpass; pw = iter(["short", "short", "Abcdefghijk1", "Abcdefghijk2", "Abcdefghijkl1", "Abcdefghijkl1"]); monkeypatch.setattr(getpass, "getpass", lambda *a: next(pw))
+        AU.chair("akiko@example.ac.jp", "華井明子")                                                                                                           # 短い、2回の入力が違う、を断って、3回目で設定
+        u = cog.admin_get_user(UserPoolId=pool, Username="akiko@example.ac.jp"); assert u["UserStatus"] == "CONFIRMED" and {a["Name"]: a["Value"] for a in u["UserAttributes"]}["name"] == "華井明子"
+        assert [g["GroupName"] for g in cog.admin_list_groups_for_user(UserPoolId=pool, Username="akiko@example.ac.jp")["Groups"]] == ["統括委員会"]
+        pw2 = iter(["Zyxwvutsrqp9", "Zyxwvutsrqp9"]); monkeypatch.setattr(getpass, "getpass", lambda *a: next(pw2)); AU.reset_password("sr@example.org")
+        assert cog.admin_get_user(UserPoolId=pool, Username="sr@example.org")["UserStatus"] == "CONFIRMED"
+        with pytest.raises(SystemExit) as e: AU.reset_password("nobody@example.org")
+        assert "nobody@example.org" in str(e.value) and "akiko@example.ac.jp" in str(e.value)
+        assert "akiko@example.ac.jp" in AU.users_help() and "統括委員会" in AU.users_help()
 
 
 def test_sr8_has_minds_sr8_columns(env):
