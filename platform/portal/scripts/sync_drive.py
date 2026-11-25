@@ -10,6 +10,7 @@ Google Drive for desktop の同期フォルダへ書き込むと、Google Drive 
 ドライブの中の置き場所(共有ドライブの既存のフォルダを、深さ4まで調べる。同じ名前のフォルダがあればそこへ置き、なければ 新規ガイドライン作成/ポータル出力/ に作る。既存のフォルダの構成には作らない):
   CQ・FRQ     企画書の dir の名前(例: CQ1-牛車腎気丸、CQ2-デュロキセチン)のフォルダがあれば、その中に。なければ ポータル出力/<dir の名前>/ に、Minds書類(xlsx)、文献選択の別添(xlsx)。出力のたびに、同じ名前で置き換える(ドライブの版の履歴に残る)
   総論        「総論A」「総論I-1」などで始まるフォルダに、原稿の全ての版(<日時>_<版ID末尾>_<ファイル名>)、状態.txt(状態・期限・提出者・査読コメント)。なければ ポータル出力/総論/総論<項目>_<題名>/
+  様式ごと    SR-1・2・3・5・8・12 と EtD は、Chap4_SR/SR_1 …、Chap6_推奨 のフォルダに、chap4_SR_<n>_<CQ の ID>_<名称>.xlsx として置く(テンプレートと同じフォルダ。フォルダがなければ CQ のフォルダの 様式別/)
   依頼書/     総論の依頼書(Word。2023年版の全文入り)
   マニュアル/<対象>/  手順書(Word)。対象(全委員、SR委員、SR委員長、作成グループ、総論の執筆者、統括委員会)ごとのフォルダに分ける
   共有ドライブの構成を確かめるには --tree[=深さ] [フォルダ名] [--files](フォルダの構成を表示する。例: --tree=4 Chap4_SR --files)。置き場所は --dry-run で、置く前に確かめられる。
@@ -50,8 +51,23 @@ def get_bytes(url):
     return urllib.request.urlopen(url, timeout=120).read()
 
 
+def same_xlsx(a, b):
+    """xlsx の内容が同じか。作成日時(docProps)と、出力日時の文字列を除いて比べる(出力のたびに変わるため。ドライブの版の履歴を、内容が変わったときだけ増やす)。"""
+    import io, zipfile
+    iso = re.compile(rb"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:[+-]\d\d:\d\d|Z)?")
+    try:
+        za, zb = zipfile.ZipFile(io.BytesIO(a)), zipfile.ZipFile(io.BytesIO(b))
+        names = sorted(n for n in za.namelist() if not n.startswith("docProps/"))
+        if names != sorted(n for n in zb.namelist() if not n.startswith("docProps/")): return False
+        return all(iso.sub(b"", za.read(n)) == iso.sub(b"", zb.read(n)) for n in names)
+    except Exception:
+        return False
+
+
 def place(dest, data, copied, skipped, dry, overwrite=False):
-    """ファイルを置く。同じ名前・同じ大きさのファイルがあれば飛ばす(overwrite=True のときは、内容が違えば置き換える)。"""
+    """ファイルを置く。同じ名前・同じ大きさのファイルがあれば飛ばす(overwrite=True のときは、内容が違えば置き換える。xlsx は、作成日時を除いて比べる)。"""
+    if os.path.exists(dest) and overwrite and dest.endswith(".xlsx") and same_xlsx(open(dest, "rb").read(), data):
+        skipped.append(dest); return
     if os.path.exists(dest) and (len(data) == os.path.getsize(dest)) and (not overwrite or open(dest, "rb").read() == data):
         skipped.append(dest); return
     if not dry:
@@ -99,6 +115,10 @@ class Layout:
         names = c.get("dirs") or []; found = self.find(names)
         return found or os.path.join(self.out, safe((names or [f"{c['id']}_{c['title']}"])[0]))
 
+    def form(self, folder):
+        """様式番号のフォルダ(SR_1、Chap6_推奨 など)。なければ None"""
+        return self.find([folder])
+
     def top(self, name):
         return self.find([name]) or os.path.join(self.out, name)
 
@@ -142,10 +162,16 @@ def sync(tok, drive, dry=False, fetch=get_bytes):
     # 2. SR の出力(CQ ごとの Minds 書類と、文献選択の別添)
     for c in tok.call("GET", "/cq"):
         folder = L.cq(c)
-        for kind, path in (("Minds書類", f"/export/{c['id']}"), ("文献選択の別添", f"/export/{c['id']}/screening")):
+        for kind, path in (("Minds書類", f"/export/{c['id']}?sync=1"), ("文献選択の別添", f"/export/{c['id']}/screening?sync=1")):
             r = tok.call("GET", path)
             if "url" in r and r["url"]: place(os.path.join(folder, f"{kind}_{c['id']}.xlsx"), fetch(r["url"]), copied, skipped, dry, overwrite=True)
             elif "error" in r: print("  出力できませんでした:", c["id"], kind, r["error"])
+        # Minds 様式ごとのファイルを、様式番号のフォルダ(Chap4_SR/SR_n、Chap6_推奨)へ置く。フォルダがなければ、この CQ のフォルダの 様式別/ に置く
+        r = tok.call("GET", f"/export/{c['id']}/forms?sync=1")
+        for fm in r.get("forms", []) if isinstance(r, dict) else []:
+            if fm.get("url"):
+                dest = L.form(fm["folder"]) or os.path.join(folder, "様式別")
+                place(os.path.join(dest, fm["name"]), fetch(fm["url"]), copied, skipped, dry, overwrite=True)
     # 3. 依頼書(総論)と手順書
     for g in tok.call("GET", "/gl2023/soron"):
         if g.get("docx_key"):

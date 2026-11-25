@@ -147,6 +147,15 @@ def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None, sc
     buf = io.BytesIO(); wb.save(buf); return buf.getvalue()
 
 
+def split_book(data, keep):
+    """Minds書類(xlsx のバイト列)から、指定したシートだけのブックを作る(シートの内容・書式は変えない)。"""
+    wb = openpyxl.load_workbook(io.BytesIO(data))
+    for name in list(wb.sheetnames):
+        if name not in keep: del wb[name]
+    wb._sheets.sort(key=lambda w: keep.index(w.title)); wb.active = 0
+    buf = io.BytesIO(); wb.save(buf); return buf.getvalue()
+
+
 # ---------------------------------------------------------------- 文献選択の別添(SRチームが件数と文献を照合するための一覧)
 SCREEN_SHEETS = [  # (シート名, 一覧の名, 流れ図の枠)
     ("A 対象の全件", "all", "スクリーニングの対象として登録した文献"), ("B 一次の対象", "s1_target", "一次スクリーニング(題名・抄録)の対象"), ("C 一次で除外", "s1_exclude", "一次で除外した文献"),

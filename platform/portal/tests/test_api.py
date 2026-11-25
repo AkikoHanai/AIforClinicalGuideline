@@ -544,6 +544,37 @@ def test_sync_drive_finds_folder_runs_from_any_directory(env, tmp_path, monkeypa
     r = subprocess.run([sys.executable, os.path.join(HERE, "..", "scripts", "sync_drive.py"), "--help"], cwd="/", capture_output=True, text=True); assert "共有ドライブ" in (r.stdout + r.stderr)   # どのフォルダからでも読み込める
 
 
+def test_forms_are_placed_in_minds_form_folders(env, tmp_path):
+    """Minds 様式ごとのブックを、共有ドライブの 新規ガイドライン作成/Chap4_SR/SR_n(テンプレートと同じフォルダ。全角の SR_１ も)と Chap6_推奨 へ、CQ ごとのファイルとして置く。テンプレートには触れない。内容が同じなら、2回目は置き換えない。"""
+    import importlib, urllib.parse, openpyxl, unicodedata
+    sys.path.insert(0, os.path.join(HERE, "..", "scripts")); SD = importlib.import_module("sync_drive")
+    s3c = boto3.client("s3")
+    class Tok:
+        def call(self, method, path, body=None): return call(method, path, body)[1]
+    fetch = lambda url: s3c.get_object(Bucket=H.BUCKET, Key=urllib.parse.unquote(urllib.parse.urlparse(url).path.lstrip("/")))["Body"].read()
+    c, r = call("GET", "/export/P1/forms"); assert c == 200 and [f["folder"] for f in r["forms"]] == ["SR_1", "SR_2", "SR_3", "SR_5", "SR_8", "SR_12", "Chap6_推奨"]
+    assert call("GET", "/export/P1/forms", who=R1)[0] == 200 and call("GET", "/export/ZZ/forms")[0] == 404
+    wb = openpyxl.load_workbook(io.BytesIO(fetch(r["forms"][0]["url"]))); assert wb.sheetnames == ["CQ", "検索の記録"] and r["forms"][0]["name"].startswith("chap4_SR_1_P1_")
+    assert openpyxl.load_workbook(io.BytesIO(fetch(r["forms"][3]["url"]))).sheetnames == ["CQ", "研究特性", "SR-5"]
+    drive = str(tmp_path / "d"); base = os.path.join(drive, "新規ガイドライン作成")
+    tmpl = {}
+    for d, f in (("Chap4_SR/SR_１", "chap4_SR_1_tmp_2020ver3_0_r.xlsx"), ("Chap4_SR/SR_2", "chap4_SR_2_tmp_2020ver3_0_r.xlsx"), ("Chap4_SR/SR_5", "chap4_SR_5_tmp_2020ver3_0_r2.xlsx"), ("Chap4_SR/SR_5_ROB2", "chap4_SR_5_ROB2_tmp_2020ver3_0.xlsx"),
+                 ("Chap4_SR/SR_8", "chap4_SR_8_tmp_2020ver3_0_r.xlsx"), ("Chap6_推奨", "chap6_RC_7_tmp_2020ver3_0_r.xlsx")):
+        os.makedirs(os.path.join(base, d), exist_ok=True); tmpl[os.path.join(base, d, f)] = b"TEMPLATE " + f.encode(); open(os.path.join(base, d, f), "wb").write(tmpl[os.path.join(base, d, f)])
+    SD.sync(Tok(), drive, fetch=fetch)
+    walk = lambda: sorted(os.path.relpath(os.path.join(d, f), drive) for d, _, fs in os.walk(drive) for f in fs)
+    got = [unicodedata.normalize("NFC", x) for x in walk()]
+    for want in ("新規ガイドライン作成/Chap4_SR/SR_１/chap4_SR_1_P1_", "新規ガイドライン作成/Chap4_SR/SR_2/chap4_SR_2_P1_", "新規ガイドライン作成/Chap4_SR/SR_5/chap4_SR_5_P1_", "新規ガイドライン作成/Chap4_SR/SR_8/chap4_SR_8_P1_", "新規ガイドライン作成/Chap6_推奨/chap6_EtD_P1_"):
+        assert any(x.startswith(want) for x in got), want
+    assert any("/P1_" in x or "CQ1-牛車腎気丸/様式別/chap4_SR_3_P1_" in x for x in got) and any(x.endswith("様式別/chap4_SR_12_P1_" + "牛車腎気丸.xlsx") for x in got)   # フォルダがなければ、CQ のフォルダの 様式別/
+    assert not any("SR_5_ROB2" in x and "P1" in x for x in got) and all(open(k, "rb").read() == v for k, v in tmpl.items())                                  # ROB2 とテンプレートには触れない
+    first = {x: os.path.getmtime(os.path.join(drive, x)) for x in walk() if "chap4_SR_8_P1" in x}; import time; time.sleep(1.1)
+    cp, sk = SD.sync(Tok(), drive, fetch=fetch)
+    assert not [x for x in cp if "chap4_SR_" in x or "chap6_EtD" in x] and {x: os.path.getmtime(os.path.join(drive, x)) for x in walk() if "chap4_SR_8_P1" in x} == first   # 内容が同じなら置き換えない
+    call("PUT", "/cq/P1", {"note": "変更"}); oc = call("GET", "/cq/P1")[1]["outcomes"][0]; H.put("SR8", f"P1#{oc}", {"outcome": oc, "rob": "-1", "certainty": "B(中)"})
+    cp3, _ = SD.sync(Tok(), drive, fetch=fetch); assert any("chap4_SR_8_P1" in x for x in cp3) and not any("chap4_SR_2_P1" in x for x in cp3)             # 変わった様式だけを置き換える
+
+
 def test_sr8_has_minds_sr8_columns(env):
     """SR-8(絶対効果指標の結果を記入する場合)の列: 研究デザイン／研究数、群ごとの分母・分子、効果指標の統合値・CI、絶対効果、重要性。ポータルは統合値を計算せず、委員が記入する"""
     register_paper("11111111"); o = "CIPN Grade2以上の発生"

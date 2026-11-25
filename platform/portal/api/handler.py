@@ -934,11 +934,26 @@ def minds_book(cqid, c):
     return export_minds.build(c, papers, finals, query("SR8", f"{cqid}#"), get("ETD", cqid), get("GL2023", cqid), aud, screening=scr)
 
 
+# Minds 様式ごとの出力(共有ドライブの 新規ガイドライン作成/Chap4_SR/SR_n、Chap6_推奨 に、CQ ごとのファイルとして置く)
+# (様式, 置き場のフォルダ名, ファイル名の接頭語, ブックに含めるシート)
+FORM_MAP = [("SR-1 DB検索結果", "SR_1", "chap4_SR_1", ["CQ", "検索の記録"]), ("SR-2 文献検索フローチャート", "SR_2", "chap4_SR_2", ["CQ", "文献選択の流れ図"]),
+            ("SR-3 二次スクリーニング後の一覧", "SR_3", "chap4_SR_3", ["CQ", "スクリーニング"]), ("SR-5 介入研究評価(0/-1/-2)", "SR_5", "chap4_SR_5", ["CQ", "研究特性", "SR-5"]),
+            ("SR-8 エビデンス総体", "SR_8", "chap4_SR_8", ["CQ", "SR-8"]), ("SR-12 SoF", "SR_12", "chap4_SR_12", ["CQ", "SoF表"]), ("EtD・推奨", "Chap6_推奨", "chap6_EtD", ["CQ", "EtD・推奨"])]
+
+
+def form_books(cqid, c):
+    """様式ごとのブック: [{form, folder, name, data}]"""
+    import export_minds
+    book = minds_book(cqid, c); nm = re.sub(r'[\\/:*?"<>|\n\r]', "_", f"{cqid}_{c['title']}")[:60]
+    return [{"form": f, "folder": folder, "name": f"{pre}_{nm}.xlsx", "sheets": sh, "data": export_minds.split_book(book, sh)} for f, folder, pre, sh in FORM_MAP]
+
+
 def export(method, parts, body, user):
     """GET /export/<cq> : ポータルの記録から Minds 書類(xlsx)を作り、S3 に置いて署名付きURLを返す"""
     if method != "GET" or len(parts) < 2: return resp(405, {"error": "方法が不正です"})
     cqid = parts[1]; c = get("CQ", cqid)
     if not c: return resp(404, {"error": "ありません"})
+    log = (lambda *a, **k: None) if (body.get("_query") or {}).get("sync") == "1" else audit   # 共有ドライブへの転送(sync_drive.py)の出力は、作成経過に記録しない(Minds書類の作成経過のシートが、出力のたびに変わらないように。転送は /sync/log に記録する)
     if parts[2:3] == ["screening"]:
         # GET /export/<cq>/screening : 文献選択の別添(検索の記録、流れ図の件数、枠ごとの文献の一覧: PMID・題名・著者)
         data, counts = screening_book(cqid, c)
@@ -946,7 +961,17 @@ def export(method, parts, body, user):
         if BUCKET:
             s3().put_object(Bucket=BUCKET, Key=key, Body=data, ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             url = s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": key, "ResponseContentDisposition": f"attachment; filename*=UTF-8''Screening_{cqid}.xlsx"}, ExpiresIn=900)
-        audit(user, "文献選択の別添の出力", cqid, key); return resp(200, {"url": url, "key": key, "bytes": len(data), "counts": counts})
+        log(user, "文献選択の別添の出力", cqid, key); return resp(200, {"url": url, "key": key, "bytes": len(data), "counts": counts})
+    if parts[2:3] == ["forms"]:
+        # GET /export/<cq>/forms : Minds 様式ごと(SR-1・2・3・5・8・12、EtD)のブック。共有ドライブの様式番号のフォルダへ置くため
+        out = []
+        for fb in form_books(cqid, c):
+            key = f"exports/{cqid}/forms/{fb['name']}"; url = ""
+            if BUCKET:
+                s3().put_object(Bucket=BUCKET, Key=key, Body=fb["data"], ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                url = s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": key}, ExpiresIn=900)
+            out.append({"form": fb["form"], "folder": fb["folder"], "name": fb["name"], "sheets": fb["sheets"], "bytes": len(fb["data"]), "url": url})
+        log(user, "Minds様式ごとの出力", cqid, ", ".join(x["form"] for x in out)); return resp(200, {"forms": out})
     data = minds_book(cqid, c)
     key = f"exports/{cqid}/Minds書類_{cqid}_{now()[:19].replace(':', '')}.xlsx"
     if BUCKET:
@@ -954,7 +979,7 @@ def export(method, parts, body, user):
         url = s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": key, "ResponseContentDisposition": f"attachment; filename*=UTF-8''Minds_{cqid}.xlsx"}, ExpiresIn=900)
     else:
         url = ""
-    audit(user, "Minds書類の出力", cqid, key); return resp(200, {"url": url, "key": key, "sheets": ["CQ", "検索の記録", "文献選択の流れ図", "スクリーニング", "研究特性", "SR-5", "SR-8", "SoF表", "EtD・推奨", "作成経過"], "bytes": len(data)})
+    log(user, "Minds書類の出力", cqid, key); return resp(200, {"url": url, "key": key, "sheets": ["CQ", "検索の記録", "文献選択の流れ図", "スクリーニング", "研究特性", "SR-5", "SR-8", "SoF表", "EtD・推奨", "作成経過"], "bytes": len(data)})
 
 
 # ---------- 総説(総論A〜N)。SRの流れとは独立した流れ ----------
