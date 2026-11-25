@@ -33,7 +33,7 @@ def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None, sc
     wb = openpyxl.Workbook()
     ws = wb.active; ws.title = "CQ"
     ws.append(["項目", "内容"])
-    for k, val in [("ID", cq["id"]), ("名称", cq["title"]), ("区分", cq.get("category", "")), ("担当", "・".join(cq.get("assignees", []))), ("承認", cq.get("approved", "")),
+    for k, val in [("ID", cq["id"]), ("名称", cq["title"]), ("区分", cq.get("category", "")), ("担当", "・".join(cq.get("assignees", []))), 
                    ("P", cq["pico"].get("P", "")), ("I", cq["pico"].get("I", "")), ("C", cq["pico"].get("C", "")), ("O", cq["pico"].get("O", "")), ("アウトカム", "\n".join(cq.get("outcomes") or []))]:
         ws.append([k, val])
     style(ws, widths=[14, 90])

@@ -277,8 +277,9 @@ def test_web_style_rules():
     js = open(os.path.join(web, "app.js"), encoding="utf-8").read(); html = open(os.path.join(web, "index.html"), encoding="utf-8").read()
     assert len(re.findall(r"font-size\s*:", css)) == 1 and "font-size" not in js and "font-size" not in html  # body の指定だけ
     assert not re.search(r"(?<![-\w])color\s*:\s*(#fff\b|#ffffff\b|white\b)", css + js + html, re.I)   # 字の色に白を使わない
-    assert ".approve" in css and js.count('class="approve"') >= 4  # SR-5 の確定、EtD の確定、総論の完了、進捗ボード
-    assert "承認(確定)が必要な記録" in js and "作業手順(SRの流れ)" in js
+    assert ".approve" in css and js.count('class="approve"') >= 3  # SR-5 の確定、EtD の確定、総論の完了
+    assert "対応が必要なもの" in js and "自分の担当 CQ" in js                                  # ホームは、利用者ごとの内容
+    for gone in ("現在の段階", "承認(確定)の記録がない件", "統括委員長承認済み", "手順1 CQ・PICO", "PICO は", "論文(PDF登録・本文)", "自分の欄に取り込んで修正する"): assert gone not in js, gone   # 削除した文言(推測の状態・承認の説明・PICO の入力・過剰な作業)
 
 
 def test_extract_does_not_stop_at_front_matter_or_references():
@@ -677,6 +678,43 @@ def test_check_site_detects_cors_problems(tmp_path, monkeypatch, capsys):
     state.update({"cors": True, "preflight": 401}); rc, out = run(); assert rc == 1 and "HTTP 401" in out                                                        # 事前確認が認可で止まる(ANY ルート+認可の典型)
     state["preflight"] = 204; cfg["apiUrl"] = "http://127.0.0.1:9"; rc, out = run(); assert rc == 1 and "[NG] 画面の設定 apiUrl" in out and "接続できません" in out       # 画面が古い API を指している
     api.shutdown(); site.shutdown()
+
+
+def test_home_is_per_user_and_cq_has_fixed_pico(env):
+    """ホームは利用者ごとに、自分の担当 CQ の未判定・未提出の件数を返す。P・C は全 CQ で固定(がん化学療法を受ける患者・無治療)、I は CQ の名称、O は CIPN。承認済みの文言は出さない。論文の一覧に著者・雑誌・発行年を添える。"""
+    cqs = call("GET", "/cq")[1]; n1 = next(c for c in cqs if c["id"] == "N1")
+    assert n1["pico"] == {"P": "がん化学療法を受ける患者", "I": n1["title"], "C": "無治療", "O": "CIPN"} and all("approved" not in c for c in cqs) and all(c["pico"]["P"] == n1["pico"]["P"] and c["pico"]["C"] == "無治療" for c in cqs)
+    assert call("PUT", "/cq/N1", {"pico": {"P": "別の対象"}}, CHAIR)[0] == 200 and call("GET", "/cq/N1")[1]["pico"]["P"] == "がん化学療法を受ける患者"   # PICO は編集できない(固定)
+    # スクリーニングの未判定: R1(元雄良治・P1 担当)と R2(菊池健・P1 担当)
+    for i in (1, 2, 3):
+        H.put("CAND", f"P1#3333333{i}", {"cq": "P1", "pmid": f"3333333{i}", "title": f"t{i}", "authors": "Kono T, Hata T", "journal": "J Test", "year": "2020", "source": "検索(PubMed)"})
+    H.put("SCR", "P1#33333331#菊池健", {"cq": "P1", "pmid": "33333331", "reviewer": "菊池健", "s1": {"decision": "採用", "reason": "", "at": "x"}})
+    H.put("SCR", "P1#33333331#元雄良治", {"cq": "P1", "pmid": "33333331", "reviewer": "元雄良治", "s1": {"decision": "採用", "reason": "", "at": "x"}})
+    d1 = call("GET", "/dashboard", who=R1)[1]; d2 = call("GET", "/dashboard", who=R2)[1]; w1 = d1["my_work"][0]
+    assert [w["cq"] for w in d1["my_work"]] == ["P1"] and w1["s1_open"] == 2 and w1["s2_open"] == 1 and "phase" not in d1 and "audit" not in d1                   # 2名が一致した 1件は、一次の結果が出て、二次の対象になる
+    H.put("SCR", "P1#33333332#菊池健", {"cq": "P1", "pmid": "33333332", "reviewer": "菊池健", "s1": {"decision": "除外", "reason": "重複", "at": "x"}})
+    assert call("GET", "/dashboard", who=R2)[1]["my_work"][0]["s1_open"] == 1 and call("GET", "/dashboard", who=R1)[1]["my_work"][0]["s1_open"] == 2   # 自分の判定だけが数えられる
+    assert call("GET", "/dashboard", who=CHAIR)[1]["my_work"] == [] and call("GET", "/dashboard", who=dict(email="w@example.org", groups=("総説執筆者",)))[1]["my_work"] == []
+    H.put("PAPER", "P1#33333331", {"cq": "P1", "pmid": "33333331", "title": "", "status": "PDF未登録"})
+    p = call("GET", "/papers/P1")[1][0]; assert p["authors"] == "Kono T, Hata T" and p["journal"] == "J Test" and p["year"] == "2020" and p["title"] == "t1"
+
+
+def test_docs_missing_list_and_setup_verify(env):
+    """手順書の画面は、登録されていないものを統括委員会・事務局にだけ示す。setup_portal.py の確認は、登録された件数を示し、足りないものを [NG] にする。"""
+    import importlib; sys.path.insert(0, os.path.join(HERE, "..", "scripts")); SP = importlib.import_module("setup_portal")
+    boto3.client("s3").put_object(Bucket=H.BUCKET, Key="docs/1_操作マニュアル.docx", Body=b"x")
+    names = lambda who, q="": [(d["name"], d.get("available", True)) for d in call("GET", "/docs" + q, who=who)[1]]
+    assert names(R1) == [("1_操作マニュアル.docx", True)] and names(CHAIR) == [("1_操作マニュアル.docx", True)]
+    miss = names(CHAIR, "?missing=1"); assert ("操作マニュアル", True) not in miss and ("SR委員の手順書", False) in miss and ("用語の定義", False) in miss and names(R1, "?missing=1") == [("1_操作マニュアル.docx", True)]
+    class Tok:
+        def call(self, method, path, body=None): return call(method, path, body)[1]
+    res = SP.verify(Tok()); ok = {m.split(":")[0]: o for o, m in res}
+    assert ok["手順書"] is False and ok["2023年版の総論の本文"] is False and ok["2023年版の CQ の記述"] is False and "SR委員の手順書" in [m for o, m in res if m.startswith("手順書")][0]
+    for n in ("2_統括委員会へのお願い.docx", "3_SR委員長の業務手順.docx", "4_SR委員の手順書.docx", "5_総説執筆者の手順書.docx", "6_論文PDFの入手と配置の手順.docx", "6_用語の定義.docx"): boto3.client("s3").put_object(Bucket=H.BUCKET, Key="docs/" + n, Body=b"x")
+    H.put("GL2023S", "A", {"key": "A", "title": "x", "paragraphs": [{"id": "A-1", "text": "t"}], "docx_key": "soron2023/A/a.docx"})
+    for c in call("GET", "/cq")[1]: H.put("GL2023", c["id"], {"cq": c["id"], "rec": "推奨文", "paragraphs": []})
+    call("PUT", "/cq/P1", {"outcomes": ["CIPN"]}); [call("PUT", f"/cq/{c['id']}", {"outcomes": ["CIPN"]}) for c in call("GET", "/cq")[1]]
+    res = SP.verify(Tok()); assert all(o for o, _ in res), [m for o, m in res if not o]
 
 
 def test_sr8_has_minds_sr8_columns(env):

@@ -77,8 +77,8 @@ ul.plain { padding-left:20px; margin:6px 0; }
 .split .card { margin-bottom:0; }
 .split > * { min-width:0; }
 /* 様式4-5 の表: 項目名の列は幅を固定し、入力欄は列の幅に合わせる */
-table.f45 { table-layout:fixed; min-width:620px; }
-table.f45 th:first-child { width:10em; }
+table.f45 { table-layout:fixed; min-width:520px; }
+table.f45 th:first-child { width:8em; }
 table.f45 td { overflow-wrap:anywhere; }
 table.f45 input, table.f45 select { display:block; width:100%; margin:2px 0; }
 table.f45 br { display:none; }

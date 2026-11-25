@@ -38,6 +38,14 @@ ROLE_ADMIN = {"統括委員会", "事務局"}
 ROLE_LEAD = ROLE_ADMIN | {"SR委員長"}
 ROLE_GROUP = {"統括委員会", "作成グループ"}  # 推奨作成(EtD・投票)
 GROUPS = ["統括委員会", "事務局", "SR委員長", "作成グループ", "SR委員", "総説執筆者", "外部評価委員"]
+FIXED_P = "がん化学療法を受ける患者"; FIXED_C = "無治療"   # 統括委員長の決定: P と C は全 CQ で同じ。I は CQ の介入。O は CIPN
+
+
+def pico_of(c):
+    """PICO。P・C は固定、I は CQ の介入、O は CIPN(登録されたアウトカム)。"""
+    return {"P": FIXED_P, "I": c.get("title", ""), "C": FIXED_C, "O": "、".join(c.get("outcomes") or [DEFAULT_OUTCOME])}
+
+
 DEFAULT_OUTCOME = "CIPN"  # 統括委員長の決定(2026-11-16): 今回の改訂では、全CQ・FRQのアウトカムを CIPN とする
 CQ_STAGES = ["CQ確定", "検索", "スクリーニング", "論文登録", "SR-5", "SR-8", "EtD"]  # 表示は記録された件数だけ。推測の状態は出さない
 SORON_STATES = ["原稿未提出", "執筆中", "査読中", "修正中", "完了"]  # 記録に基づく状態だけ
@@ -213,16 +221,25 @@ def dashboard(user):
     """進捗ボード。記録された件数、自分の作業、承認(確定)の記録がない件を返す。SR の流れと総説の流れは、役割で分ける。"""
     g = set(user["groups"]); name = user["name"]; lead = bool(g & ROLE_LEAD)
     sr_view = bool(g & (ROLE_LEAD | {"SR委員", "作成グループ"})); soron_view = bool(g & (ROLE_ADMIN | {"総説執筆者"}))
-    out_cq, todo, approvals = [], [], []
+    out_cq, todo, approvals, my_work = [], [], [], []
     for c in (sorted(query("CQ"), key=lambda c: c["id"]) if sr_view else []):
         n, units, papers = cq_records(c); st = stage_text(n); mine = is_assignee(user, c)
         wait = n.pop("f45_wait"); n["f45_wait"] = len(wait)
         out_cq.append({**c, "stages": st, "progress": progress(st), "counts": n, "mine": mine})
         if mine:
+            cands, recs = screen_data(c["id"]); o1 = o2 = 0
+            for cd in cands:
+                rs = recs.get(cd["pmid"], []); mine_done = lambda st: any(r["reviewer"] == name and (r.get(st) or {}).get("decision") for r in rs)
+                r1 = stage_result(cd, rs, "s1")
+                if not cd.get("direct") and not r1["decision"] and not mine_done("s1"): o1 += 1
+                if to_s2(cd, r1) and not stage_result(cd, rs, "s2")["decision"] and not mine_done("s2"): o2 += 1
+            my_work.append({"cq": c["id"], "title": c["title"], "s1_open": o1, "s2_open": o2, "papers": len(papers), "f45_need": n["f45_need"], "f45_submitted_mine": 0,
+                            "sr8_open": (n["outcomes"] - n["sr8"]) if n["f45_fixed"] else 0, "sr8": n["sr8"], "outcomes": n["outcomes"], "searches": n["flow"]["searches"], "etd_status": n["etd_status"]})
             for p in papers:
                 for o in c.get("outcomes") or []:
                     if name not in units.get((p["pmid"], o), {}).get("submitted", []):
                         todo.append({"cq": c["id"], "pmid": p["pmid"], "title": p.get("title", ""), "outcome": o})
+                    else: my_work[-1]["f45_submitted_mine"] += 1
         if lead or mine:
             for w in wait:
                 approvals.append({"kind": "SR-5の照合・確定", "target": f"{c['id']} PMID {w['pmid']} / {w['outcome']}", "record": "2名が提出済(" + "・".join(w["submitted"]) + ")。確定の記録なし",
@@ -250,11 +267,10 @@ def dashboard(user):
         if s.get("status") == "査読中" and (g & ROLE_ADMIN or is_author(s)):
             approvals.append({"kind": "総論の査読・完了", "target": f"総論{s['label']} {s['title']}", "record": "状態 査読中。" + (f"原稿 {s['file']}" if s.get("file") else "原稿の記録なし"),
                               "approver": "統括委員会(査読コメントは統括委員会・事務局)", "can": bool(g & ROLE_ADMIN), "page": "soron", "q": {}})
-    return {"user": user, "phase": (get("PHASE", "current") or {}).get("phase", ""), "cq": out_cq, "my_cq": [{"id": c["id"], "title": c["title"], "progress": c["progress"]} for c in out_cq if c["mine"]],
+    return {"user": user, "my_work": my_work, "cq": out_cq, "my_cq": [{"id": c["id"], "title": c["title"], "progress": c["progress"]} for c in out_cq if c["mine"]],
             "my_votes": my_votes, "my_f45_todo": todo[:50], "my_f45_todo_count": len(todo), "approvals": approvals[:200], "approvals_count": len(approvals),
             "my_soron": [{"key": s["key"], "label": s["label"], "title": s["title"], "status": s["status"]} for s in my_soron],
-            "soron_summary": {st: sum(1 for s in soron if s.get("status") == st) for st in SORON_STATES},
-            "audit": sorted(query("AUDIT"), key=lambda a: a["sk"], reverse=True)[:20]}
+            "soron_summary": {st: sum(1 for s in soron if s.get("status") == st) for st in SORON_STATES}}
 
 
 # ---------- ルーティング ----------
@@ -571,18 +587,17 @@ def cq(method, parts, body, user):
         if len(parts) > 1:
             c = get("CQ", parts[1])
             if not c: return resp(404, {"error": "ありません"})
-            st = stage_auto(c); return resp(200, {**c, "stages": st, "progress": progress(st)})
+            st = stage_auto(c); return resp(200, {**c, "pico": pico_of(c), "stages": st, "progress": progress(st)})
         out = []
         for c in sorted(query("CQ"), key=lambda c: c["id"]):
-            c.setdefault("approved", "統括委員長承認済み(企画書 Ver1 2026-06-17)"); c.pop("stages", None); st = stage_auto(c)
-            out.append({**c, "stages": st, "progress": progress(st)})
+            c.pop("stages", None); c.pop("approved", None); st = stage_auto(c)
+            out.append({**c, "pico": pico_of(c), "stages": st, "progress": progress(st)})
         return resp(200, out)
     if method == "PUT" and len(parts) > 1:
         c = get("CQ", parts[1])
         if not c: return resp(404, {"error": "ありません"})
         if not is_assignee(user, c): require(user, ROLE_LEAD)
         ch = []
-        if "pico" in body: c["pico"] = {k: str(body["pico"].get(k, c["pico"].get(k, ""))) for k in "PICO"}; ch.append("PICO")
         if "outcomes" in body: c["outcomes"] = [str(o).strip() for o in body["outcomes"] if str(o).strip()]; ch.append("アウトカム: " + "、".join(c["outcomes"]))
         if "note" in body: c["note"] = str(body["note"]); ch.append("備考")
         put("CQ", c["id"], c); audit(user, "CQの更新", c["id"], "、".join(ch)); st = stage_auto(c); return resp(200, {**c, "stages": st, "progress": progress(st)})
@@ -594,6 +609,22 @@ def paper_key(cqid, pmid):
     return f"{cqid}#{pmid}"
 
 
+def request_draft(user, cqid, pmid, outcome):
+    """SR-5 の下書き(Claude)を、非同期で依頼する。"""
+    put("F45", f45_key(cqid, pmid, outcome, "AI"), {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "作成中", "requested_by": user["name"]})
+    ev = {"task": "draft45", "cq": cqid, "pmid": pmid, "outcome": outcome, "user": user}
+    if FUNCTION: boto3.client("lambda").invoke(FunctionName=FUNCTION, InvocationType="Event", Payload=json.dumps(ev, ensure_ascii=False).encode())
+    else: run_draft45(ev)
+
+
+def auto_drafts(cqid, pmid):
+    """本文を抽出したとき、まだ下書きがないアウトカムの SR-5 の下書きを、自動で依頼する(委員が下書きを待たずに、確認から始められるようにする)。Lambda 上だけで行う。"""
+    if not FUNCTION: return
+    c = get("CQ", cqid) or {}
+    for o in c.get("outcomes") or []:
+        if not get("F45", f45_key(cqid, pmid, o, "AI")): request_draft({"name": "自動(本文の抽出後)", "email": ""}, cqid, pmid, o)
+
+
 def save_text(user, cqid, pmid, p, pages, source):
     from extract_text import paragraphs, quality
     paras = paragraphs(pmid, pages); status = quality(pages, paras)
@@ -603,6 +634,7 @@ def save_text(user, cqid, pmid, p, pages, source):
     secs = {s: sum(1 for x in paras if x["section"] == s) for s in ("abstract", "methods", "results", "discussion", "other")}
     p.update({"text_key": text_key, "status": status, "pages": len(pages), "n_paragraphs": len(paras), "sections": secs, "text_source": source}); put("PAPER", p["sk"], p)
     audit(user, "本文の抽出", f"{cqid} / PMID {pmid}", f"{source}: {len(pages)}ページ、{len(paras)}段落(Method {secs['methods']}、Result {secs['results']})。{status}")
+    if status.startswith("本文抽出済"): auto_drafts(cqid, pmid)
     return resp(200, {"pages": len(pages), "paragraphs": len(paras), "sections": secs, "status": status})
 
 
@@ -614,7 +646,12 @@ def papers(method, parts, body, user):
     # GET /papers/<cq>/<pmid>/pdf-url       PDF閲覧(署名付きURL)
     # PUT /papers/<cq>/<pmid>               研究特性・題名
     if method == "GET" and len(parts) == 2:
-        return resp(200, sorted(query("PAPER", f"{parts[1]}#"), key=lambda p: p["pmid"]))
+        cands = {x["pmid"]: x for x in query("CAND", f"{parts[1]}#")}   # スクリーニングの記録から、著者・雑誌・発行年を添える(SR-4 の引用文献の列)
+        out = []
+        for p in sorted(query("PAPER", f"{parts[1]}#"), key=lambda p: p["pmid"]):
+            cd = cands.get(p["pmid"]) or {}
+            out.append({**p, "title": p.get("title") or cd.get("title", ""), "authors": cd.get("authors", ""), "journal": cd.get("journal", ""), "year": cd.get("year", "")})
+        return resp(200, out)
     if len(parts) < 3: return resp(400, {"error": "CQ と PMID が必要です"})
     cqid, pmid = parts[1], re.sub(r"\D", "", parts[2])
     c = get("CQ", cqid)
@@ -709,12 +746,7 @@ def f45(method, parts, body, user):
     if method == "POST" and sub == "draft":
         if not (is_assignee(user, c) or lead): raise Forbidden("この CQ の担当委員に限ります")
         if not str(p.get("status", "")).startswith("本文抽出済"): return resp(409, {"error": "本文が未抽出です。PDFを登録し、本文を抽出してください(抄録だけでは作りません。画像PDFは OCR で本文を入れます)"})
-        put("F45", f45_key(cqid, pmid, outcome, "AI"), {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "作成中", "requested_by": user["name"]})
-        ev = {"task": "draft45", "cq": cqid, "pmid": pmid, "outcome": outcome, "user": user}
-        if FUNCTION:
-            boto3.client("lambda").invoke(FunctionName=FUNCTION, InvocationType="Event", Payload=json.dumps(ev, ensure_ascii=False).encode())
-        else:
-            run_draft45(ev)
+        request_draft(user, cqid, pmid, outcome)
         audit(user, "SR-5の下書きを依頼", f"{cqid} / PMID {pmid} / {outcome}"); return resp(202, {"status": "作成中"})
     return resp(405, {"error": "方法が不正です"})
 
@@ -745,7 +777,7 @@ def run_draft45(ev):
         text = json.loads(s3().get_object(Bucket=BUCKET, Key=p["text_key"])["Body"].read())
         paras = relevant(text["paragraphs"])
         if not paras: return resp(400, {"error": "本文の段落がありません(画像PDF)。OCR で本文を入れてから下書きを作ります"})
-        out = draft45.draft(c["title"], c["pico"].get("P"), c["pico"].get("I") or c["title"], outcome, paras)
+        out = draft45.draft(c["title"], pico_of(c)["P"], pico_of(c)["I"], outcome, paras)
         rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "下書き", "items": out["items"], "study": out.get("study") or {}, "design": out.get("design"),
                "counts": out.get("counts") or {}, "effect": out.get("effect") or {}, "numbers": out.get("numbers") or {}, "model": draft45.MODEL_ID, "paragraphs_used": [x["id"] for x in paras], "at": now()}
         put("F45", key, rec); audit(user, "SR-5の下書きを作成", f"{cqid} / PMID {pmid} / {outcome}", f"段落 {len(paras)}件を根拠に。" + summarize_items(out["items"]))
@@ -921,6 +953,7 @@ def screening_book(cqid, c):
 def minds_book(cqid, c):
     """Minds書類(xlsx のバイト列)"""
     import export_minds
+    c = {**c, "pico": pico_of(c)}
     papers = query("PAPER", f"{cqid}#"); finals = [r for r in query("F45", f"{cqid}#") if r["sk"].endswith("#確定")]
     aud = [a for a in sorted(query("AUDIT"), key=lambda a: a["sk"]) if cqid in str(a.get("target", ""))]
     cands, recs = screen_data(cqid); rows = []
@@ -1058,11 +1091,13 @@ def docs(method, parts, body, user):
         audit(user, "手順書の登録", name); return resp(200, {"url": url, "key": f"docs/{name}"})
     if method == "GET":
         objs = s3().list_objects_v2(Bucket=BUCKET, Prefix="docs/").get("Contents", []) if BUCKET else []
-        out = []
+        out = []; show_missing = (body.get("_query") or {}).get("missing") == "1" and bool(g & ROLE_ADMIN)
         for k, target, roles in DOCS:
             if roles is not None and not (g & roles): continue
             o = next((x for x in objs if k in x["Key"]), None)
-            if not o: continue
+            if not o:
+                if show_missing: out.append({"name": k, "target": target, "updated": "", "url": "", "available": False})
+                continue
             name = o["Key"].split("/", 1)[1]
             out.append({"name": name, "target": target, "updated": o["LastModified"].isoformat()[:10],
                         "url": s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": o["Key"]}, ExpiresIn=900)})
