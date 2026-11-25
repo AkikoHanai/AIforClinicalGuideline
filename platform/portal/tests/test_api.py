@@ -737,17 +737,22 @@ def test_scope_is_shared_with_all_members(env):
 
 
 def test_scope_documents_follow_minds_forms_and_decisions():
-    """生成した Scope は、Minds 第3章の様式ごと(SC-1、SC-2、SC-3、SC-4 は CQ・FRQ 15項目ごと)の18件。統括委員長の決定(視点・性別・地理的要件・重要度・作業日程)を反映し、企画書にない介入と曖昧な語を含まない。"""
-    import openpyxl, glob
+    """生成した Scope は、Minds 公式テンプレート(SC-1〜SC-4)に記入した18件(SC-4 は CQ・FRQ 15項目ごと)。テンプレートの項目名と入力規則を保ち、統括委員長の決定(視点・性別・地理的要件・重要度・作業日程)を反映し、企画書にない介入と曖昧な語を含まない。"""
+    import openpyxl
     d = os.path.join(HERE, "..", "..", "scope", "out", "minds"); files = sorted(os.listdir(d)); plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8")); its = plan["SR項目"] + plan["FRQ項目"]
     assert len(files) == 18 and files[:3] == ["SC-1_疾患トピックの基本的特徴.xlsx", "SC-2_診療アルゴリズム.xlsx", "SC-3_スコープ.xlsx"]
-    text = lambda f: "\n".join(str(c.value) for ws in openpyxl.load_workbook(os.path.join(d, f)).worksheets for row in ws.iter_rows() for c in row if c.value is not None)
-    for it in its:
-        f = [x for x in files if x.startswith(f"SC-4_{it['id']}_")]; assert len(f) == 1 and it["名称"] in text(f[0]), it["id"]
-        t = text(f[0]); assert "男性・女性を含む(がん種による差がある)" in t and "なし" in t and "評価しない(アウトカムが単一のため)" in t and "CIPN(症状の有無で評価する)" in t and "無治療" in t and "推奨されるか" in t
+    wbs = {f: openpyxl.load_workbook(os.path.join(d, f)) for f in files}; assert all(len(w.worksheets) == 1 for w in wbs.values())     # テンプレートの1シートだけ
+    text = lambda f: "\n".join(str(c.value) for ws in wbs[f].worksheets for row in ws.iter_rows() for c in row if c.value is not None)
     sc1, sc2, sc3 = text(files[0]), text(files[1]), text(files[2])
-    assert all(h in sc1 for h in ("臨床的特徴", "疫学的特徴", "診療の全体的な流れ")) and all(f"{i['id']} {i['名称']}" in sc2 for i in its)
-    assert "Individual perspective" in sc3 and "実施スケジュール\n記載しない" in sc3 and plan["タイトル"] in sc3 and "PubMed" in sc3 and "患者代表は含めない" in sc3 and "男性・女性を含む" in sc3 and "地理的要件はない" in sc3
+    assert all(h in sc1 for h in ("【SC-1", "臨床的特徴", "疫学的特徴", "診療の全体的な流れ")) and "【SC-2" in sc2 and "診療アルゴリズム（図）" in sc2 and all(f"{i['id']} {i['名称']}" in sc2 for i in its)
+    assert all(h in sc3 for h in ("【SC-3", "診療ガイドラインがカバーする視点", "既存の診療ガイドラインとの関係", "実施スケジュール", "エビデンスの検索", "推奨作成の基本方針", "外部評価の具体的方法", "公開の予定"))   # テンプレートの項目名
+    assert "Individual perspective" in sc3 and wbs[files[2]].worksheets[0]["F52"].value == "記載しない" and plan["タイトル"] in sc3 and "PubMed" in sc3 and "患者代表は含めない" in sc3 and "男性・女性を含む" in sc3 and "地理的要件はない" in sc3
+    assert all(f"{i['id']}: {i['名称']}" in sc3 for i in its) and wbs[files[2]].worksheets[0]["D3"].value == "第1版"
+    for it in its:
+        f = [x for x in files if x.startswith(f"SC-4_{it['id']}_")]; assert len(f) == 1, it["id"]; ws = wbs[f[0]].worksheets[0]; t = text(f[0])
+        assert ws["A17"].value == it["名称"] and ws["E17"].value == "無治療" and ws["B11"].value == "指定なし" and ws["B14"].value == "なし" and "18歳以上" in str(ws["D12"].value)
+        assert "男性・女性を含む。がん種によって" in ws["B15"].value and ws["B22"].value == "CIPN(症状の有無で評価する)" and ws["F22"].value == "益" and ws["G22"].value == "評価しない" and ws["J22"].value == "○" and "推奨されるか" in ws["A33"].value
+        assert "【SC-4" in t and any("指定なし,男性,女性" in str(dv.formula1) for dv in ws.data_validations.dataValidation) and any(str(dv.formula1) == '"益,害"' for dv in ws.data_validations.dataValidation)   # テンプレートの入力規則を保つ
     allt = "\n".join(text(f) for f in files)
     for ng in ("適宜", "目安", "厳密", "十分", "質の高い", "venlafaxine", "Venlafaxine", "ケタミン", "ketamine", "cannabinoid", "2027年", "キックオフ"): assert ng not in allt, ng   # 作業日程を書かない
 
