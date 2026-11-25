@@ -6,11 +6,11 @@
       アウトカムが未登録の CQ だけに登録する。別のアウトカムが登録済みの CQ は変えずに一覧に出す
 展開の出力(platform/portal/out/outputs.json)から、利用者プールと API の URL を読む。
 """
-import getpass, json, os, sys, urllib.error, urllib.request
+import getpass, json, os, re, sys, urllib.error, urllib.request
 import boto3
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = json.load(open(os.path.join(HERE, "..", "out", "outputs.json"), encoding="utf-8"))["jascc-gl-portal"]
+OUT = json.load(open(os.environ.get("JASCC_OUTPUTS") or os.path.join(HERE, "..", "out", "outputs.json"), encoding="utf-8"))["jascc-gl-portal"]
 idp = boto3.client("cognito-idp", region_name="ap-northeast-1")
 
 
@@ -25,13 +25,69 @@ def create(email, name):
     print("統括委員会のグループに入れました")
 
 
+CONF = os.path.expanduser("~/.jascc_gl_portal.json")
+EMAIL_RE = re.compile(r"[^@\s/]+@[^@\s/]+\.[^@\s/]+")
+
+
+def email_arg(argv):
+    """引数の中の、メールアドレスの形のもの(なければ None。保存済みのもの、または統括委員会の唯一の利用者が使われる)。"""
+    return next((x for x in argv if EMAIL_RE.fullmatch(x)), None)
+
+
+def pool_users():
+    """利用者プールの全利用者: [{email, name, groups}]"""
+    out, kw = [], {}
+    while True:
+        r = idp.list_users(UserPoolId=OUT["UserPoolId"], **kw)
+        for u in r["Users"]:
+            at = {a["Name"]: a["Value"] for a in u.get("Attributes", [])}
+            gs = [g["GroupName"] for g in idp.admin_list_groups_for_user(UserPoolId=OUT["UserPoolId"], Username=u["Username"])["Groups"]]
+            out.append({"email": at.get("email", u["Username"]), "name": at.get("name", ""), "groups": gs})
+        if "PaginationToken" not in r: return out
+        kw = {"PaginationToken": r["PaginationToken"]}
+
+
+def users_help():
+    us = pool_users()
+    return f"利用者プール {OUT['UserPoolId']} の利用者({len(us)}人):\n" + "\n".join(f"  {u['email']}  {u['name']}  {'・'.join(u['groups']) or '(グループなし)'}" for u in us) if us else \
+        f"利用者プール {OUT['UserPoolId']} に、利用者がいません。次で統括委員長の利用者を作ってください:\n  python3 platform/portal/scripts/admin_user.py <メールアドレス> 華井明子"
+
+
+def resolve_email(email=None):
+    """使う利用者のメールアドレスを決める。指定がなければ、保存済みのもの、なければ統括委員会の唯一の利用者。プールにいなければ、プールの利用者の一覧を示して止まる。"""
+    if email is not None and not EMAIL_RE.fullmatch(email): sys.exit(f"メールアドレスの形ではありません: {email}")
+    if email is None:
+        try: saved = json.load(open(CONF, encoding="utf-8")).get("email", "") if os.path.exists(CONF) else ""
+        except ValueError: saved = ""
+        email = saved if EMAIL_RE.fullmatch(saved or "") else None
+    if email is None:
+        admins = [u for u in pool_users() if "統括委員会" in u["groups"]]
+        if len(admins) != 1: sys.exit("使う利用者を決められません。メールアドレスを指定してください。\n" + users_help())
+        email = admins[0]["email"]; print("統括委員会の利用者:", email)
+    try:
+        idp.admin_get_user(UserPoolId=OUT["UserPoolId"], Username=email)
+    except idp.exceptions.UserNotFoundException:
+        sys.exit(f"利用者プールに、このメールアドレスの利用者がいません: {email}\n{users_help()}\n(上の一覧の統括委員会のメールアドレスで、もう一度実行してください。メールアドレスの指定は、省略もできます)")
+    try:
+        cfg = json.load(open(CONF, encoding="utf-8")) if os.path.exists(CONF) else {}
+        if cfg.get("email") != email: cfg["email"] = email; json.dump(cfg, open(CONF, "w", encoding="utf-8"), ensure_ascii=False)
+    except (OSError, ValueError): pass
+    return email
+
+
 class Session:
     """ポータルの API を、統括委員長の AWS 認証情報で直接呼ぶ(Lambda を invoke。パスワード不要)。
     利用者のメールアドレスとグループは Cognito から読み、監査記録(AUDIT)にはその利用者が記録される。
     AWS 認証情報が無いときは、Cognito のパスワードで ID トークンを取り、API Gateway 経由で呼ぶ。"""
 
-    def __init__(self, email):
-        self.email = email; self.tok = None; self.fn = None
+    def __init__(self, email=None):
+        self.tok = None; self.fn = None
+        try:
+            boto3.client("sts", region_name="ap-northeast-1").get_caller_identity(); has_aws = True
+        except Exception:
+            has_aws = False
+        if has_aws: email = resolve_email(email)
+        self.email = email
         try:
             sts = boto3.client("sts", region_name="ap-northeast-1"); sts.get_caller_identity()
             fns = boto3.client("lambda", region_name="ap-northeast-1").list_functions()["Functions"]
@@ -73,7 +129,7 @@ def _id_token(email):
     return r["AuthenticationResult"]["IdToken"]
 
 
-def token(email):
+def token(email=None):
     return Session(email)
 
 

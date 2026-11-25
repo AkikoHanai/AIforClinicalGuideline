@@ -59,6 +59,6 @@ def main(email, use_docx=False):
 
 if __name__ == "__main__":
     a = sys.argv[1:]
-    if a[:1] == ["--docx"]: main(a[1], use_docx=True)
-    elif a: main(a[0])
-    else: sys.exit(__doc__)
+    from admin_user import email_arg
+    if {"-h", "--help"} & set(a): sys.exit(__doc__)
+    main(email_arg(a), use_docx="--docx" in a)

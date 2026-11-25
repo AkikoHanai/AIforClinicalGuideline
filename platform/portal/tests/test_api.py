@@ -511,12 +511,13 @@ def test_sync_drive_finds_folder_runs_from_any_directory(env, tmp_path, monkeypa
     import unicodedata
     existing = os.path.join(drive, "新規ガイドライン作成", unicodedata.normalize("NFD", "CQ1-牛車腎気丸")); os.makedirs(existing)                   # 既存の目次どおりのフォルダ(macOS の NFD でも見つける)
     os.makedirs(os.path.join(drive, "新規ガイドライン作成", "総論", "総論A_旧い題名")); os.makedirs(os.path.join(drive, ".hidden", "CQ1-牛車腎気丸"))
-    asked = []; monkeypatch.setattr("builtins.input", lambda *a: asked.append(1) or "chair@example.org")
-    SD.main(["--dry-run"], session=lambda email: Tok(), fetch=fetch, home=home)                                 # 初回: メールアドレスを尋ねて保存。--dry-run は、何も置かない
-    assert asked == [1] and json.load(open(os.path.join(home, ".jascc_gl_portal.json"), encoding="utf-8"))["email"] == "chair@example.org" and not [f for _d, _, fs in os.walk(drive) for f in fs]
-    monkeypatch.setattr("builtins.input", lambda *a: (_ for _ in ()).throw(AssertionError("2回目は尋ねない")))
-    seen = []; SD.main([], session=lambda email: seen.append(email) or Tok(), fetch=fetch, home=home)           # 2回目: 保存したメールアドレスで、自動で見つけたフォルダへ転送
-    assert seen == ["chair@example.org"] and not [f for d, _, fs in os.walk(drive) for f in fs if f.endswith(".part")]
+    monkeypatch.setattr("builtins.input", lambda *a: (_ for _ in ()).throw(AssertionError("メールアドレスを尋ねない")))
+    seen = []
+    SD.main(["--dry-run"], session=lambda email: seen.append(email) or Tok(), fetch=fetch, home=home)           # 指定なし: None を渡す(admin_user が、保存済みのもの、または統括委員会の唯一の利用者を使う)。--dry-run は、何も置かない
+    assert seen == [None] and not [f for _d, _, fs in os.walk(drive) for f in fs]
+    SD.main(["chair@example.org", "--dry-run"], session=lambda email: seen.append(email) or Tok(), fetch=fetch, home=home); assert seen[-1] == "chair@example.org"
+    SD.main([], session=lambda email: seen.append(email) or Tok(), fetch=fetch, home=home)                       # 自動で見つけたフォルダへ転送
+    assert not [f for d, _, fs in os.walk(drive) for f in fs if f.endswith(".part")]
     placed = sorted(os.path.relpath(os.path.join(d, f), drive) for d, _, fs in os.walk(drive) for f in fs)
     assert any(x.startswith(os.path.join("新規ガイドライン作成", "総論", "総論A_旧い題名")) and x.endswith("総論A_内藤.docx") for x in placed)                # 既存の総論のフォルダへ
     assert any(unicodedata.normalize("NFC", x).startswith(os.path.join("新規ガイドライン作成", "CQ1-牛車腎気丸")) and x.endswith("Minds書類_P1.xlsx") and "ポータル" not in x for x in placed)   # 既存の CQ のフォルダの中
@@ -526,14 +527,9 @@ def test_sync_drive_finds_folder_runs_from_any_directory(env, tmp_path, monkeypa
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf): SD.main(["--tree"], home=home)
     assert "新規ガイドライン作成/" in buf.getvalue() and "ポータル出力/" in buf.getvalue()
-    conf = os.path.join(home, ".jascc_gl_portal.json"); SD.main(["--tree=3", "新規ガイドライン作成", "--files"], home=home)
-    assert json.load(open(conf, encoding="utf-8"))["email"] == "chair@example.org"                                   # --tree のフォルダ名を、メールアドレスとして保存しない
-    json.dump({"email": "Chap6_推奨"}, open(conf, "w", encoding="utf-8"))                                            # 誤って保存された値は、使わず、尋ね直す
-    monkeypatch.setattr("builtins.input", lambda *a: "chair@example.org"); seen2 = []
-    SD.main(["--dry-run"], session=lambda email: seen2.append(email) or Tok(), fetch=fetch, home=home); assert seen2 == ["chair@example.org"] and json.load(open(conf, encoding="utf-8"))["email"] == "chair@example.org"
+    SD.main(["--tree=3", "新規ガイドライン作成", "--files"], home=home); assert not os.path.exists(os.path.join(home, ".jascc_gl_portal.json"))   # --tree のフォルダ名を、メールアドレスとして扱わない
     with pytest.raises(SystemExit) as e2: SD.main(["Chap6_推奨"], session=lambda email: Tok(), fetch=fetch, home=home)
     assert "メールアドレスの形ではありません" in str(e2.value)
-    monkeypatch.setattr("builtins.input", lambda *a: (_ for _ in ()).throw(AssertionError("保存済みなので尋ねない")))
     os.makedirs(os.path.join(drive, "新規ガイドライン作成", "Chap4_SR", "SR_１")); open(os.path.join(drive, "新規ガイドライン作成", "Chap4_SR", "SR_１", "a.xlsx"), "w").close()
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf): SD.main(["--tree=4", "Chap4_SR", "--files"], home=home)                     # 深さ・フォルダ名・ファイル名
@@ -581,6 +577,29 @@ def test_forms_are_placed_in_minds_form_folders(env, tmp_path):
     assert not [x for x in cp if "chap4_SR_" in x or "chap6_EtD" in x] and {x: os.path.getmtime(os.path.join(drive, x)) for x in walk() if "chap4_SR_8_P1" in x} == first   # 内容が同じなら置き換えない
     call("PUT", "/cq/P1", {"note": "変更"}); oc = call("GET", "/cq/P1")[1]["outcomes"][0]; H.put("SR8", f"P1#{oc}", {"outcome": oc, "rob": "-1", "certainty": "B(中)"})
     cp3, _ = SD.sync(Tok(), drive, fetch=fetch); assert any("chap4_SR_8_P1" in x for x in cp3) and not any("chap4_SR_2_P1" in x for x in cp3)             # 変わった様式だけを置き換える
+
+
+def test_admin_user_resolves_email_and_lists_pool_users(tmp_path, monkeypatch):
+    """スクリプトのメールアドレスは省略できる(保存済み、または統括委員会の唯一の利用者)。プールにいないメールアドレスは、プールの利用者の一覧を示して止まる(UserNotFoundException の長いエラーを出さない)。"""
+    outs = tmp_path / "outputs.json"; outs.write_text(json.dumps({"jascc-gl-portal": {"UserPoolId": "x", "ClientId": "y", "ApiUrl": "https://example.invalid"}}), encoding="utf-8")
+    monkeypatch.setenv("JASCC_OUTPUTS", str(outs)); sys.path.insert(0, os.path.join(HERE, "..", "scripts"))
+    with mock_aws():
+        import importlib; AU = importlib.import_module("admin_user")
+        cog = boto3.client("cognito-idp", region_name="ap-northeast-1"); pool = cog.create_user_pool(PoolName="t")["UserPool"]["Id"]; AU.OUT["UserPoolId"] = pool; AU.idp = cog; AU.CONF = str(tmp_path / "conf.json")
+        for g in ("統括委員会", "SR委員"): cog.create_group(UserPoolId=pool, GroupName=g)
+        def add(email, name, g): cog.admin_create_user(UserPoolId=pool, Username=email, UserAttributes=[{"Name": "email", "Value": email}, {"Name": "name", "Value": name}]); cog.admin_add_user_to_group(UserPoolId=pool, Username=email, GroupName=g)
+        add("faculty@example.ac.jp", "華井明子", "統括委員会"); add("sr@example.org", "元雄良治", "SR委員")
+        assert AU.email_arg(["--dry-run", "a@b.co", "x"]) == "a@b.co" and AU.email_arg(["Chap6_推奨", "--import"]) is None
+        assert AU.resolve_email(None) == "faculty@example.ac.jp" and json.load(open(AU.CONF, encoding="utf-8"))["email"] == "faculty@example.ac.jp"   # 唯一の統括委員会の利用者。保存される
+        assert AU.resolve_email("faculty@example.ac.jp") == "faculty@example.ac.jp" and AU.resolve_email(None) == "faculty@example.ac.jp"
+        with pytest.raises(SystemExit) as e: AU.resolve_email("akiko.hanai@chiba-u.jp")                                                                  # プールにいない
+        m = str(e.value); assert "faculty@example.ac.jp" in m and "華井明子" in m and "統括委員会" in m and "sr@example.org" in m and "利用者がいません" in m
+        with pytest.raises(SystemExit) as e: AU.resolve_email("Chap6_推奨")
+        assert "メールアドレスの形ではありません" in str(e.value) and json.load(open(AU.CONF, encoding="utf-8"))["email"] == "faculty@example.ac.jp"
+        os.remove(AU.CONF); add("second@example.org", "吉田陽一郎", "統括委員会")
+        with pytest.raises(SystemExit) as e: AU.resolve_email(None)                                                                                      # 統括委員会が 2人: 指定が必要
+        assert "second@example.org" in str(e.value) and "faculty@example.ac.jp" in str(e.value)
+        assert AU.resolve_email("second@example.org") == "second@example.org"
 
 
 def test_sr8_has_minds_sr8_columns(env):

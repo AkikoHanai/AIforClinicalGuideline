@@ -128,7 +128,8 @@ if __name__ == "__main__":
     a = sys.argv[1:]
     if a[:1] == ["--pdf-dir"] and len(a) >= 3:
         main_pdf_dir(a[1], a[2])
-    elif a:
-        main(a[0])
-    else:
+    elif {"-h", "--help"} & set(a):
         sys.exit(__doc__)
+    else:
+        from admin_user import email_arg
+        main(email_arg(a))

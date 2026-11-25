@@ -17,4 +17,5 @@ def main(email):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1]) if len(sys.argv) > 1 else sys.exit(__doc__)
+    from admin_user import email_arg
+    sys.exit(__doc__) if {"-h", "--help"} & set(sys.argv[1:]) else main(email_arg(sys.argv[1:]))

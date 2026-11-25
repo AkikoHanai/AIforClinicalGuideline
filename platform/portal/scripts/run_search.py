@@ -96,7 +96,8 @@ def main(argv):
     if "--import" in argv:
         from admin_user import token
         if not arg("--searcher") or not arg("--dir"): sys.exit("--searcher <検索者の氏名> と --dir <保存先> が必要です")
-        return import_all(token(arg("--import")), arg("--dir"), arg("--searcher"))
+        from admin_user import email_arg
+        return import_all(token(email_arg([arg("--import") or ""])), arg("--dir"), arg("--searcher"))
     if "--fetch" in argv:
         out = arg("--out") or os.path.join(os.path.dirname(ROOT), "search_results", datetime.date.today().isoformat())
         return fetch_all(plan, out, set(arg("--only").split(",")) if arg("--only") else None)

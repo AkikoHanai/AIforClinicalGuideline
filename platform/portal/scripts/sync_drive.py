@@ -5,7 +5,7 @@ Google Drive for desktop の同期フォルダへ書き込むと、Google Drive 
   ./fetch.sh --dry-run   置く場所と内容の表示だけ    ./fetch.sh --tree   共有ドライブのフォルダの構成を表示    ./fetch.sh --watch   30分ごとに繰り返す
 直接実行するとき:
   python3 <このファイル> [メールアドレス] [--dry-run] [--tree] [--watch[=分]] [--drive <フォルダ>]
-メールアドレスは、初回だけ尋ね、~/.jascc_gl_portal.json に保存する。
+メールアドレスの指定は省略できる(保存済みのもの、なければ統括委員会の唯一の利用者を使う。プールにいないメールアドレスを指定したときは、プールの利用者の一覧を表示する)。
 共有ドライブのフォルダは、自動で見つける(~/Library/CloudStorage/GoogleDrive-*/共有ドライブ/CIPNガイドライン作成。英語表示の Shared drives も)。環境変数 DRIVE_DIR か --drive で指定もできる。
 ドライブの中の置き場所(共有ドライブの既存のフォルダを、深さ4まで調べる。同じ名前のフォルダがあればそこへ置き、なければ 新規ガイドライン作成/ポータル出力/ に作る。既存のフォルダの構成には作らない):
   CQ・FRQ     企画書の dir の名前(例: CQ1-牛車腎気丸、CQ2-デュロキセチン)のフォルダがあれば、その中に。なければ ポータル出力/<dir の名前>/ に、Minds書類(xlsx)、文献選択の別添(xlsx)。出力のたびに、同じ名前で置き換える(ドライブの版の履歴に残る)
@@ -205,16 +205,10 @@ def settings(argv, home=None, need_email=True):
         drive = found[0]
         if len({os.path.realpath(x) for x in found}) > 1: print("共有ドライブが複数見つかりました。最初のものを使います:", *found, sep="\n  ")
     cfg = json.load(open(conf, encoding="utf-8")) if os.path.exists(conf) else {}
-    ok = lambda x: bool(re.fullmatch(r"[^@\s/]+@[^@\s/]+\.[^@\s/]+", x or ""))   # メールアドレスの形のものだけを使う(フォルダ名などを、誤って保存しない)
+    ok = lambda x: bool(re.fullmatch(r"[^@\s/]+@[^@\s/]+\.[^@\s/]+", x or ""))   # メールアドレスの形のものだけを使う(フォルダ名などを、誤って扱わない)
     given = [x for x in pos if ok(x)]
-    if pos and not given and need_email: sys.exit(f"メールアドレスの形ではありません: {pos[0]}(メールアドレスは、初回に尋ねて保存します。指定は不要です)")
-    email = (given[0] if given else "") or (os.environ.get("JASCC_EMAIL", "") if ok(os.environ.get("JASCC_EMAIL", "")) else "") or (cfg.get("email", "") if ok(cfg.get("email", "")) else "")
-    if not email and not need_email: return "", drive, opts
-    while not ok(email):
-        email = input("ポータルのメールアドレス(統括委員会のもの。初回だけ尋ねます): ").strip()
-        if not ok(email): print("メールアドレスの形ではありません。もう一度入力してください")
-    if cfg.get("email") != email:
-        cfg["email"] = email; json.dump(cfg, open(conf, "w", encoding="utf-8"), ensure_ascii=False)
+    if pos and not given and need_email: sys.exit(f"メールアドレスの形ではありません: {pos[0]}(メールアドレスの指定は、省略できます)")
+    email = (given[0] if given else "") or (os.environ.get("JASCC_EMAIL", "") if ok(os.environ.get("JASCC_EMAIL", "")) else "") or None   # なければ None: 保存済みのもの、または統括委員会の唯一の利用者が使われる(admin_user.resolve_email)
     return email, drive, opts
 
 
@@ -224,7 +218,7 @@ def main(argv, session=None, fetch=get_bytes, home=None):
         rest = [x for x in argv if x not in tr]; depth = int(tr[0].split("=", 1)[1]) if "=" in tr[0] else 3
         _, drive, _ = settings([x for x in rest if x != "--files"], home, need_email=False)
         pos = [x for x in rest if not x.startswith("--") and x != drive and "@" not in x]; return tree(drive, depth, pos[0] if pos else None, "--files" in rest)
-    email, drive, opts = settings(argv, home); print(f"共有ドライブ: {drive}\nポータルの利用者: {email}")
+    email, drive, opts = settings(argv, home); print(f"共有ドライブ: {drive}")
     if session is None:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from admin_user import Session
