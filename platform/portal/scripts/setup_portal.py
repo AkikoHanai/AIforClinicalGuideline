@@ -17,9 +17,9 @@ EXPECT_DOCS = ["操作マニュアル", "SR委員の手順書", "SR委員長の�
 def verify(tok):
     """ポータルに登録された件数。戻り値: [(OKか, 内容)]"""
     out = []
-    docs = tok.call("GET", "/docs?missing=1&kind=all"); docs = docs if isinstance(docs, list) else []
+    docs = tok.call("GET", "/docs?missing=1&kind=all")   # 手順書と Scope(SC-1〜SC-4の18件); docs = docs if isinstance(docs, list) else []
     have = [d["name"] for d in docs if d.get("available", True)]; miss = [d["name"] for d in docs if d.get("available") is False]
-    out.append((not miss and bool(have), f"手順書: 登録 {len(have)}件" + (f"、未登録 {', '.join(miss)}" if miss else "")))
+    out.append((not miss and bool(have), f"手順書・Scope: 登録 {len(have)}件" + (f"、未登録 {', '.join(miss)}" if miss else "")))
     sor = tok.call("GET", "/gl2023/soron"); sor = sor if isinstance(sor, list) else []
     plan = tok.call("GET", "/soron"); plan = plan if isinstance(plan, list) else []
     out.append((bool(sor) and all(x.get("paragraphs") for x in sor), f"2023年版の総論の本文: {sum(1 for x in sor if x.get('paragraphs'))}件(総論の項目 {len(plan)}件。2023年版にない項目は、登録がない)"))

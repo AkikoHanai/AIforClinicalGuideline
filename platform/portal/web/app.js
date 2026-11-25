@@ -515,7 +515,7 @@
 
     async scope(m) {
       const list = await api("/docs?kind=scope" + (isAdmin() ? "&missing=1" : ""));
-      m.innerHTML = `<h2>Scope</h2><table><tr><th>文書</th><th>更新日</th><th></th></tr>${list.map((d) => `<tr><td>${esc(d.name.replace(/\.docx$/, ""))}</td><td class="nw">${esc(d.updated)}</td><td class="nw">${d.available === false ? "未登録" : `<a href="${esc(d.url)}" target="_blank" rel="noopener">開く</a>`}</td></tr>`).join("") || '<tr><td colspan="3" class="muted">登録なし</td></tr>'}</table>`;
+      m.innerHTML = `<h2>Scope</h2><table><tr><th>文書</th><th>更新日</th><th></th></tr>${list.map((d) => `<tr><td>${esc(d.name.replace(/\.(docx|xlsx)$/, ""))}</td><td class="nw">${esc(d.updated)}</td><td class="nw">${d.available === false ? "未登録" : `<a href="${esc(d.url)}" target="_blank" rel="noopener">開く</a>`}</td></tr>`).join("") || '<tr><td colspan="3" class="muted">登録なし</td></tr>'}</table>`;
     },
 
     async docs(m) {

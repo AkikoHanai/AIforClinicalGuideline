@@ -1076,8 +1076,7 @@ def soron(method, parts, body, user):
 # (ファイル名に含む語, 対象, 閲覧できる役割。None は全員)
 DOCS = [("操作マニュアル", "全委員", None), ("SR委員の手順書", "SR委員", {"統括委員会", "事務局", "SR委員長", "SR委員", "作成グループ"}), ("SR委員長の業務手順", "SR委員長", ROLE_LEAD),
         ("論文PDFの入手", "SR委員", {"統括委員会", "事務局", "SR委員長", "SR委員"}), 
-        ("総説執筆者の手順書", "総論の執筆者", {"統括委員会", "事務局", "総説執筆者"}), ("用語の定義", "全委員", None), ("統括委員会へのお願い", "統括委員会", ROLE_ADMIN),
-        ("Scope_2028年版", "Scope", None)]   # Scope は、手順書とは別に、「Scope」の画面に出す(GET /docs?kind=scope)
+        ("総説執筆者の手順書", "総論の執筆者", {"統括委員会", "事務局", "総説執筆者"}), ("用語の定義", "全委員", None), ("統括委員会へのお願い", "統括委員会", ROLE_ADMIN)]
 
 
 def docs(method, parts, body, user):
@@ -1086,16 +1085,26 @@ def docs(method, parts, body, user):
     g = set(user["groups"])
     if method == "POST" and parts[1:2] == ["upload-url"]:
         require(user, ROLE_ADMIN)
-        name = re.sub(r"[^\w.\-一-龥ぁ-んァ-ン（）()]", "_", str(body.get("filename", "")))[:80]
+        name = re.sub(r"[^\w.\-一-龥ぁ-んァ-ン（）()・、]", "_", str(body.get("filename", "")))[:100]
+        if re.match(r"SC-[1-4]", name) and name.endswith(".xlsx"):   # Scope(Minds 第3章の様式 SC-1〜SC-4)。「Scope」の画面に出す
+            url = s3().generate_presigned_url("put_object", Params={"Bucket": BUCKET, "Key": f"scope/{name}", "ContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}, ExpiresIn=900)
+            audit(user, "Scope の登録", name); return resp(200, {"url": url, "key": f"scope/{name}"})
         if not name.endswith(".docx") or not any(k in name for k, _, _ in DOCS): return resp(400, {"error": "手順書のファイル名ではありません"})
         url = s3().generate_presigned_url("put_object", Params={"Bucket": BUCKET, "Key": f"docs/{name}", "ContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}, ExpiresIn=900)
         audit(user, "手順書の登録", name); return resp(200, {"url": url, "key": f"docs/{name}"})
     if method == "GET":
         objs = s3().list_objects_v2(Bucket=BUCKET, Prefix="docs/").get("Contents", []) if BUCKET else []
-        out = []; q_ = body.get("_query") or {}; show_missing = q_.get("missing") == "1" and bool(g & ROLE_ADMIN); kind = q_.get("kind", "")   # kind=scope: Scope だけ / all: 全て / 省略: Scope 以外
+        out = []; q_ = body.get("_query") or {}; show_missing = q_.get("missing") == "1" and bool(g & ROLE_ADMIN); kind = q_.get("kind", "")   # kind=scope: Scope だけ / all: 全て / 省略: 手順書だけ
+        if kind in ("scope", "all"):
+            sc = s3().list_objects_v2(Bucket=BUCKET, Prefix="scope/").get("Contents", []) if BUCKET else []
+            plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
+            for pre in ["SC-1", "SC-2", "SC-3"] + [f"SC-4_{it['id']}_" for it in plan["SR項目"] + plan["FRQ項目"]]:
+                o = next((x for x in sc if x["Key"].split("/", 1)[1].startswith(pre)), None)
+                if o: out.append({"name": o["Key"].split("/", 1)[1], "target": "Scope", "updated": o["LastModified"].isoformat()[:10], "url": s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": o["Key"]}, ExpiresIn=900), "available": True})
+                elif show_missing: out.append({"name": pre.rstrip("_"), "target": "Scope", "updated": "", "url": "", "available": False})
+            if kind == "scope": return resp(200, out)
         for k, target, roles in DOCS:
             if roles is not None and not (g & roles): continue
-            if kind != "all" and (target == "Scope") != (kind == "scope"): continue
             o = next((x for x in objs if k in x["Key"]), None)
             if not o:
                 if show_missing: out.append({"name": k, "target": target, "updated": "", "url": "", "available": False})

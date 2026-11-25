@@ -11,7 +11,7 @@ Google Drive for desktop の同期フォルダへ書き込むと、Google Drive 
   CQ・FRQ     企画書の dir の名前(例: CQ1-牛車腎気丸、CQ2-デュロキセチン)のフォルダがあれば、その中に。なければ ポータル出力/<dir の名前>/ に、Minds書類(xlsx)、文献選択の別添(xlsx)。出力のたびに、同じ名前で置き換える(ドライブの版の履歴に残る)
   総論        「総論A」「総論I-1」などで始まるフォルダに、原稿の全ての版(<日時>_<版ID末尾>_<ファイル名>)、状態.txt(状態・期限・提出者・査読コメント)。なければ ポータル出力/総論/総論<項目>_<題名>/
   様式ごと    SR-1・2・3・5・8・12 と EtD は、Chap4_SR/SR_1 …、Chap6_推奨 のフォルダに、chap4_SR_<n>_<CQ の ID>_<名称>.xlsx として置く(テンプレートと同じフォルダ。フォルダがなければ CQ のフォルダの 様式別/)
-  Scope       Chap3_スコープ/ に Scope(Word)。なければ ポータル出力/Scope/
+  Scope       SC-1〜SC-4(Excel)を、chap3_SC_1_… 〜 chap3_SC_4_… のフォルダへ。なければ Chap3_スコープ/、なければ ポータル出力/Scope/
   依頼書/     総論の依頼書(Word。2023年版の全文入り)
   マニュアル/<対象>/  手順書(Word)。対象(全委員、SR委員、SR委員長、作成グループ、総論の執筆者、統括委員会)ごとのフォルダに分ける
   共有ドライブの構成を確かめるには --tree[=深さ] [フォルダ名] [--files](フォルダの構成を表示する。例: --tree=4 Chap4_SR --files)。置き場所は --dry-run で、置く前に確かめられる。
@@ -179,7 +179,9 @@ def sync(tok, drive, dry=False, fetch=get_bytes):
             r = tok.call("GET", f"/soron/{g['key']}/gl2023")
             if r.get("docx_url"): place(os.path.join(L.top("依頼書"), os.path.basename(g["docx_key"])), fetch(r["docx_url"]), copied, skipped, dry)
     for d in tok.call("GET", "/docs?kind=all"):
-        if d["target"] == "Scope": place(os.path.join(L.find(["Chap3_スコープ"]) or L.top("Scope"), d["name"]), fetch(d["url"]), copied, skipped, dry, overwrite=True); continue   # Scope は 第3章(Chap3_スコープ)
+        if d["target"] == "Scope":   # Scope: SC-1〜SC-4 は、第3章の様式ごとのフォルダ(chap3_SC_1_… など)。なければ Chap3_スコープ、なければ ポータル出力/Scope
+            m_ = re.match(r"SC-([1-4])", d["name"]); folder = (L.find([f"chap3_SC_{m_.group(1)}"], prefix=True) if m_ else None) or L.find(["Chap3_スコープ"]) or L.top("Scope")
+            place(os.path.join(folder, d["name"]), fetch(d["url"]), copied, skipped, dry, overwrite=True); continue
         place(os.path.join(L.top("マニュアル"), safe(d["target"]), d["name"]), fetch(d["url"]), copied, skipped, dry)   # 対象(全委員・SR委員・総論の執筆者・統括委員会など)ごとのフォルダ
     print(("【転送の内容の表示だけ。ファイルは置いていません】\n" if dry else "") + f"転送 {len(copied)} 件、変更なしで飛ばした {len(skipped)} 件")
     for p in copied: print("  置いた:" if not dry else "  置く:", rel(p))

@@ -709,8 +709,10 @@ def test_docs_missing_list_and_setup_verify(env):
     class Tok:
         def call(self, method, path, body=None): return call(method, path, body)[1]
     res = SP.verify(Tok()); ok = {m.split(":")[0]: o for o, m in res}
-    assert ok["手順書"] is False and ok["2023年版の総論の本文"] is False and ok["2023年版の CQ の記述"] is False and "SR委員の手順書" in [m for o, m in res if m.startswith("手順書")][0]
-    for n in ("2_統括委員会へのお願い.docx", "3_SR委員長の業務手順.docx", "4_SR委員の手順書.docx", "5_総説執筆者の手順書.docx", "6_論文PDFの入手と配置の手順.docx", "6_用語の定義.docx", "Scope_2028年版_Minds書式.docx"): boto3.client("s3").put_object(Bucket=H.BUCKET, Key="docs/" + n, Body=b"x")
+    assert ok["手順書・Scope"] is False and ok["2023年版の総論の本文"] is False and ok["2023年版の CQ の記述"] is False and "SR委員の手順書" in [m for o, m in res if m.startswith("手順書")][0]
+    for n in ("2_統括委員会へのお願い.docx", "3_SR委員長の業務手順.docx", "4_SR委員の手順書.docx", "5_総説執筆者の手順書.docx", "6_論文PDFの入手と配置の手順.docx", "6_用語の定義.docx"): boto3.client("s3").put_object(Bucket=H.BUCKET, Key="docs/" + n, Body=b"x")
+    plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8"))
+    for n in ["SC-1_a.xlsx", "SC-2_a.xlsx", "SC-3_a.xlsx"] + [f"SC-4_{i['id']}_{i['名称']}.xlsx" for i in plan["SR項目"] + plan["FRQ項目"]]: boto3.client("s3").put_object(Bucket=H.BUCKET, Key="scope/" + n, Body=b"x")
     H.put("GL2023S", "A", {"key": "A", "title": "x", "paragraphs": [{"id": "A-1", "text": "t"}], "docx_key": "soron2023/A/a.docx"})
     for c in call("GET", "/cq")[1]: H.put("GL2023", c["id"], {"cq": c["id"], "rec": "推奨文", "paragraphs": []})
     call("PUT", "/cq/P1", {"outcomes": ["CIPN"]}); [call("PUT", f"/cq/{c['id']}", {"outcomes": ["CIPN"]}) for c in call("GET", "/cq")[1]]
@@ -718,43 +720,56 @@ def test_docs_missing_list_and_setup_verify(env):
 
 
 def test_scope_is_shared_with_all_members(env):
-    """Scope(Scope_2028年版)は、「Scope」の画面に出し、手順書の一覧には出さない。登録は統括委員会・事務局。未登録は、統括委員会・事務局にだけ示す。"""
-    name = "Scope_2028年版_Minds書式.docx"
+    """Scope(SC-1〜SC-4 の Excel 18件)は「Scope」の画面に出し、手順書の一覧には出さない。登録は統括委員会・事務局。未登録は、統括委員会・事務局にだけ示す。"""
     ext = dict(email="e@example.org", groups=("外部評価委員",)); sr = dict(email="w@example.org", groups=("総説執筆者",))
-    assert call("POST", "/docs/upload-url", {"filename": name}, R1)[0] == 403
-    assert call("GET", "/docs?kind=scope", who=R1)[1] == [] and [d.get("available") for d in call("GET", "/docs?kind=scope&missing=1")[1]] == [False]
-    c, r = call("POST", "/docs/upload-url", {"filename": name}); assert c == 200; boto3.client("s3").put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"x")
+    plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8")); its = plan["SR項目"] + plan["FRQ項目"]
+    names = ["SC-1_疾患トピックの基本的特徴.xlsx", "SC-2_診療アルゴリズム.xlsx", "SC-3_スコープ.xlsx"] + [f"SC-4_{i['id']}_{i['名称']}.xlsx" for i in its]
+    assert len(names) == 18 and call("POST", "/docs/upload-url", {"filename": names[0]}, R1)[0] == 403
+    assert call("GET", "/docs?kind=scope", who=R1)[1] == [] and len(call("GET", "/docs?kind=scope&missing=1")[1]) == 18 and all(d["available"] is False for d in call("GET", "/docs?kind=scope&missing=1")[1])
+    for n in names:
+        c, r = call("POST", "/docs/upload-url", {"filename": n}); assert c == 200 and r["key"].startswith("scope/SC-"); boto3.client("s3").put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"x")
     for who in (R1, sr, ext, CHAIR):
-        got = call("GET", "/docs?kind=scope", who=who); assert got[0] == 200 and [d["name"] for d in got[1]] == [name] and got[1][0]["url"], who
-    assert name not in [d["name"] for d in call("GET", "/docs", who=R1)[1]] and name in [d["name"] for d in call("GET", "/docs?kind=all", who=CHAIR)[1]]
+        got = call("GET", "/docs?kind=scope", who=who); assert got[0] == 200 and [d["name"] for d in got[1]] == names and all(d["url"] for d in got[1]), who
+    assert call("GET", "/docs?kind=scope&missing=1")[1] and all(d["available"] for d in call("GET", "/docs?kind=scope&missing=1")[1])
+    assert not [d for d in call("GET", "/docs", who=R1)[1] if d["name"].startswith("SC-")] and len(call("GET", "/docs?kind=all", who=CHAIR)[1]) >= 18
     assert call("GET", "/docs?kind=scope", who=dict(email="x@example.org", groups=()))[0] == 403                # 承認前の利用者には出さない
+    assert call("POST", "/docs/upload-url", {"filename": "SC-9_x.xlsx"})[0] == 400
 
 
-def test_scope_document_follows_minds_forms_and_plan():
-    """生成した Scope は、Minds 第3章の様式(SC-1〜SC-4)の順で、企画書の CQ・FRQ 15項目の名称をそのまま含み、企画書にない介入を含まない。"""
-    import zipfile, re
-    f = os.path.join(HERE, "..", "..", "scope", "out", "Scope_2028年版_Minds書式.docx"); assert os.path.exists(f)
-    x = zipfile.ZipFile(f).read("word/document.xml").decode("utf-8"); text = "\n".join(re.sub(r"<[^>]+>", "", p) for p in re.findall(r"<w:p[ >].*?</w:p>", x, re.S))
-    plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8"))
-    pos = [text.index(h) for h in ("SC-1 疾患トピックの基本的特徴", "SC-2 診療アルゴリズム", "SC-3 スコープ", "SC-4 クリニカルクエスチョン")]; assert pos == sorted(pos)
-    for it in plan["SR項目"] + plan["FRQ項目"]: assert f"{it['id']} {it['名称']}" in text, it["id"]
-    for h in ("臨床的特徴", "疫学的特徴", "診療の全体的な流れ", "タイトル", "目的", "トピック", "視点", "想定される利用者、利用施設", "既存ガイドラインとの関係", "重要臨床課題", "CQリスト", "実施スケジュール", "エビデンスの検索", "推奨作成", "最終調整", "外部評価", "公開"): assert h in text, h
-    assert plan["タイトル"] in text and "PubMed" in text and "2026年10月1日" in text and "患者代表は含めない" in text
-    for ng in ("適宜", "目安", "厳密", "十分", "質の高い", "venlafaxine", "Venlafaxine", "ケタミン", "ketamine", "cannabinoid"): assert ng not in text, ng
+def test_scope_documents_follow_minds_forms_and_decisions():
+    """生成した Scope は、Minds 第3章の様式ごと(SC-1、SC-2、SC-3、SC-4 は CQ・FRQ 15項目ごと)の18件。統括委員長の決定(視点・性別・地理的要件・重要度・作業日程)を反映し、企画書にない介入と曖昧な語を含まない。"""
+    import openpyxl, glob
+    d = os.path.join(HERE, "..", "..", "scope", "out", "minds"); files = sorted(os.listdir(d)); plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8")); its = plan["SR項目"] + plan["FRQ項目"]
+    assert len(files) == 18 and files[:3] == ["SC-1_疾患トピックの基本的特徴.xlsx", "SC-2_診療アルゴリズム.xlsx", "SC-3_スコープ.xlsx"]
+    text = lambda f: "\n".join(str(c.value) for ws in openpyxl.load_workbook(os.path.join(d, f)).worksheets for row in ws.iter_rows() for c in row if c.value is not None)
+    for it in its:
+        f = [x for x in files if x.startswith(f"SC-4_{it['id']}_")]; assert len(f) == 1 and it["名称"] in text(f[0]), it["id"]
+        t = text(f[0]); assert "男性・女性を含む(がん種による差がある)" in t and "なし" in t and "評価しない(アウトカムが単一のため)" in t and "CIPN(症状の有無で評価する)" in t and "無治療" in t and "推奨されるか" in t
+    sc1, sc2, sc3 = text(files[0]), text(files[1]), text(files[2])
+    assert all(h in sc1 for h in ("臨床的特徴", "疫学的特徴", "診療の全体的な流れ")) and all(f"{i['id']} {i['名称']}" in sc2 for i in its)
+    assert "Individual perspective" in sc3 and "実施スケジュール\n記載しない" in sc3 and plan["タイトル"] in sc3 and "PubMed" in sc3 and "患者代表は含めない" in sc3 and "男性・女性を含む" in sc3 and "地理的要件はない" in sc3
+    allt = "\n".join(text(f) for f in files)
+    for ng in ("適宜", "目安", "厳密", "十分", "質の高い", "venlafaxine", "Venlafaxine", "ケタミン", "ketamine", "cannabinoid", "2027年", "キックオフ"): assert ng not in allt, ng   # 作業日程を書かない
 
 
-def test_scope_is_placed_in_chapter3_folder(env, tmp_path):
-    """Scope は、共有ドライブの Chap3_スコープ に置く。なければ ポータル出力/Scope/。内容が変わったときだけ置き換える。"""
+def test_scope_is_placed_in_chapter3_folders(env, tmp_path):
+    """Scope の SC-1〜SC-4 は、共有ドライブの chap3_SC_1_… 〜 chap3_SC_4_… のフォルダに置く(なければ Chap3_スコープ、なければ ポータル出力/Scope)。内容が変わったときだけ置き換える。"""
     import importlib, urllib.parse
     sys.path.insert(0, os.path.join(HERE, "..", "scripts")); SD = importlib.import_module("sync_drive"); s3c = boto3.client("s3")
-    c, r = call("POST", "/docs/upload-url", {"filename": "Scope_2028年版_Minds書式.docx"}); s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"scope v1")
+    for n in ("SC-1_疾患トピックの基本的特徴.xlsx", "SC-2_診療アルゴリズム.xlsx", "SC-3_スコープ.xlsx", "SC-4_P1_牛車腎気丸.xlsx"):
+        c, r = call("POST", "/docs/upload-url", {"filename": n}); s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"v1 " + n.encode())
     class Tok:
         def call(self, method, path, body=None): return call(method, path, body)[1]
     fetch = lambda url: s3c.get_object(Bucket=H.BUCKET, Key=urllib.parse.unquote(urllib.parse.urlparse(url).path.lstrip("/")))["Body"].read()
-    d1 = str(tmp_path / "a"); os.makedirs(os.path.join(d1, "新規ガイドライン作成", "Chap3_スコープ", "chap3_SC_3_スコープ"))
-    SD.sync(Tok(), d1, fetch=fetch); f1 = os.path.join(d1, "新規ガイドライン作成", "Chap3_スコープ", "Scope_2028年版_Minds書式.docx"); assert open(f1, "rb").read() == b"scope v1"
-    s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"scope v2"); SD.sync(Tok(), d1, fetch=fetch); assert open(f1, "rb").read() == b"scope v2"
-    d2 = str(tmp_path / "b"); os.makedirs(d2); SD.sync(Tok(), d2, fetch=fetch); assert os.path.exists(os.path.join(d2, "ポータル出力", "Scope", "Scope_2028年版_Minds書式.docx"))
+    d1 = str(tmp_path / "a"); ch3 = os.path.join(d1, "新規ガイドライン作成", "Chap3_スコープ")
+    for f in ("chap3_SC_1_疾患トピックの基本的特徴 ", "chap3_SC_2_アルゴリズム", "chap3_SC_3_スコープ", "chap3_SC_4_CQ"): os.makedirs(os.path.join(ch3, f))
+    SD.sync(Tok(), d1, fetch=fetch)
+    assert open(os.path.join(ch3, "chap3_SC_1_疾患トピックの基本的特徴 ", "SC-1_疾患トピックの基本的特徴.xlsx"), "rb").read().startswith(b"v1") and os.path.exists(os.path.join(ch3, "chap3_SC_2_アルゴリズム", "SC-2_診療アルゴリズム.xlsx"))
+    assert os.path.exists(os.path.join(ch3, "chap3_SC_3_スコープ", "SC-3_スコープ.xlsx")) and os.path.exists(os.path.join(ch3, "chap3_SC_4_CQ", "SC-4_P1_牛車腎気丸.xlsx")) and not os.path.exists(os.path.join(d1, "新規ガイドライン作成", "ポータル出力", "Scope"))
+    r1 = s3c.get_object(Bucket=H.BUCKET, Key="scope/SC-3_スコープ.xlsx"); s3c.put_object(Bucket=H.BUCKET, Key="scope/SC-3_スコープ.xlsx", Body=b"v2")
+    SD.sync(Tok(), d1, fetch=fetch); assert open(os.path.join(ch3, "chap3_SC_3_スコープ", "SC-3_スコープ.xlsx"), "rb").read() == b"v2"
+    d2 = str(tmp_path / "b"); os.makedirs(os.path.join(d2, "Chap3_スコープ")); SD.sync(Tok(), d2, fetch=fetch); assert os.path.exists(os.path.join(d2, "Chap3_スコープ", "SC-3_スコープ.xlsx"))
+    d3 = str(tmp_path / "c"); os.makedirs(d3); SD.sync(Tok(), d3, fetch=fetch); assert os.path.exists(os.path.join(d3, "ポータル出力", "Scope", "SC-3_スコープ.xlsx"))
 
 
 def test_sr8_has_minds_sr8_columns(env):
