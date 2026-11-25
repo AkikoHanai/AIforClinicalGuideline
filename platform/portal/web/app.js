@@ -31,11 +31,23 @@
 
   // ---------- API ----------
   async function api(path, method = "GET", body) {
-    const r = await fetch(C.apiUrl + path, { method, headers: { Authorization: "Bearer " + S.token, "Content-Type": "application/json" }, body: body !== undefined ? JSON.stringify(body) : undefined });
+    let r;
+    try { r = await fetch(C.apiUrl + path, { method, headers: { Authorization: "Bearer " + S.token, "Content-Type": "application/json" }, body: body !== undefined ? JSON.stringify(body) : undefined }); }
+    catch (e) { const er = new Error("API に接続できません(ネットワーク、または API の許可設定)"); er.status = 0; er.path = path; throw er; }
     const j = await r.json().catch(() => ({}));
-    if (r.status === 401) { sessionStorage.clear(); location.reload(); }
-    if (!r.ok) throw new Error(j.error || `エラー(${r.status})`);
+    if (!r.ok) { const er = new Error(j.error || j.message || `エラー(${r.status})`); er.status = r.status; er.path = path; throw er; }
     return j;
+  }
+  // ログイン後の読み込みに失敗したとき、理由を画面に残す(消えるメッセージだけにしない)。自動で再読み込みしない
+  function claims(t) { try { return JSON.parse(decodeURIComponent(escape(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))))); } catch { return {}; } }
+  function bootFail(step, e) {
+    const c = claims(S.token || sessionStorage.getItem("id_token") || ""), g = c["cognito:groups"];
+    $("#login").classList.remove("hidden"); $("#app").classList.add("hidden"); $("#gate").classList.add("hidden");
+    let box = $("#bootErr"); if (!box) { box = document.createElement("div"); box.id = "bootErr"; box.className = "note need"; $("#login").appendChild(box); }
+    box.innerHTML = `<b>サインインは完了しましたが、ポータルを開けませんでした。</b><br>失敗した処理: ${esc(step)}<br>内容: ${esc(e.message || e)}${e.status !== undefined ? `(HTTP ${esc(e.status)})` : ""}<br>
+      サインインした利用者: ${esc(c.email || "(メールアドレスが、トークンにありません)")} / グループ: ${esc(Array.isArray(g) ? g.join("・") : g || "(なし)")}<br>トークンの有効期限: ${c.exp ? esc(new Date(c.exp * 1000).toLocaleString("ja-JP")) : "(不明)"}<br>API: ${esc(C.apiUrl || "(設定がありません)")}<br>
+      <button id="bootRetry">もう一度読み込む</button> <button id="bootOut">サインインをやり直す(ログアウト)</button>`;
+    $("#bootRetry").addEventListener("click", () => location.reload()); $("#bootOut").addEventListener("click", logout);
   }
   function toast(msg, bad) { const t = $("#toast"); t.textContent = msg; t.className = "toast" + (bad ? " bad" : ""); setTimeout(() => t.classList.add("hidden"), 4000); }
   const can = (...gs) => S.me && S.me.groups.some((g) => gs.includes(g));
@@ -564,11 +576,14 @@
 
   async function boot() {
     const code = new URLSearchParams(location.search).get("code");
-    if (code) { try { await exchange(code); } catch (e) { toast(e.message, true); } }
+    $("#loginBtn").addEventListener("click", login);
+    if (code) { try { await exchange(code); } catch (e) { $("#login").classList.remove("hidden"); return bootFail("サインインのコードの交換(Cognito のトークン取得)", e); } }
     const t = sessionStorage.getItem("id_token");
-    if (!t || !tokenValid(t)) { $("#login").classList.remove("hidden"); $("#loginBtn").addEventListener("click", login); return; }
+    if (!t || !tokenValid(t)) { sessionStorage.removeItem("id_token"); $("#login").classList.remove("hidden"); return; }
     S.token = t;
-    try { S.me = await api("/me"); if (!S.me.groups.length) return showGate(); S.meta = await api("/meta"); } catch (e) { $("#login").classList.remove("hidden"); $("#loginBtn").addEventListener("click", login); return toast(e.message, true); }
+    try { S.me = await api("/me"); } catch (e) { return bootFail("利用者の確認(GET /me)", e); }
+    if (!S.me.groups.length) { try { return await showGate(); } catch (e) { return bootFail("利用申請の確認(GET /access/me)", e); } }
+    try { S.meta = await api("/meta"); } catch (e) { return bootFail("設定の取得(GET /meta)", e); }
     $("#meName").textContent = S.me.name || S.me.email; $("#meGroups").textContent = S.me.groups.join("・") || "(グループ未設定)";
     $("#logoutBtn").addEventListener("click", logout);
     // 表示する流れ: SR(担当委員・SR委員長・作成グループ・統括・事務局)、総説(総説執筆者・統括・事務局)、事務局(統括・事務局)

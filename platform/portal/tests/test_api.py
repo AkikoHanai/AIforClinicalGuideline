@@ -622,10 +622,27 @@ def test_admin_user_resolves_email_and_lists_pool_users(tmp_path, monkeypatch, c
         assert "大文字・小文字だけが違う" in str(e.value)
         monkeypatch.setattr(getpass, "getpass", lambda *a: "Mixedcase12345"); AU.diagnose("mixed.case@example.org"); out = capsys.readouterr().out
         assert "Mixed.Case@example.org" in out and "CONFIRMED" in out and "【OK】" in out
+        # 綴りの間違い(akkiko と akiko): 近いメールアドレスを示す。別の利用者を作らない
+        with pytest.raises(SystemExit) as e: AU.reset_password("akikko@example.ac.jp")
+        assert "もしかして" in str(e.value) and "akiko@example.ac.jp" in str(e.value)
+        with pytest.raises(SystemExit) as e: AU.chair("akikko@example.ac.jp", "華井明子")
+        assert "綴りが近い" in str(e.value) and "akiko@example.ac.jp" in str(e.value) and AU.find_user("akikko@example.ac.jp")[0] is None
+        os.remove(AU.CONF)
+        with pytest.raises(SystemExit) as e: AU.reset_password(None)                                                   # 保存済みがなく、統括委員会が複数: 省略できない
+        assert "使う利用者を決められません" in str(e.value)
         # ログイン画面の設定が outputs.json と違うとき、画面の設定に合わせる
         monkeypatch.delenv("JASCC_OUTPUTS"); AU.OUT["SiteUrl"] = "https://site.invalid"; AU.OUT["UserPoolId"] = "old-pool"; AU.OUT["ClientId"] = "old-client"
         monkeypatch.setattr(AU, "live_config", lambda site: {"userPoolId": pool, "clientId": cl, "domain": "d"}); AU.sync_with_site()
         out = capsys.readouterr().out; assert AU.OUT["UserPoolId"] == pool and AU.OUT["ClientId"] == cl and "old-pool" in out and "画面の設定に合わせます" in out
+        # 利用者が 1人だけのプール: メールアドレスを省略して、診断・パスワード設定ができる(綴りの間違いが起きない)
+        pool2 = cog.create_user_pool(PoolName="t2", Policies={"PasswordPolicy": {"MinimumLength": 12, "RequireLowercase": True, "RequireUppercase": True, "RequireNumbers": True, "RequireSymbols": False}})["UserPool"]["Id"]
+        cl2 = cog.create_user_pool_client(UserPoolId=pool2, ClientName="c", ExplicitAuthFlows=["ALLOW_USER_PASSWORD_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"])["UserPoolClient"]["ClientId"]; AU.OUT["UserPoolId"] = pool2; AU.OUT["ClientId"] = cl2; os.path.exists(AU.CONF) and os.remove(AU.CONF)
+        cog.create_group(UserPoolId=pool2, GroupName="統括委員会"); cog.admin_create_user(UserPoolId=pool2, Username="akiko@example.ac.jp", UserAttributes=[{"Name": "email", "Value": "akiko@example.ac.jp"}, {"Name": "name", "Value": "華井明子"}])
+        cog.admin_add_user_to_group(UserPoolId=pool2, Username="akiko@example.ac.jp", GroupName="統括委員会")
+        monkeypatch.setattr(getpass, "getpass", lambda *a: ""); AU.diagnose(None); out = capsys.readouterr().out
+        assert "サインインで入力するメールアドレス: akiko@example.ac.jp" in out and "FORCE_CHANGE_PASSWORD" in out
+        pw4 = iter(["Nopqrstuvwxy9", "Nopqrstuvwxy9"]); monkeypatch.setattr(getpass, "getpass", lambda *a: next(pw4)); AU.reset_password(None)
+        assert "【確認OK】" in capsys.readouterr().out
 
 
 def test_sr8_has_minds_sr8_columns(env):

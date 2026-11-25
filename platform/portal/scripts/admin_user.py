@@ -2,7 +2,7 @@
   python3 platform/portal/scripts/admin_user.py <メールアドレス> <氏名>           招待メールを送る
   python3 platform/portal/scripts/admin_user.py --users                          利用者プールの利用者の一覧(メールアドレス・氏名・グループ)
   python3 platform/portal/scripts/admin_user.py --diagnose [<メールアドレス>]    サインインできない原因を調べる(ログイン画面の設定との一致、利用者の状態、大文字・小文字の違い、サインイン試験)
-  python3 platform/portal/scripts/admin_user.py --password <メールアドレス>       既存の利用者のパスワードを直接設定し、直後にサインイン試験をする(確認コード不要)
+  python3 platform/portal/scripts/admin_user.py --password [<メールアドレス>]     既存の利用者のパスワードを直接設定し、直後にサインイン試験をする(確認コード不要)
   python3 platform/portal/scripts/admin_user.py --chair <メールアドレス> <氏名>   統括委員長の利用者を作り(なければ)、パスワードを設定し、統括委員会に入れる(招待メールは送らない)
   python3 platform/portal/scripts/admin_user.py --seed <メールアドレス>            その利用者として POST /admin/seed を実行(仮パスワードの入力を求める)
   python3 platform/portal/scripts/admin_user.py --gl2023 <etd_2023.json> <メールアドレス>   2023年版の記述(run_jascc.sh first が作る)を取り込む
@@ -62,9 +62,11 @@ def ask_password():
         return a
 
 
-def chair(email, name):
+def chair(email, name, force=False):
     """統括委員長の利用者を作り(なければ。招待メールは送らない)、パスワードを設定し、統括委員会のグループに入れる。サインインできないときに使う。"""
     if not EMAIL_RE.fullmatch(email): sys.exit(f"メールアドレスの形ではありません: {email}")
+    near = [x for x in suggest(email) if x != email]
+    if near and not force and find_user(email)[0] is None: sys.exit(f"綴りが近い利用者が、既にいます: {' / '.join(near)}\n(綴りの間違いで、別の利用者を作らないため止めました。その利用者なら --password を使ってください。別の利用者として作る場合は、コマンドの最後に --force を付けてください)")
     stored, allm = find_user(email)
     if stored and stored != email: sys.exit(f"大文字・小文字だけが違う利用者が、既にいます: {', '.join(allm)}\n(別の利用者を作らないため、止めました。その表記で --password を実行してください)")
     try:
@@ -76,6 +78,19 @@ def chair(email, name):
     reset_password(email)
     idp.admin_add_user_to_group(UserPoolId=OUT["UserPoolId"], Username=email, GroupName="統括委員会")
     print("統括委員会のグループに入れました。ポータルで、このメールアドレスとパスワードでサインインしてください")
+
+
+def suggest(email):
+    """入力に近いメールアドレス(綴りの間違い。例: akkiko と akiko)が、プールにあれば、示す。"""
+    import difflib
+    near = difflib.get_close_matches(email.lower(), [u["email"].lower() for u in pool_users()], n=2, cutoff=0.8)
+    real = {u["email"].lower(): u["email"] for u in pool_users()}
+    return [real[n] for n in near]
+
+
+def not_found_message(email):
+    near = suggest(email)
+    return (f"【綴りの確認】もしかして: {' / '.join(near)}\n(入力は {email}。違いがないか確認してください。メールアドレスの指定は省略もできます)\n" if near else "") + users_help()
 
 
 def find_user(email):
@@ -110,11 +125,12 @@ def login_test(email, password):
     return True, "サインインできました(パスワードは正しい)"
 
 
-def reset_password(email):
+def reset_password(email=None):
     """既存の利用者のパスワードを、直接(確認コード・メールなしで)設定し、設定した直後に、実際のサインイン試験を行う。
     メールアドレスの大文字・小文字が違うときは、保存されているものを使い、サインインで入力するメールアドレスを示す。"""
+    if email is None: email = resolve_email(None)
     stored, allm = find_user(email)
-    if not stored: sys.exit(f"利用者プールに、このメールアドレスの利用者がいません: {email}\n{users_help()}")
+    if not stored: sys.exit(f"利用者プールに、このメールアドレスの利用者がいません: {email}\n{not_found_message(email)}")
     if len(allm) > 1: print("【注意】大文字・小文字だけが違う利用者が複数います(サインインでは別の利用者として扱われます):", *allm, sep="\n  ")
     if stored != email: print(f"【注意】入力は {email} ですが、保存されているメールアドレスは {stored} です。サインインでは、この表記(大文字・小文字を含む)を入力してください")
     u = idp.admin_get_user(UserPoolId=OUT["UserPoolId"], Username=stored)
@@ -144,15 +160,19 @@ def diagnose(email=None):
     print(f"ログイン画面({OUT.get('SiteUrl', '')}): " + (f"利用者プール {live.get('userPoolId')} / クライアント {live.get('clientId')} / ドメイン {live.get('domain')}" if live else "設定を取得できませんでした"))
     if live and (live.get("userPoolId") != OUT["UserPoolId"] or live.get("clientId") != OUT["ClientId"]): print("【不一致】outputs.json と、ログイン画面が使っている設定が違います。(このスクリプトは、画面の設定に合わせて動いています)")
     elif live: print("一致しています(画面と、このスクリプトは、同じ利用者プール・クライアントを使っています)")
-    if not email: print(users_help()); return
+    if not email:
+        us = pool_users()
+        if len(us) != 1 and len([u for u in us if "統括委員会" in u["groups"]]) != 1: print(users_help()); return
+        email = resolve_email(None)
     stored, allm = find_user(email)
-    if not stored: print(f"この利用者プールに、{email} の利用者はいません(大文字・小文字を無視しても)。\n{users_help()}"); return
+    if not stored: print(f"この利用者プールに、{email} の利用者はいません(大文字・小文字を無視しても)。\n{not_found_message(email)}"); return
     for m in allm:
         u = idp.admin_get_user(UserPoolId=OUT["UserPoolId"], Username=m); at = {a["Name"]: a["Value"] for a in u.get("UserAttributes", [])}
         print(f"利用者 {m}: 状態 {u['UserStatus']}、{'有効' if u.get('Enabled', True) else '無効'}、メール確認 {at.get('email_verified', '')}、多要素認証 {u.get('UserMFASettingList') or 'なし'}、氏名 {at.get('name', '')}")
     if len(allm) > 1: print("【注意】大文字・小文字だけが違う利用者が複数います。サインインでは別の利用者として扱われます")
     if stored != email: print(f"【注意】入力は {email} ですが、保存されているのは {stored} です。サインインの画面では、保存されている表記を入力してください")
     pw = getpass.getpass(f"サインイン試験をします。{stored} のパスワードを入力(試験をしないときは、そのまま Enter。入力は表示されません): ")
+    print(f"サインインで入力するメールアドレス: {stored}")
     if pw:
         ok, msg = login_test(stored, pw); print(("【OK】" if ok else "【NG】"), msg)
 
@@ -199,7 +219,7 @@ def resolve_email(email=None):
     try:
         idp.admin_get_user(UserPoolId=OUT["UserPoolId"], Username=email)
     except idp.exceptions.UserNotFoundException:
-        sys.exit(f"利用者プールに、このメールアドレスの利用者がいません: {email}\n{users_help()}\n(上の一覧の統括委員会のメールアドレスで、もう一度実行してください。メールアドレスの指定は、省略もできます)")
+        sys.exit(f"利用者プールに、このメールアドレスの利用者がいません: {email}\n{not_found_message(email)}\n(上の一覧の統括委員会のメールアドレスで、もう一度実行してください。メールアドレスの指定は、省略もできます)")
     try:
         cfg = json.load(open(CONF, encoding="utf-8")) if os.path.exists(CONF) else {}
         if cfg.get("email") != email: cfg["email"] = email; json.dump(cfg, open(CONF, "w", encoding="utf-8"), ensure_ascii=False)
@@ -301,10 +321,10 @@ if __name__ == "__main__":
         print(users_help())
     elif a[:1] == ["--diagnose"]:
         diagnose(a[1] if len(a) > 1 else None)
-    elif a[:1] == ["--password"] and len(a) == 2:
-        reset_password(a[1])
-    elif a[:1] == ["--chair"] and len(a) == 3:
-        chair(a[1], a[2])
+    elif a[:1] == ["--password"] and len(a) <= 2:
+        reset_password(a[1] if len(a) == 2 else None)
+    elif a[:1] == ["--chair"] and len(a) in (3, 4):
+        chair(a[1], a[2], force="--force" in a)
     elif a[:1] == ["--gl2023"]:
         gl2023(a[1], a[2])
     elif len(a) == 2:
