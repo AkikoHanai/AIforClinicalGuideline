@@ -710,7 +710,7 @@ def test_docs_missing_list_and_setup_verify(env):
         def call(self, method, path, body=None): return call(method, path, body)[1]
     res = SP.verify(Tok()); ok = {m.split(":")[0]: o for o, m in res}
     assert ok["手順書"] is False and ok["2023年版の総論の本文"] is False and ok["2023年版の CQ の記述"] is False and "SR委員の手順書" in [m for o, m in res if m.startswith("手順書")][0]
-    for n in ("2_統括委員会へのお願い.docx", "3_SR委員長の業務手順.docx", "4_SR委員の手順書.docx", "5_総説執筆者の手順書.docx", "6_論文PDFの入手と配置の手順.docx", "6_用語の定義.docx", "前回Scope_2021.docx"): boto3.client("s3").put_object(Bucket=H.BUCKET, Key="docs/" + n, Body=b"x")
+    for n in ("2_統括委員会へのお願い.docx", "3_SR委員長の業務手順.docx", "4_SR委員の手順書.docx", "5_総説執筆者の手順書.docx", "6_論文PDFの入手と配置の手順.docx", "6_用語の定義.docx", "Scope_2028年版_Minds書式.docx"): boto3.client("s3").put_object(Bucket=H.BUCKET, Key="docs/" + n, Body=b"x")
     H.put("GL2023S", "A", {"key": "A", "title": "x", "paragraphs": [{"id": "A-1", "text": "t"}], "docx_key": "soron2023/A/a.docx"})
     for c in call("GET", "/cq")[1]: H.put("GL2023", c["id"], {"cq": c["id"], "rec": "推奨文", "paragraphs": []})
     call("PUT", "/cq/P1", {"outcomes": ["CIPN"]}); [call("PUT", f"/cq/{c['id']}", {"outcomes": ["CIPN"]}) for c in call("GET", "/cq")[1]]
@@ -718,8 +718,8 @@ def test_docs_missing_list_and_setup_verify(env):
 
 
 def test_scope_is_shared_with_all_members(env):
-    """Scope(前回Scope)は、「Scope」の画面に出し、手順書の一覧には出さない。登録は統括委員会・事務局。未登録は、統括委員会・事務局にだけ示す。"""
-    name = "前回Scope_2021-07-02_CIPNGL_SCOPE_20260531.docx"
+    """Scope(Scope_2028年版)は、「Scope」の画面に出し、手順書の一覧には出さない。登録は統括委員会・事務局。未登録は、統括委員会・事務局にだけ示す。"""
+    name = "Scope_2028年版_Minds書式.docx"
     ext = dict(email="e@example.org", groups=("外部評価委員",)); sr = dict(email="w@example.org", groups=("総説執筆者",))
     assert call("POST", "/docs/upload-url", {"filename": name}, R1)[0] == 403
     assert call("GET", "/docs?kind=scope", who=R1)[1] == [] and [d.get("available") for d in call("GET", "/docs?kind=scope&missing=1")[1]] == [False]
@@ -728,6 +728,33 @@ def test_scope_is_shared_with_all_members(env):
         got = call("GET", "/docs?kind=scope", who=who); assert got[0] == 200 and [d["name"] for d in got[1]] == [name] and got[1][0]["url"], who
     assert name not in [d["name"] for d in call("GET", "/docs", who=R1)[1]] and name in [d["name"] for d in call("GET", "/docs?kind=all", who=CHAIR)[1]]
     assert call("GET", "/docs?kind=scope", who=dict(email="x@example.org", groups=()))[0] == 403                # 承認前の利用者には出さない
+
+
+def test_scope_document_follows_minds_forms_and_plan():
+    """生成した Scope は、Minds 第3章の様式(SC-1〜SC-4)の順で、企画書の CQ・FRQ 15項目の名称をそのまま含み、企画書にない介入を含まない。"""
+    import zipfile, re
+    f = os.path.join(HERE, "..", "..", "scope", "out", "Scope_2028年版_Minds書式.docx"); assert os.path.exists(f)
+    x = zipfile.ZipFile(f).read("word/document.xml").decode("utf-8"); text = "\n".join(re.sub(r"<[^>]+>", "", p) for p in re.findall(r"<w:p[ >].*?</w:p>", x, re.S))
+    plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8"))
+    pos = [text.index(h) for h in ("SC-1 疾患トピックの基本的特徴", "SC-2 診療アルゴリズム", "SC-3 スコープ", "SC-4 クリニカルクエスチョン")]; assert pos == sorted(pos)
+    for it in plan["SR項目"] + plan["FRQ項目"]: assert f"{it['id']} {it['名称']}" in text, it["id"]
+    for h in ("臨床的特徴", "疫学的特徴", "診療の全体的な流れ", "タイトル", "目的", "トピック", "視点", "想定される利用者、利用施設", "既存ガイドラインとの関係", "重要臨床課題", "CQリスト", "実施スケジュール", "エビデンスの検索", "推奨作成", "最終調整", "外部評価", "公開"): assert h in text, h
+    assert plan["タイトル"] in text and "PubMed" in text and "2026年10月1日" in text and "患者代表は含めない" in text
+    for ng in ("適宜", "目安", "厳密", "十分", "質の高い", "venlafaxine", "Venlafaxine", "ケタミン", "ketamine", "cannabinoid"): assert ng not in text, ng
+
+
+def test_scope_is_placed_in_chapter3_folder(env, tmp_path):
+    """Scope は、共有ドライブの Chap3_スコープ に置く。なければ ポータル出力/Scope/。内容が変わったときだけ置き換える。"""
+    import importlib, urllib.parse
+    sys.path.insert(0, os.path.join(HERE, "..", "scripts")); SD = importlib.import_module("sync_drive"); s3c = boto3.client("s3")
+    c, r = call("POST", "/docs/upload-url", {"filename": "Scope_2028年版_Minds書式.docx"}); s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"scope v1")
+    class Tok:
+        def call(self, method, path, body=None): return call(method, path, body)[1]
+    fetch = lambda url: s3c.get_object(Bucket=H.BUCKET, Key=urllib.parse.unquote(urllib.parse.urlparse(url).path.lstrip("/")))["Body"].read()
+    d1 = str(tmp_path / "a"); os.makedirs(os.path.join(d1, "新規ガイドライン作成", "Chap3_スコープ", "chap3_SC_3_スコープ"))
+    SD.sync(Tok(), d1, fetch=fetch); f1 = os.path.join(d1, "新規ガイドライン作成", "Chap3_スコープ", "Scope_2028年版_Minds書式.docx"); assert open(f1, "rb").read() == b"scope v1"
+    s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"scope v2"); SD.sync(Tok(), d1, fetch=fetch); assert open(f1, "rb").read() == b"scope v2"
+    d2 = str(tmp_path / "b"); os.makedirs(d2); SD.sync(Tok(), d2, fetch=fetch); assert os.path.exists(os.path.join(d2, "ポータル出力", "Scope", "Scope_2028年版_Minds書式.docx"))
 
 
 def test_sr8_has_minds_sr8_columns(env):

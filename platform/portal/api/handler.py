@@ -1077,7 +1077,7 @@ def soron(method, parts, body, user):
 DOCS = [("操作マニュアル", "全委員", None), ("SR委員の手順書", "SR委員", {"統括委員会", "事務局", "SR委員長", "SR委員", "作成グループ"}), ("SR委員長の業務手順", "SR委員長", ROLE_LEAD),
         ("論文PDFの入手", "SR委員", {"統括委員会", "事務局", "SR委員長", "SR委員"}), 
         ("総説執筆者の手順書", "総論の執筆者", {"統括委員会", "事務局", "総説執筆者"}), ("用語の定義", "全委員", None), ("統括委員会へのお願い", "統括委員会", ROLE_ADMIN),
-        ("前回Scope", "Scope", None)]   # Scope は、手順書とは別に、「Scope」の画面に出す(GET /docs?kind=scope)
+        ("Scope_2028年版", "Scope", None)]   # Scope は、手順書とは別に、「Scope」の画面に出す(GET /docs?kind=scope)
 
 
 def docs(method, parts, body, user):
