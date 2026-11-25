@@ -26,7 +26,7 @@
     catch (e) { const er = new Error(`Cognito のトークン取得に接続できません(${e.message})`); er.status = 0; throw er; }
     if (!r.ok) { const er = new Error("Cognito のトークン取得に失敗しました(サインインのコードが無効です。もう一度ログインしてください)"); er.status = r.status; throw er; }
     const t = await r.json(); sessionStorage.setItem("id_token", t.id_token);
-    history.replaceState({}, "", redirect() + (location.hash || "#dashboard"));
+    history.replaceState({}, "", redirect() + (location.hash || "#scope"));
   }
   function logout() { sessionStorage.clear(); location.href = `${authBase()}/logout?${new URLSearchParams({ client_id: C.clientId, logout_uri: redirect() })}`; }
   function tokenValid(t) { try { const p = JSON.parse(atob(t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); return p.exp * 1000 > Date.now() + 60000; } catch { return false; } }
@@ -513,6 +513,11 @@
       m.querySelectorAll("button[data-del]").forEach((b) => b.addEventListener("click", async () => { if (!confirm(`${b.dataset.del} を削除しますか`)) return; try { await api("/users/" + encodeURIComponent(b.dataset.del), "DELETE"); toast("削除しました"); render(); } catch (e) { toast(e.message, true); } }));
     },
 
+    async scope(m) {
+      const list = await api("/docs?kind=scope" + (isAdmin() ? "&missing=1" : ""));
+      m.innerHTML = `<h2>Scope</h2><table><tr><th>文書</th><th>更新日</th><th></th></tr>${list.map((d) => `<tr><td>${esc(d.name.replace(/\.docx$/, ""))}</td><td class="nw">${esc(d.updated)}</td><td class="nw">${d.available === false ? "未登録" : `<a href="${esc(d.url)}" target="_blank" rel="noopener">開く</a>`}</td></tr>`).join("") || '<tr><td colspan="3" class="muted">登録なし</td></tr>'}</table>`;
+    },
+
     async docs(m) {
       const list = await api("/docs" + (isAdmin() ? "?missing=1" : ""));
       const have = list.filter((d) => d.available !== false), miss = list.filter((d) => d.available === false);
@@ -525,7 +530,7 @@
   };
 
   async function render() {
-    const page = (location.hash || "#dashboard").slice(1).split("?")[0];
+    const page = (location.hash || "#scope").slice(1).split("?")[0];
     document.querySelectorAll(".side a").forEach((a) => a.classList.toggle("active", a.dataset.page === page));
     const m = $("#main"); m.innerHTML = '<p class="muted">読み込み中…</p>';
     try { if (!S.cqs.length) S.cqs = await api("/cq"); await (pages[page] || pages.dashboard)(m);

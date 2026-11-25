@@ -710,11 +710,24 @@ def test_docs_missing_list_and_setup_verify(env):
         def call(self, method, path, body=None): return call(method, path, body)[1]
     res = SP.verify(Tok()); ok = {m.split(":")[0]: o for o, m in res}
     assert ok["手順書"] is False and ok["2023年版の総論の本文"] is False and ok["2023年版の CQ の記述"] is False and "SR委員の手順書" in [m for o, m in res if m.startswith("手順書")][0]
-    for n in ("2_統括委員会へのお願い.docx", "3_SR委員長の業務手順.docx", "4_SR委員の手順書.docx", "5_総説執筆者の手順書.docx", "6_論文PDFの入手と配置の手順.docx", "6_用語の定義.docx"): boto3.client("s3").put_object(Bucket=H.BUCKET, Key="docs/" + n, Body=b"x")
+    for n in ("2_統括委員会へのお願い.docx", "3_SR委員長の業務手順.docx", "4_SR委員の手順書.docx", "5_総説執筆者の手順書.docx", "6_論文PDFの入手と配置の手順.docx", "6_用語の定義.docx", "前回Scope_2021.docx"): boto3.client("s3").put_object(Bucket=H.BUCKET, Key="docs/" + n, Body=b"x")
     H.put("GL2023S", "A", {"key": "A", "title": "x", "paragraphs": [{"id": "A-1", "text": "t"}], "docx_key": "soron2023/A/a.docx"})
     for c in call("GET", "/cq")[1]: H.put("GL2023", c["id"], {"cq": c["id"], "rec": "推奨文", "paragraphs": []})
     call("PUT", "/cq/P1", {"outcomes": ["CIPN"]}); [call("PUT", f"/cq/{c['id']}", {"outcomes": ["CIPN"]}) for c in call("GET", "/cq")[1]]
     res = SP.verify(Tok()); assert all(o for o, _ in res), [m for o, m in res if not o]
+
+
+def test_scope_is_shared_with_all_members(env):
+    """Scope(前回Scope)は、「Scope」の画面に出し、手順書の一覧には出さない。登録は統括委員会・事務局。未登録は、統括委員会・事務局にだけ示す。"""
+    name = "前回Scope_2021-07-02_CIPNGL_SCOPE_20260531.docx"
+    ext = dict(email="e@example.org", groups=("外部評価委員",)); sr = dict(email="w@example.org", groups=("総説執筆者",))
+    assert call("POST", "/docs/upload-url", {"filename": name}, R1)[0] == 403
+    assert call("GET", "/docs?kind=scope", who=R1)[1] == [] and [d.get("available") for d in call("GET", "/docs?kind=scope&missing=1")[1]] == [False]
+    c, r = call("POST", "/docs/upload-url", {"filename": name}); assert c == 200; boto3.client("s3").put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"x")
+    for who in (R1, sr, ext, CHAIR):
+        got = call("GET", "/docs?kind=scope", who=who); assert got[0] == 200 and [d["name"] for d in got[1]] == [name] and got[1][0]["url"], who
+    assert name not in [d["name"] for d in call("GET", "/docs", who=R1)[1]] and name in [d["name"] for d in call("GET", "/docs?kind=all", who=CHAIR)[1]]
+    assert call("GET", "/docs?kind=scope", who=dict(email="x@example.org", groups=()))[0] == 403                # 承認前の利用者には出さない
 
 
 def test_sr8_has_minds_sr8_columns(env):

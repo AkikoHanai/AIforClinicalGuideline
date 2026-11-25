@@ -1076,7 +1076,8 @@ def soron(method, parts, body, user):
 # (ファイル名に含む語, 対象, 閲覧できる役割。None は全員)
 DOCS = [("操作マニュアル", "全委員", None), ("SR委員の手順書", "SR委員", {"統括委員会", "事務局", "SR委員長", "SR委員", "作成グループ"}), ("SR委員長の業務手順", "SR委員長", ROLE_LEAD),
         ("論文PDFの入手", "SR委員", {"統括委員会", "事務局", "SR委員長", "SR委員"}), 
-        ("総説執筆者の手順書", "総論の執筆者", {"統括委員会", "事務局", "総説執筆者"}), ("用語の定義", "全委員", None), ("統括委員会へのお願い", "統括委員会", ROLE_ADMIN)]
+        ("総説執筆者の手順書", "総論の執筆者", {"統括委員会", "事務局", "総説執筆者"}), ("用語の定義", "全委員", None), ("統括委員会へのお願い", "統括委員会", ROLE_ADMIN),
+        ("前回Scope", "Scope", None)]   # Scope は、手順書とは別に、「Scope」の画面に出す(GET /docs?kind=scope)
 
 
 def docs(method, parts, body, user):
@@ -1091,9 +1092,10 @@ def docs(method, parts, body, user):
         audit(user, "手順書の登録", name); return resp(200, {"url": url, "key": f"docs/{name}"})
     if method == "GET":
         objs = s3().list_objects_v2(Bucket=BUCKET, Prefix="docs/").get("Contents", []) if BUCKET else []
-        out = []; show_missing = (body.get("_query") or {}).get("missing") == "1" and bool(g & ROLE_ADMIN)
+        out = []; q_ = body.get("_query") or {}; show_missing = q_.get("missing") == "1" and bool(g & ROLE_ADMIN); kind = q_.get("kind", "")   # kind=scope: Scope だけ / all: 全て / 省略: Scope 以外
         for k, target, roles in DOCS:
             if roles is not None and not (g & roles): continue
+            if kind != "all" and (target == "Scope") != (kind == "scope"): continue
             o = next((x for x in objs if k in x["Key"]), None)
             if not o:
                 if show_missing: out.append({"name": k, "target": target, "updated": "", "url": "", "available": False})

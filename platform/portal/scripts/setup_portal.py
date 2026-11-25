@@ -17,7 +17,7 @@ EXPECT_DOCS = ["操作マニュアル", "SR委員の手順書", "SR委員長の�
 def verify(tok):
     """ポータルに登録された件数。戻り値: [(OKか, 内容)]"""
     out = []
-    docs = tok.call("GET", "/docs?missing=1"); docs = docs if isinstance(docs, list) else []
+    docs = tok.call("GET", "/docs?missing=1&kind=all"); docs = docs if isinstance(docs, list) else []
     have = [d["name"] for d in docs if d.get("available", True)]; miss = [d["name"] for d in docs if d.get("available") is False]
     out.append((not miss and bool(have), f"手順書: 登録 {len(have)}件" + (f"、未登録 {', '.join(miss)}" if miss else "")))
     sor = tok.call("GET", "/gl2023/soron"); sor = sor if isinstance(sor, list) else []
