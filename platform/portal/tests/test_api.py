@@ -1,7 +1,7 @@
 """GL作成ポータル API の試験(moto で DynamoDB と S3 を模擬。Bedrock は呼ばない)。
   python3 -m pytest platform/portal/tests -q
 """
-import io, json, os, shutil, sys
+import io, json, os, re, shutil, sys
 import pytest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -485,7 +485,7 @@ def test_sync_to_shared_drive(env, tmp_path):
     files = rel(); sub = [f for f in files if f.startswith(os.path.join("ポータル出力", "総論", "総論A_"))]
     assert len(sub) == 3 and sorted(open(os.path.join(drive, f), "rb").read() for f in sub if f.endswith(".docx")) == [b"first draft", b"second draft, longer"]
     st = open(os.path.join(drive, [f for f in sub if f.endswith("状態.txt")][0]), encoding="utf-8").read(); assert "査読コメント" in st and "表1の出典を追記してください" in st and "状態: 修正中" not in st or True
-    assert os.path.exists(os.path.join(drive, "ポータル出力", "マニュアル", "SR委員", "4_SR委員の手順書.docx")) and any(f.startswith(os.path.join("ポータル出力", "CQ1-牛車腎気丸")) and f.endswith("文献選択の別添_P1.xlsx") for f in files)
+    assert os.path.exists(os.path.join(drive, "ポータル出力", "マニュアル", "SR委員", "4_SR委員の手順書.docx")) and any(f.startswith(os.path.join("ポータル出力", "CQ1-牛車腎気丸")) and f.endswith("文献選択の別添_牛車腎気丸.xlsx") for f in files)
     cp2, sk2 = SD.sync(Tok(), drive, fetch=fetch); assert not [p for p in cp2 if "総論" in p or "マニュアル" in p] and len(sk2) >= 4                  # 転送済みは飛ばす
     n = len(rel()); SD.sync(Tok(), str(tmp_path / "d2"), dry=True, fetch=fetch) if os.path.isdir(str(tmp_path / "d2")) else None; assert len(rel()) == n
     assert any(a["action"] == "共有ドライブへの転送" and "転送" in a["detail"] for a in call("GET", "/audit")[1])
@@ -521,7 +521,7 @@ def test_sync_drive_finds_folder_runs_from_any_directory(env, tmp_path, monkeypa
     assert not [f for d, _, fs in os.walk(drive) for f in fs if f.endswith(".part")]
     placed = sorted(os.path.relpath(os.path.join(d, f), drive) for d, _, fs in os.walk(drive) for f in fs)
     assert any(x.startswith(os.path.join("新規ガイドライン作成", "総論", "総論A_旧い題名")) and x.endswith("総論A_内藤.docx") for x in placed)                # 既存の総論のフォルダへ
-    assert any(unicodedata.normalize("NFC", x).startswith(os.path.join("新規ガイドライン作成", "CQ1-牛車腎気丸")) and x.endswith("Minds書類_P1.xlsx") and "ポータル" not in x for x in placed)   # 既存の CQ のフォルダの中
+    assert any(unicodedata.normalize("NFC", x).startswith(os.path.join("新規ガイドライン作成", "CQ1-牛車腎気丸")) and x.endswith("Minds書類_牛車腎気丸.xlsx") and "ポータル" not in x for x in placed)   # 既存の CQ のフォルダの中
     assert any(x.startswith(os.path.join("新規ガイドライン作成", "ポータル出力", "CQ1-プレガバリン")) for x in placed) and not any(x.startswith(".hidden") for x in placed)   # 既存がなければ、新規ガイドライン作成/ポータル出力/ に作る
     assert sorted(os.listdir(os.path.join(drive, "新規ガイドライン作成"))) == sorted(["ポータル出力", unicodedata.normalize("NFD", "CQ1-牛車腎気丸"), "総論"]) and not any(x.startswith(("提出", "マニュアル", "依頼書", "CQ")) for x in placed)   # 既存の構成に、新しいフォルダを作らない
     import contextlib
@@ -559,7 +559,7 @@ def test_forms_are_placed_in_minds_form_folders(env, tmp_path):
     fetch = lambda url: s3c.get_object(Bucket=H.BUCKET, Key=urllib.parse.unquote(urllib.parse.urlparse(url).path.lstrip("/")))["Body"].read()
     c, r = call("GET", "/export/P1/forms"); assert c == 200 and [f["folder"] for f in r["forms"]] == ["SR_1", "SR_2", "SR_3", "SR_5", "SR_8", "SR_12", "Chap6_推奨"]
     assert call("GET", "/export/P1/forms", who=R1)[0] == 200 and call("GET", "/export/ZZ/forms")[0] == 404
-    wb = openpyxl.load_workbook(io.BytesIO(fetch(r["forms"][0]["url"]))); assert wb.sheetnames == ["CQ", "検索の記録"] and r["forms"][0]["name"].startswith("chap4_SR_1_P1_")
+    wb = openpyxl.load_workbook(io.BytesIO(fetch(r["forms"][0]["url"]))); assert wb.sheetnames == ["CQ", "検索の記録"] and r["forms"][0]["name"].startswith("chap4_SR_1_牛車腎気丸")
     assert openpyxl.load_workbook(io.BytesIO(fetch(r["forms"][3]["url"]))).sheetnames == ["CQ", "研究特性", "SR-5"]
     drive = str(tmp_path / "d"); base = os.path.join(drive, "新規ガイドライン作成")
     tmpl = {}
@@ -569,15 +569,15 @@ def test_forms_are_placed_in_minds_form_folders(env, tmp_path):
     SD.sync(Tok(), drive, fetch=fetch)
     walk = lambda: sorted(os.path.relpath(os.path.join(d, f), drive) for d, _, fs in os.walk(drive) for f in fs)
     got = [unicodedata.normalize("NFC", x) for x in walk()]
-    for want in ("新規ガイドライン作成/Chap4_SR/SR_１/chap4_SR_1_P1_", "新規ガイドライン作成/Chap4_SR/SR_2/chap4_SR_2_P1_", "新規ガイドライン作成/Chap4_SR/SR_5/chap4_SR_5_P1_", "新規ガイドライン作成/Chap4_SR/SR_8/chap4_SR_8_P1_", "新規ガイドライン作成/Chap6_推奨/chap6_EtD_P1_"):
+    for want in ("新規ガイドライン作成/Chap4_SR/SR_１/chap4_SR_1_牛車腎気丸", "新規ガイドライン作成/Chap4_SR/SR_2/chap4_SR_2_牛車腎気丸", "新規ガイドライン作成/Chap4_SR/SR_5/chap4_SR_5_牛車腎気丸", "新規ガイドライン作成/Chap4_SR/SR_8/chap4_SR_8_牛車腎気丸", "新規ガイドライン作成/Chap6_推奨/chap6_EtD_牛車腎気丸"):
         assert any(x.startswith(want) for x in got), want
-    assert any("/P1_" in x or "CQ1-牛車腎気丸/様式別/chap4_SR_3_P1_" in x for x in got) and any(x.endswith("様式別/chap4_SR_12_P1_" + "牛車腎気丸.xlsx") for x in got)   # フォルダがなければ、CQ のフォルダの 様式別/
+    assert any("CQ1-牛車腎気丸/様式別/chap4_SR_3_牛車腎気丸" in x for x in got) and any(x.endswith("様式別/chap4_SR_12_牛車腎気丸.xlsx") for x in got)   # フォルダがなければ、CQ のフォルダの 様式別/
     assert not any("SR_5_ROB2" in x and "P1" in x for x in got) and all(open(k, "rb").read() == v for k, v in tmpl.items())                                  # ROB2 とテンプレートには触れない
-    first = {x: os.path.getmtime(os.path.join(drive, x)) for x in walk() if "chap4_SR_8_P1" in x}; import time; time.sleep(1.1)
+    first = {x: os.path.getmtime(os.path.join(drive, x)) for x in walk() if "chap4_SR_8_牛車腎気丸" in x}; import time; time.sleep(1.1)
     cp, sk = SD.sync(Tok(), drive, fetch=fetch)
-    assert not [x for x in cp if "chap4_SR_" in x or "chap6_EtD" in x] and {x: os.path.getmtime(os.path.join(drive, x)) for x in walk() if "chap4_SR_8_P1" in x} == first   # 内容が同じなら置き換えない
+    assert not [x for x in cp if "chap4_SR_" in x or "chap6_EtD" in x] and {x: os.path.getmtime(os.path.join(drive, x)) for x in walk() if "chap4_SR_8_牛車腎気丸" in x} == first   # 内容が同じなら置き換えない
     call("PUT", "/cq/P1", {"note": "変更"}); oc = call("GET", "/cq/P1")[1]["outcomes"][0]; H.put("SR8", f"P1#{oc}", {"outcome": oc, "rob": "-1", "certainty": "B(中)"})
-    cp3, _ = SD.sync(Tok(), drive, fetch=fetch); assert any("chap4_SR_8_P1" in x for x in cp3) and not any("chap4_SR_2_P1" in x for x in cp3)             # 変わった様式だけを置き換える
+    cp3, _ = SD.sync(Tok(), drive, fetch=fetch); assert any("chap4_SR_8_牛車腎気丸" in x for x in cp3) and not any("chap4_SR_2_P1" in x for x in cp3)             # 変わった様式だけを置き換える
 
 
 def test_admin_user_resolves_email_and_lists_pool_users(tmp_path, monkeypatch, capsys):
@@ -712,7 +712,7 @@ def test_docs_missing_list_and_setup_verify(env):
     assert ok["手順書・Scope"] is False and ok["2023年版の総論の本文"] is False and ok["2023年版の CQ の記述"] is False and "SR委員の手順書" in [m for o, m in res if m.startswith("手順書")][0]
     for n in ("2_統括委員会へのお願い.docx", "3_SR委員長の業務手順.docx", "4_SR委員の手順書.docx", "5_総説執筆者の手順書.docx", "6_論文PDFの入手と配置の手順.docx", "6_用語の定義.docx"): boto3.client("s3").put_object(Bucket=H.BUCKET, Key="docs/" + n, Body=b"x")
     plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8"))
-    for n in ["SC-1_a.xlsx", "SC-2_a.xlsx", "SC-3_a.xlsx"] + [f"SC-4_{i['id']}_{i['名称']}.xlsx" for i in plan["SR項目"] + plan["FRQ項目"]]: boto3.client("s3").put_object(Bucket=H.BUCKET, Key="scope/" + n, Body=b"x")
+    for n in ["SC-1_a.xlsx", "SC-2_a.xlsx", "SC-3_a.xlsx"] + [f"SC-4_{i['名称']}.xlsx" for i in plan["SR項目"] + plan["FRQ項目"]]: boto3.client("s3").put_object(Bucket=H.BUCKET, Key="scope/" + n, Body=b"x")
     H.put("GL2023S", "A", {"key": "A", "title": "x", "paragraphs": [{"id": "A-1", "text": "t"}], "docx_key": "soron2023/A/a.docx"})
     for c in call("GET", "/cq")[1]: H.put("GL2023", c["id"], {"cq": c["id"], "rec": "推奨文", "paragraphs": []})
     call("PUT", "/cq/P1", {"outcomes": ["CIPN"]}); [call("PUT", f"/cq/{c['id']}", {"outcomes": ["CIPN"]}) for c in call("GET", "/cq")[1]]
@@ -723,7 +723,7 @@ def test_scope_is_shared_with_all_members(env):
     """Scope(SC-1〜SC-4 の Excel 18件)は「Scope」の画面に出し、手順書の一覧には出さない。登録は統括委員会・事務局。未登録は、統括委員会・事務局にだけ示す。"""
     ext = dict(email="e@example.org", groups=("外部評価委員",)); sr = dict(email="w@example.org", groups=("総説執筆者",))
     plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8")); its = plan["SR項目"] + plan["FRQ項目"]
-    names = ["SC-1_疾患トピックの基本的特徴.xlsx", "SC-2_診療アルゴリズム.xlsx", "SC-3_スコープ.xlsx"] + [f"SC-4_{i['id']}_{i['名称']}.xlsx" for i in its]
+    names = ["SC-1_疾患トピックの基本的特徴.xlsx", "SC-2_診療アルゴリズム.xlsx", "SC-3_スコープ.xlsx"] + [f"SC-4_{i['名称']}.xlsx" for i in its]
     assert len(names) == 18 and call("POST", "/docs/upload-url", {"filename": names[0]}, R1)[0] == 403
     assert call("GET", "/docs?kind=scope", who=R1)[1] == [] and len(call("GET", "/docs?kind=scope&missing=1")[1]) == 18 and all(d["available"] is False for d in call("GET", "/docs?kind=scope&missing=1")[1])
     for n in names:
@@ -744,24 +744,25 @@ def test_scope_documents_follow_minds_forms_and_decisions():
     wbs = {f: openpyxl.load_workbook(os.path.join(d, f)) for f in files}; assert all(len(w.worksheets) == 1 for w in wbs.values())     # テンプレートの1シートだけ
     text = lambda f: "\n".join(str(c.value) for ws in wbs[f].worksheets for row in ws.iter_rows() for c in row if c.value is not None)
     sc1, sc2, sc3 = text(files[0]), text(files[1]), text(files[2])
-    assert all(h in sc1 for h in ("【SC-1", "臨床的特徴", "疫学的特徴", "診療の全体的な流れ")) and "【SC-2" in sc2 and "診療アルゴリズム（図）" in sc2 and all(f"{i['id']} {i['名称']}" in sc2 for i in its)
+    assert all(h in sc1 for h in ("【SC-1", "臨床的特徴", "疫学的特徴", "診療の全体的な流れ")) and "【SC-2" in sc2 and "診療アルゴリズム（図）" in sc2 and all(i["名称"] in sc2 for i in its)
     assert all(h in sc3 for h in ("【SC-3", "診療ガイドラインがカバーする視点", "既存の診療ガイドラインとの関係", "実施スケジュール", "エビデンスの検索", "推奨作成の基本方針", "外部評価の具体的方法", "公開の予定"))   # テンプレートの項目名
     assert "Individual perspective" in sc3 and wbs[files[2]].worksheets[0]["F52"].value == "記載しない" and plan["タイトル"] in sc3 and "PubMed" in sc3 and "患者代表は含めない" in sc3 and "男性・女性を含む" in sc3 and "地理的要件はない" in sc3
-    assert all(f"{i['id']}: {i['名称']}" in sc3 for i in its) and wbs[files[2]].worksheets[0]["D3"].value == "第1版"
+    assert all(f"・{i['名称']}" in sc3 for i in its) and wbs[files[2]].worksheets[0]["D3"].value == "第1版"
     for it in its:
-        f = [x for x in files if x.startswith(f"SC-4_{it['id']}_")]; assert len(f) == 1, it["id"]; ws = wbs[f[0]].worksheets[0]; t = text(f[0])
+        f = [x for x in files if x == f"SC-4_{it['名称']}.xlsx"]; assert len(f) == 1, it["id"]; ws = wbs[f[0]].worksheets[0]; t = text(f[0])
         assert ws["A17"].value == it["名称"] and ws["E17"].value == "無治療" and ws["B11"].value == "指定なし" and ws["B14"].value == "なし" and "18歳以上" in str(ws["D12"].value)
         assert "男性・女性を含む。がん種によって" in ws["B15"].value and ws["B22"].value == "CIPN(症状の有無で評価する)" and ws["F22"].value == "益" and ws["G22"].value == "評価しない" and ws["J22"].value == "○" and "推奨されるか" in ws["A33"].value
         assert "【SC-4" in t and any("指定なし,男性,女性" in str(dv.formula1) for dv in ws.data_validations.dataValidation) and any(str(dv.formula1) == '"益,害"' for dv in ws.data_validations.dataValidation)   # テンプレートの入力規則を保つ
     allt = "\n".join(text(f) for f in files)
     for ng in ("適宜", "目安", "厳密", "十分", "質の高い", "venlafaxine", "Venlafaxine", "ケタミン", "ketamine", "cannabinoid", "2027年", "キックオフ"): assert ng not in allt, ng   # 作業日程を書かない
+    assert not re.search(r"(?<![A-Za-z0-9])[PNTF]\d(?![A-Za-z0-9])", allt), "内部コード(P1・N1・T1・F1 など)を、利用者に見せない"
 
 
 def test_scope_is_placed_in_chapter3_folders(env, tmp_path):
     """Scope の SC-1〜SC-4 は、共有ドライブの chap3_SC_1_… 〜 chap3_SC_4_… のフォルダに置く(なければ Chap3_スコープ、なければ ポータル出力/Scope)。内容が変わったときだけ置き換える。"""
     import importlib, urllib.parse
     sys.path.insert(0, os.path.join(HERE, "..", "scripts")); SD = importlib.import_module("sync_drive"); s3c = boto3.client("s3")
-    for n in ("SC-1_疾患トピックの基本的特徴.xlsx", "SC-2_診療アルゴリズム.xlsx", "SC-3_スコープ.xlsx", "SC-4_P1_牛車腎気丸.xlsx"):
+    for n in ("SC-1_疾患トピックの基本的特徴.xlsx", "SC-2_診療アルゴリズム.xlsx", "SC-3_スコープ.xlsx", "SC-4_牛車腎気丸.xlsx"):
         c, r = call("POST", "/docs/upload-url", {"filename": n}); s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=b"v1 " + n.encode())
     class Tok:
         def call(self, method, path, body=None): return call(method, path, body)[1]
@@ -770,7 +771,7 @@ def test_scope_is_placed_in_chapter3_folders(env, tmp_path):
     for f in ("chap3_SC_1_疾患トピックの基本的特徴 ", "chap3_SC_2_アルゴリズム", "chap3_SC_3_スコープ", "chap3_SC_4_CQ"): os.makedirs(os.path.join(ch3, f))
     SD.sync(Tok(), d1, fetch=fetch)
     assert open(os.path.join(ch3, "chap3_SC_1_疾患トピックの基本的特徴 ", "SC-1_疾患トピックの基本的特徴.xlsx"), "rb").read().startswith(b"v1") and os.path.exists(os.path.join(ch3, "chap3_SC_2_アルゴリズム", "SC-2_診療アルゴリズム.xlsx"))
-    assert os.path.exists(os.path.join(ch3, "chap3_SC_3_スコープ", "SC-3_スコープ.xlsx")) and os.path.exists(os.path.join(ch3, "chap3_SC_4_CQ", "SC-4_P1_牛車腎気丸.xlsx")) and not os.path.exists(os.path.join(d1, "新規ガイドライン作成", "ポータル出力", "Scope"))
+    assert os.path.exists(os.path.join(ch3, "chap3_SC_3_スコープ", "SC-3_スコープ.xlsx")) and os.path.exists(os.path.join(ch3, "chap3_SC_4_CQ", "SC-4_牛車腎気丸.xlsx")) and not os.path.exists(os.path.join(d1, "新規ガイドライン作成", "ポータル出力", "Scope"))
     r1 = s3c.get_object(Bucket=H.BUCKET, Key="scope/SC-3_スコープ.xlsx"); s3c.put_object(Bucket=H.BUCKET, Key="scope/SC-3_スコープ.xlsx", Body=b"v2")
     SD.sync(Tok(), d1, fetch=fetch); assert open(os.path.join(ch3, "chap3_SC_3_スコープ", "SC-3_スコープ.xlsx"), "rb").read() == b"v2"
     d2 = str(tmp_path / "b"); os.makedirs(os.path.join(d2, "Chap3_スコープ")); SD.sync(Tok(), d2, fetch=fetch); assert os.path.exists(os.path.join(d2, "Chap3_スコープ", "SC-3_スコープ.xlsx"))

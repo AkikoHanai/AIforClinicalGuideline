@@ -144,8 +144,15 @@ def put(pk, sk, item):
     table().put_item(Item=_py(item)); return item
 
 
+def cq_name(cqid):
+    c = table().get_item(Key={"pk": "CQ", "sk": cqid}).get("Item")
+    return (c or {}).get("title", cqid)
+
+
 def audit(user, action, target, detail=""):
-    """作成経過の記録。追記のみ。"""
+    """作成経過の記録。追記のみ。CQ の内部コード(P1 など)は、利用者に意味がないため、CQ・FRQ の名称で記録する。"""
+    m = re.match(r"^([A-Z]\d+)(?= / |$)", str(target))
+    if m: target = cq_name(m.group(1)) + str(target)[m.end():]
     sk = f"{datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='microseconds')}#{uuid.uuid4().hex[:6]}"
     table().put_item(Item={"pk": "AUDIT", "sk": sk, "at": now(), "actor": user.get("name") or user.get("email", ""), "email": user.get("email", ""), "action": action, "target": target, "detail": detail[:1000]},
                      ConditionExpression="attribute_not_exists(pk)")
@@ -242,14 +249,14 @@ def dashboard(user):
                     else: my_work[-1]["f45_submitted_mine"] += 1
         if lead or mine:
             for w in wait:
-                approvals.append({"kind": "SR-5の照合・確定", "target": f"{c['id']} PMID {w['pmid']} / {w['outcome']}", "record": "2名が提出済(" + "・".join(w["submitted"]) + ")。確定の記録なし",
+                approvals.append({"kind": "SR-5の照合・確定", "target": f"{c['title']} PMID {w['pmid']} / {w['outcome']}", "record": "2名が提出済(" + "・".join(w["submitted"]) + ")。確定の記録なし",
                                   "approver": "評価した2名、またはSR委員長", "can": lead or name in w["submitted"], "page": "f45", "q": {"cq": c["id"], "pmid": w["pmid"], "outcome": w["outcome"]}})
         nc = n["flow"]["s1_conflict"] + n["flow"]["s2_conflict"]
         if nc and (lead or mine):
-            approvals.append({"kind": "スクリーニングの協議の結論", "target": f"{c['id']} {c['title']}", "record": f"2名の判定が不一致の文献 {nc}件(一次 {n['flow']['s1_conflict']}件、二次 {n['flow']['s2_conflict']}件)。協議の結論の記録なし",
+            approvals.append({"kind": "スクリーニングの協議の結論", "target": f"{c['title']}", "record": f"2名の判定が不一致の文献 {nc}件(一次 {n['flow']['s1_conflict']}件、二次 {n['flow']['s2_conflict']}件)。協議の結論の記録なし",
                               "approver": "担当委員2名の協議と、第三者の意見(SR委員長への報告)", "can": True, "page": "screening", "q": {"cq": c["id"], "show": "conflict"}})
         if n["etd_status"] == "協議中":
-            approvals.append({"kind": "EtD・推奨の確定", "target": f"{c['id']} {c['title']}", "record": "状態 協議中。" + (f"投票 合意率 {n['etd_agreement']}%" if n["etd_agreement"] is not None else "投票の記録なし"),
+            approvals.append({"kind": "EtD・推奨の確定", "target": f"{c['title']}", "record": "状態 協議中。" + (f"投票 合意率 {n['etd_agreement']}%" if n["etd_agreement"] is not None else "投票の記録なし"),
                               "approver": "統括委員会", "can": "統括委員会" in g, "page": "etd", "q": {"cq": c["id"]}})
     if g & ROLE_ADMIN:
         pend = [a for a in query("ACCESS") if a.get("status") == "承認待ち"]
@@ -955,7 +962,7 @@ def minds_book(cqid, c):
     import export_minds
     c = {**c, "pico": pico_of(c)}
     papers = query("PAPER", f"{cqid}#"); finals = [r for r in query("F45", f"{cqid}#") if r["sk"].endswith("#確定")]
-    aud = [a for a in sorted(query("AUDIT"), key=lambda a: a["sk"]) if cqid in str(a.get("target", ""))]
+    aud = [a for a in sorted(query("AUDIT"), key=lambda a: a["sk"]) if str(a.get("target", "")).startswith(c["title"])]
     cands, recs = screen_data(cqid); rows = []
     for cd in cands:
         rs = recs.get(cd["pmid"], []); fin = cd.get("final") or {}
@@ -977,7 +984,7 @@ FORM_MAP = [("SR-1 DB検索結果", "SR_1", "chap4_SR_1", ["CQ", "検索の記�
 def form_books(cqid, c):
     """様式ごとのブック: [{form, folder, name, data}]"""
     import export_minds
-    book = minds_book(cqid, c); nm = re.sub(r'[\\/:*?"<>|\n\r]', "_", f"{cqid}_{c['title']}")[:60]
+    book = minds_book(cqid, c); nm = re.sub(r'[\\/:*?"<>|\n\r]', "_", c["title"])[:60]
     return [{"form": f, "folder": folder, "name": f"{pre}_{nm}.xlsx", "sheets": sh, "data": export_minds.split_book(book, sh)} for f, folder, pre, sh in FORM_MAP]
 
 
@@ -1098,10 +1105,10 @@ def docs(method, parts, body, user):
         if kind in ("scope", "all"):
             sc = s3().list_objects_v2(Bucket=BUCKET, Prefix="scope/").get("Contents", []) if BUCKET else []
             plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
-            for pre in ["SC-1", "SC-2", "SC-3"] + [f"SC-4_{it['id']}_" for it in plan["SR項目"] + plan["FRQ項目"]]:
+            for pre in ["SC-1", "SC-2", "SC-3"] + [f"SC-4_{it['名称']}" for it in plan["SR項目"] + plan["FRQ項目"]]:
                 o = next((x for x in sc if x["Key"].split("/", 1)[1].startswith(pre)), None)
                 if o: out.append({"name": o["Key"].split("/", 1)[1], "target": "Scope", "updated": o["LastModified"].isoformat()[:10], "url": s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": o["Key"]}, ExpiresIn=900), "available": True})
-                elif show_missing: out.append({"name": pre.rstrip("_"), "target": "Scope", "updated": "", "url": "", "available": False})
+                elif show_missing: out.append({"name": pre, "target": "Scope", "updated": "", "url": "", "available": False})
             if kind == "scope": return resp(200, out)
         for k, target, roles in DOCS:
             if roles is not None and not (g & roles): continue

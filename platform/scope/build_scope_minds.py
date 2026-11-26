@@ -100,15 +100,15 @@ def sc2(template):
         ws.merge_cells(start_row=r, start_column=c1, end_row=r, end_column=c2); cell = ws.cell(row=r, column=c1, value="↓"); cell.alignment = Alignment(horizontal="center"); cell.font = font
     box(4, 1, 9, "がん薬物療法を受ける患者(CIPNを呈しうる、あるいは呈している)", head, True); arrow(5, 1, 9)
     box(6, 1, 4, "予防", head, True); box(6, 6, 9, "治療(CIPNを呈している患者)", head, True)
-    left = [("薬物療法による予防", True)] + [(f"{i} {nm[i]}", False) for i in ("P1", "P2", "P3")] + [("非薬物療法による予防", True)] + [(f"{i} {nm[i]}", False) for i in ("N1", "N2", "N3")]
-    right = [("CIPNの評価(総論H)", False), ("↓", None), ("被疑薬の延期・減量・中止(総論J-1)", False), ("↓", None), ("薬物療法による治療", True)] + [(f"{i} {nm[i]}", False) for i in ("T1", "T2", "T3")] + \
-            [("FRQ(薬物療法による治療)", True)] + [(f"{i} {nm[i]}", False) for i in ("F1", "F2", "F3", "F4")] + [("非薬物療法による治療", True)] + [(f"{i} {nm[i]}", False) for i in ("N4", "N5")]
+    left = [("薬物療法による予防", True)] + [(nm[i], False) for i in ("P1", "P2", "P3")] + [("非薬物療法による予防", True)] + [(nm[i], False) for i in ("N1", "N2", "N3")]
+    right = [("CIPNの評価(総論H)", False), ("↓", None), ("被疑薬の延期・減量・中止(総論J-1)", False), ("↓", None), ("薬物療法による治療", True)] + [(nm[i], False) for i in ("T1", "T2", "T3")] + \
+            [("FRQ(薬物療法による治療)", True)] + [(nm[i], False) for i in ("F1", "F2", "F3", "F4")] + [("非薬物療法による治療", True)] + [(nm[i], False) for i in ("N4", "N5")]
     for k, (t, g) in enumerate(left): box(7 + k, 1, 4, t, grp if g else None, g)
     for k, (t, g) in enumerate(right):
         if g is None: arrow(7 + k, 6, 9)
         else: box(7 + k, 6, 9, t, grp if g else None, g)
     end = 7 + max(len(left), len(right)) + 1
-    ws.cell(row=end, column=1, value="CQ・FRQの番号は、承認済み企画書のSR項目・FRQ項目に対応する(SC-4)。").font = Font(name=font.name, size=10)
+    ws.cell(row=end, column=1, value="CQ・FRQは、承認済み企画書のSR項目・FRQ項目である(SC-4)。").font = Font(name=font.name, size=10)
     fit(ws, f"A2:I{end}")
     return wb
 
@@ -118,7 +118,7 @@ def sc3(template):
     wb, ws = load(template, "SC-3　テンプレート", "SC-3")
     for c in "IJK": ws.column_dimensions[c].width = 24
     ws["D3"].value = "第1版"; ws["C4"].value = "2026年11月25日"; ws["C5"].value = "ガイドライン統括委員会 委員長 華井明子"
-    cq = "【SR項目(CQ)】\n" + "\n".join(f"{x['id']}: {x['名称']}" for x in PLAN["SR項目"]) + "\n【FRQ】\n" + "\n".join(f"{x['id']}: {x['名称']}" for x in PLAN["FRQ項目"])
+    cq = "【SR項目(CQ)】\n" + "\n".join(f"・{x['名称']}" for x in PLAN["SR項目"]) + "\n【FRQ】\n" + "\n".join(f"・{x['名称']}" for x in PLAN["FRQ項目"])
     V = {  # アンカー: (本文, 先頭行, 末尾行, 先頭列, 末尾列)
       "F7": (TITLE + "(日本がんサポーティブケア学会 編)", 7, 9),
       "F10": ("がん薬物療法に伴う末梢神経障害(chemotherapy-induced peripheral neuropathy:CIPN)を有する、または発症する可能性のある成人がん患者を対象とし、医師、看護師、薬剤師、作業療法士、理学療法士などを含む多職種医療チームが診療に活用できる指針を示すことを目的とする。\n改善するアウトカム: 予防としてはCIPNの発症頻度や症状(しびれ、疼痛)の軽減、治療としては症状(しびれ、疼痛)の軽減。", 10, 12),
@@ -183,7 +183,7 @@ def main(template):
     for f in os.listdir(OUT):
         if f.endswith(".xlsx"): os.remove(os.path.join(OUT, f))
     made = {"SC-1_疾患トピックの基本的特徴.xlsx": sc1(template), "SC-2_診療アルゴリズム.xlsx": sc2(template), "SC-3_スコープ.xlsx": sc3(template)}
-    for x in ITEMS: made[f"SC-4_{x['id']}_{safe(x['名称'])}.xlsx"] = sc4(template, x)
+    for x in ITEMS: made[f"SC-4_{safe(x['名称'])}.xlsx"] = sc4(template, x)
     for name, wb in made.items(): wb.save(os.path.join(OUT, name))
     print(f"{len(made)}件: {OUT}")
 

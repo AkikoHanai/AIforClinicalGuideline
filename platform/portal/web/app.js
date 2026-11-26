@@ -60,7 +60,7 @@
   const tag = (v, cls) => `<span class="tag ${cls || (v === "完了" || v === "確定" ? "ok" : v && v !== "未着手" ? "run" : "")}">${esc(v)}</span>`;
   const sel = (opts, cur, attrs = "", blank = false) => `<select class="sm" ${attrs}>${blank ? '<option value="">—</option>' : ""}${opts.map((o) => `<option value="${esc(o)}" ${String(o) === String(cur) ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
   const vsel = (cur, attrs = "") => sel([0, -1, -2], cur === null || cur === undefined ? "" : cur, attrs, true);
-  const cqSelect = (cur, id) => `<select id="${id}">${S.cqs.map((c) => `<option value="${esc(c.id)}" ${c.id === cur ? "selected" : ""}>${esc(c.id)} ${esc(c.title)}</option>`).join("")}</select>`;
+  const cqSelect = (cur, id) => `<select id="${id}">${S.cqs.map((c) => `<option value="${esc(c.id)}" ${c.id === cur ? "selected" : ""}>${esc(c.title)}</option>`).join("")}</select>`;
   const auditTable = (list) => `<table><tr><th>日時</th><th>操作者</th><th>操作</th><th>対象</th><th>内容</th></tr>${list.map((a) => `<tr><td class="small">${esc(a.at.slice(0, 16).replace("T", " "))}</td><td>${esc(a.actor)}</td><td>${esc(a.action)}</td><td>${esc(a.target)}</td><td class="small">${esc(a.detail)}</td></tr>`).join("") || "<tr><td colspan=5 class='muted'>なし</td></tr>"}</table>`;
 
   // ---------- 本文の参照ウィンドウ ----------
@@ -87,18 +87,18 @@
       const mineA = (d.approvals || []).filter((a) => a.can), grp = {};
       mineA.forEach((a) => (grp[a.kind] = grp[a.kind] || []).push(a));
       const rows = [];
-      (d.my_votes || []).forEach((v) => rows.push(`<tr><td>推奨の投票(第${v.round}回${v.deadline ? "、締切 " + esc(v.deadline) : ""})</td><td>${esc(v.cq)} ${esc(v.title)}</td><td class="nw">${link("投票する", "vote", { cq: v.cq })}</td></tr>`));
+      (d.my_votes || []).forEach((v) => rows.push(`<tr><td>推奨の投票(第${v.round}回${v.deadline ? "、締切 " + esc(v.deadline) : ""})</td><td>${esc(v.title)}</td><td class="nw">${link("投票する", "vote", { cq: v.cq })}</td></tr>`));
       Object.entries(grp).forEach(([k, arr]) => rows.push(`<tr><td>${esc(k)}</td><td>${arr.length}件</td><td class="nw">${link("開く", arr[0].page, arr[0].q)}</td></tr>`));
       const work = d.my_work || [];
       const cell = (n, page, q) => (n ? `<b>${n}</b> ${link("開く", page, q)}` : "0");
       const workTable = !work.length ? "" : `<table><tr><th>担当 CQ</th><th>一次スクリーニング<br><span class="small">自分が未判定</span></th><th>二次スクリーニング<br><span class="small">自分が未判定</span></th><th>SR-5<br><span class="small">自分の未提出 / 論文×アウトカム</span></th><th>SR-8<br><span class="small">未記入のアウトカム</span></th></tr>
-        ${work.map((w) => `<tr><td>${link(esc(w.cq) + " " + esc(w.title), "papers", { cq: w.cq })}</td><td class="num">${cell(w.s1_open, "screening", { cq: w.cq })}</td><td class="num">${cell(w.s2_open, "screening", { cq: w.cq })}</td>
+        ${work.map((w) => `<tr><td>${link(esc(w.title), "papers", { cq: w.cq })}</td><td class="num">${cell(w.s1_open, "screening", { cq: w.cq })}</td><td class="num">${cell(w.s2_open, "screening", { cq: w.cq })}</td>
           <td class="num">${w.f45_need - w.f45_submitted_mine > 0 ? `<b>${w.f45_need - w.f45_submitted_mine}</b> / ${w.f45_need} ${link("開く", "f45", { cq: w.cq })}` : `0 / ${w.f45_need}`}</td><td class="num">${cell(w.sr8_open, "sr8", { cq: w.cq })}</td></tr>`).join("")}</table>`;
       const soronTable = !showSoron || !(d.my_soron || []).length ? "" : `<table><tr><th>担当の総論</th><th>原稿の記録</th><th></th></tr>${d.my_soron.map((x) => `<tr><td>総論${esc(x.label)} ${esc(x.title)}</td><td>${esc(x.status)}</td><td class="nw">${link("開く", "soron")}</td></tr>`).join("")}</table>`;
       const nothing = !rows.length && !work.length && !soronTable;
       const overview = !(showSr && can("統括委員会", "事務局", "SR委員長", "作成グループ")) ? "" : `<div class="card"><h3>全 CQ・FRQ の記録</h3><p class="small">判定済み / 対象、確定 / 必要、記入 / アウトカム の件数。自分の担当は薄い青。</p>
         <div class="scroll"><table><tr><th>CQ・FRQ</th><th>担当</th><th>検索の記録</th><th>一次</th><th>二次</th><th>採用</th><th>SR-5 確定</th><th>SR-8 記入</th></tr>
-        ${d.cq.map((c) => { const n = c.counts, f = n.flow, nc = f.s1_conflict + f.s2_conflict; return `<tr class="${c.mine ? "mine" : ""}"><td>${link(esc(c.id) + " " + esc(c.title), "papers", { cq: c.id })}</td><td>${esc((c.assignees || []).join("・"))}</td>
+        ${d.cq.map((c) => { const n = c.counts, f = n.flow, nc = f.s1_conflict + f.s2_conflict; return `<tr class="${c.mine ? "mine" : ""}"><td>${link(esc(c.title), "papers", { cq: c.id })}</td><td>${esc((c.assignees || []).join("・"))}</td>
           <td class="num">${link(f.searches, "search", { cq: c.id })}</td><td class="num">${f.s1_target - f.s1_open} / ${f.s1_target}</td><td class="num">${f.s2_target - f.s2_open} / ${f.s2_target}${nc ? ` <a href="${href("screening", { cq: c.id, show: "conflict" })}">不一致 ${nc}</a>` : ""}</td>
           <td class="num">${link(f.s2_include, "screening", { cq: c.id })}</td><td class="num">${n.f45_fixed} / ${n.f45_need}</td><td class="num">${n.sr8} / ${n.outcomes}</td></tr>`; }).join("")}</table></div></div>`;
       m.innerHTML = `<h2>ホーム</h2><p class="small">${esc(S.me.name || S.me.email)}(${esc(S.me.groups.join("・"))})</p>
@@ -113,8 +113,8 @@
       const list = await api("/cq"); S.cqs = list; const p0 = (list[0] || {}).pico || {};
       m.innerHTML = `<h2>CQ一覧</h2>
         <div class="card">全 CQ・FRQ に共通: 対象 <b>${esc(p0.P)}</b>、対照 <b>${esc(p0.C)}</b>、アウトカム <b>${esc(p0.O)}</b>。介入は、CQ ごとに異なる(下表の名称)。</div>
-        <table style="margin-top:12px"><tr><th>ID</th><th>区分</th><th>介入(CQ の名称)</th><th>担当</th><th>画面</th></tr>
-        ${list.map((c) => `<tr class="${own(c) ? "mine" : ""}"><td class="nw">${esc(c.id)}</td><td>${esc(c.category)}</td><td>${esc(c.title)}${c.pico.O !== p0.O ? ` <span class="small">(アウトカム: ${esc(c.pico.O)})</span>` : ""}</td><td>${esc(c.assignees.join("・"))}</td>
+        <table style="margin-top:12px"><tr><th>区分</th><th>介入(CQ・FRQ の名称)</th><th>担当</th><th>画面</th></tr>
+        ${list.map((c) => `<tr class="${own(c) ? "mine" : ""}"><td>${esc(c.category)}</td><td>${esc(c.title)}${c.pico.O !== p0.O ? ` <span class="small">(アウトカム: ${esc(c.pico.O)})</span>` : ""}</td><td>${esc(c.assignees.join("・"))}</td>
           <td class="nw"><a href="#search?cq=${esc(c.id)}">検索の記録</a> <a href="#screening?cq=${esc(c.id)}">スクリーニング</a> <a href="#papers?cq=${esc(c.id)}">論文</a> <a href="#f45?cq=${esc(c.id)}">SR-5</a> <a href="#sr8?cq=${esc(c.id)}">SR-8</a> <a href="#etd?cq=${esc(c.id)}">EtD</a></td></tr>`).join("")}</table>`;
     },
 
@@ -477,7 +477,7 @@
       m.innerHTML = `<h2>推奨の投票(電子投票)</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
         <ol class="steps"><li>統括委員会が、推奨文案を確認し、投票のラウンドを開始する(投票者は、統括委員会・作成グループから、そのCQのSR担当と、投票除外を除いた委員)</li><li>投票者が、各自でログインして、投票する(1回だけ。変更できない。無記名)</li>
           <li><span class="approve">承認</span> 統括委員会が、ラウンドを終了し、集計する(参加が投票者の75%以上、最多の選択肢が参加者の80%以上で成立。最大${d.max_rounds}回。3回で成立しなければ「推奨なし」)</li><li>成立した強さが、EtD・推奨に入る。統括委員会が、EtD・推奨を確定する</li></ol>
-        <div class="card"><h3>${esc(d.cq)} ${esc(d.title)}</h3><p><b>推奨文案</b><br>${d.rec ? esc(d.rec) : '<span class="muted">未記入(「EtD・推奨」に、推奨文案を書く)</span>'}</p>${d.scope_note ? `<p class="small">適用範囲・変更点: ${esc(d.scope_note)}</p>` : ""}
+        <div class="card"><h3>${esc(d.title)}</h3><p><b>推奨文案</b><br>${d.rec ? esc(d.rec) : '<span class="muted">未記入(「EtD・推奨」に、推奨文案を書く)</span>'}</p>${d.scope_note ? `<p class="small">適用範囲・変更点: ${esc(d.scope_note)}</p>` : ""}
           <p class="small">SR-8 の確実性: ${d.sr8.map((s) => `${esc(s.outcome)} ${esc(s.certainty || "未記入")}`).join("、") || "未記入"} / EtD の状態: ${esc(d.etd_status)} / <a href="#etd?cq=${esc(cqid)}">EtD・推奨を開く</a></p></div>
         <div class="card"><h3>あなたの投票</h3>
           ${me.round_open && me.eligible && !me.voted ? `<p class="note need"><span class="approve">要投票</span> 第${me.round_open}回が受付中です${cur.deadline ? "(締切 " + esc(cur.deadline) + ")" : ""}。投票は、1回だけで、変更できません。</p>

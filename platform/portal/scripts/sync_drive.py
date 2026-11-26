@@ -114,7 +114,7 @@ class Layout:
 
     def cq(self, c):
         names = c.get("dirs") or []; found = self.find(names)
-        return found or os.path.join(self.out, safe((names or [f"{c['id']}_{c['title']}"])[0]))
+        return found or os.path.join(self.out, safe((names or [c["title"]])[0]))
 
     def form(self, folder):
         """様式番号のフォルダ(SR_1、Chap6_推奨 など)。なければ None"""
@@ -165,7 +165,7 @@ def sync(tok, drive, dry=False, fetch=get_bytes):
         folder = L.cq(c)
         for kind, path in (("Minds書類", f"/export/{c['id']}?sync=1"), ("文献選択の別添", f"/export/{c['id']}/screening?sync=1")):
             r = tok.call("GET", path)
-            if "url" in r and r["url"]: place(os.path.join(folder, f"{kind}_{c['id']}.xlsx"), fetch(r["url"]), copied, skipped, dry, overwrite=True)
+            if "url" in r and r["url"]: place(os.path.join(folder, f"{kind}_{safe(c['title'])}.xlsx"), fetch(r["url"]), copied, skipped, dry, overwrite=True)
             elif "error" in r: print("  出力できませんでした:", c["id"], kind, r["error"])
         # Minds 様式ごとのファイルを、様式番号のフォルダ(Chap4_SR/SR_n、Chap6_推奨)へ置く。フォルダがなければ、この CQ のフォルダの 様式別/ に置く
         r = tok.call("GET", f"/export/{c['id']}/forms?sync=1")
