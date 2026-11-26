@@ -281,7 +281,7 @@ def test_web_style_rules():
     assert "対応が必要なもの" in js and "<h3>担当 CQ</h3>" in js                                  # ホームは、利用者ごとの内容
     for gone in ("現在の段階", "承認(確定)の記録がない件", "統括委員長承認済み", "手順1 CQ・PICO", "PICO は", "論文(PDF登録・本文)", "自分の欄に取り込んで修正する"): assert gone not in js, gone   # 削除した文言(推測の状態・承認の説明・PICO の入力・過剰な作業)
     for gone in ("相手の判定は、自分がその文献のその段階を判定した後に表示される(2名独立)", "検索結果(「検索の記録」の件数の文献)と", "件数は、検索の記録とスクリーニングの記録から数えた値である", "この枠は参考資料であり", "Word を開く"): assert gone not in js, gone   # 説明文は、手順のリンクに置き換えた
-    assert 'data-show="${k}"' in js and "#search?cq=${esc(cqid)}" in js and "#papers?cq=${esc(cqid)}" in js and 'manual("スクリーニング")' in js      # スクリーニングの手順は、その操作の場所へのリンク
+    assert 'data-show="${k}"' in js and "#search?cq=${esc(cqid)}" in js and "#papers?cq=${esc(cqid)}" in js and 'manual("担当の委員が行うこと")' in js      # スクリーニングの手順は、その操作の場所へのリンク
     assert "#view?name=${encodeURIComponent(d.name)}" in js and "Google Drive" in js and "ダウンロード" in js                                    # 文書の「開く」は、画面の中で表示する
     shown = re.sub(r"(?m)^\s*//.*$|\s{2,}//.*$|/\*.*?\*/", "", js, flags=re.S) + html                                                         # コメントを除いた、画面に出る文言
     for gone in ("Cognito", "CORS", "check_site", "トークン", "etd_2023.json", "CQ・PICO", "OCR", "Claude", "承認: ", "2023年版の体裁", "論文×アウトカム", "癌腫", "がん腫", "下書きは出発点", "重要性(1〜9)", "取り込みのときに登録済み", "自分が未判定", "記録の合計"):
@@ -817,7 +817,7 @@ def test_documents_open_in_browser_with_drive_links(env, tmp_path):
     ver = next(x for x in cells if x.get("v") == "バージョン："); assert ver.get("cs", 1) >= 2                              # 折り返しのない見出しは、右の空のセルへはみ出す(Excel と同じ)
     c, v2 = call("GET", q(name="SC-2_診療アルゴリズム.xlsx")); t2 = [x.get("v", "") for row in v2["sheets"][0]["rows"] for x in row if x]; assert "薬物療法による予防(CQ)" in t2 and not any("カルニチン" in x for x in t2)
     c, d = call("GET", q(doc="SR委員の手順書"), who=R1); assert c == 200 and d["kind"] == "docx" and d["name"] == "4_SR委員の手順書.docx"
-    kinds = {b["t"] for b in d["blocks"]}; assert {"title", "h1", "p", "li", "table"} <= kinds and any(b["t"] == "h1" and "スクリーニング" in b["text"] for b in d["blocks"])
+    kinds = {b["t"] for b in d["blocks"]}; assert {"title", "h1", "p", "li", "table"} <= kinds and any(b["t"] == "h1" and "担当の委員が行うこと" in b["text"] for b in d["blocks"])
     assert call("GET", q(name="2_統括委員会へのお願い_スケジュールとアプリの精査.docx"), who=R1)[0] == 404 and call("GET", q(name="2_統括委員会へのお願い_スケジュールとアプリの精査.docx"))[0] == 200   # 役割で見えない文書は、表示もしない
     assert call("GET", q(name="ない.xlsx"))[0] == 404 and call("GET", q(doc=""))[0] == 404 and call("GET", q(doc="SC-3"), who=R1)[0] == 404
     assert call("GET", q(name="SC-3_スコープ.xlsx"), who=dict(email="x@example.org", groups=()))[0] == 403           # 承認前の利用者には出さない
@@ -916,9 +916,82 @@ def test_member_manuals_state_only_decided_facts():
         for ng in ("更新検索を行う", "検索の更新", "事務局が保管", "2027年3月に更新"): assert ng not in t, (n, ng)
         if not n.startswith("2_"):   # 統括委員会へのお願い(統括委員会だけが見る)は、日程の案を、案として載せる
             assert not re.search(r"20\d\d年[0-9〜]+月(末|上旬|中旬|下旬)|2027年[0-9]|期限は案", t), (n, re.findall(r".{0,20}(?:20\d\d年[0-9〜]+月(?:末|上旬|中旬|下旬)|2027年[0-9]).{0,10}", t)[:3])
-    sr = docs["4_SR委員の手順書.docx"]; assert "検索期間は、前回の検索の終了日の翌日から2026年10月1日まで(統括委員長の決定 2026年11月20日)" in sr and "翌月の1日から" in sr
+    sr = docs["4_SR委員の手順書.docx"]; assert "検索期間は、前回の検索の終了日の翌日から2026年10月1日まで" in sr and "統括委員長の決定 2026年11月20日" in sr and "翌月の1日から" in sr
+    plan_ = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8"))
+    for it in plan_["SR項目"] + plan_["FRQ項目"]: assert it["名称"] in sr and "・".join(it["担当"]) in sr, it["名称"]     # 誰が担当かを、氏名で示す(企画書の担当表)
+    assert "担当の委員が行うこと" in sr and "ポータルが行うこと" in sr and len(sr) < 4500, len(sr)                         # 委員が行うことと、ポータルが行うことを分ける。長くしない
     plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8")); dec = "\n".join(plan["統括委員長の決定(2026-10-07以降。企画書に記載がない事項の決定)"])
     assert "検索期間は 2026年10月1日まで" in dec and "更新検索" not in dec.replace("2027年3月の更新検索)と", "")    # 決定の記録に、更新検索の決定はない
+
+
+def test_search_runs_in_portal_without_manual_steps(env, monkeypatch):
+    """検索は、ポータルが実行する。決定済みの式・期間で PubMed を検索し、検索の記録と、スクリーニングの対象(題名・抄録つき)を登録する。人は、検索も、結果の貼り付けもしない。式が未確認の検索は、実行しない。"""
+    import pubmed
+    plan = [{"id": "P1-1", "query": "goshajinkigan neuropathy", "full_query": '(goshajinkigan neuropathy) AND ("2021/07/01"[dp] : "2026/10/01"[dp])', "start": "2021/07/01", "end": "2026/10/01", "confirmed": True, "proposal": False, "formula_kind": "手引き2017 の式"},
+            {"id": "P1-2", "query": "x", "full_query": "x", "start": "2021/07/01", "end": "2026/10/01", "confirmed": False, "proposal": False, "formula_kind": "ASCO の式(P・C)+介入語"}]
+    assert call("POST", "/search/P1/reference", {"formula": [], "prior": [], "last_search_end_2023": ["CQ1-牛車腎気丸: 2021-06"], "notes": [], "plan": plan})[0] == 200
+    assert call("GET", "/search/P1/reference", who=R1)[1]["plan"][0]["id"] == "P1-1"
+    ids = [str(40000000 + i) for i in range(7)]; asked = []
+    def esearch(term, retstart=0, retmax=0): asked.append((term, retstart, retmax)); return {"count": len(ids), "ids": ids[retstart:retstart + retmax], "translation": "", "warnings": {}}
+    monkeypatch.setattr(pubmed, "esearch", esearch); monkeypatch.setattr(pubmed, "fetch", lambda pm: {i: {"title": "T" + i, "authors": "A B", "authors_all": "A B", "journal": "J", "year": "2024", "doi": "", "abstract": "Abs " + i} for i in pm})
+    assert call("POST", "/search/P1/run", {}, R1)[0] == 403                                                                  # 実行は、統括委員会・事務局(決定 2026-11-20: 検索は事務局が実行する)
+    c, r = call("POST", "/search/P1/run", {}); assert c == 200 and r["status"] == "完了" and r["results"] == [{"plan_id": "P1-1", "hits": 7, "added": 7, "duplicates": 0, "invalid": 0}]
+    assert all(t == plan[0]["full_query"] for t, _, _ in asked)                                                              # 決定済みの式だけを使う(未確認の P1-2 は実行しない)
+    recs = call("GET", "/search/P1", who=R1)[1]; assert len(recs) == 1 and recs[0]["plan_id"] == "P1-1" and recs[0]["hits"] == 7 and recs[0]["query"] == plan[0]["full_query"] and recs[0]["period"] == "2021/07/01〜2026/10/01" and recs[0]["searcher"] == "華井明子"
+    d = call("GET", "/screening/P1", who=R1)[1]; assert len(d["candidates"]) == 7 and all(x["title"].startswith("T4") and x["has_abstract"] and x["source"] == "検索(PubMed)" for x in d["candidates"]) and d["flow"]["db_hits"] == 7
+    assert call("GET", f"/screening/P1/{ids[0]}/abstract", who=R1)[1]["abstract"] == "Abs " + ids[0]
+    assert call("POST", "/search/P1/run", {})[0] == 409 and len(call("GET", "/search/P1")[1]) == 1                            # 実行済みの検索は、繰り返さない
+    assert call("GET", "/search/P1/run", who=R1)[1]["status"] == "完了" and any(a["action"] == "検索の実行" for a in call("GET", "/audit")[1])
+    def boom(*a, **k): raise RuntimeError("timeout")
+    plan2 = plan + [{**plan[0], "id": "P1-3"}]; call("POST", "/search/P1/reference", {"plan": plan2}); monkeypatch.setattr(pubmed, "esearch", boom)
+    c, r = call("POST", "/search/P1/run", {}); assert c == 200 and r["status"] == "失敗" and "timeout" in r["error"] and len(call("GET", "/search/P1")[1]) == 1   # 失敗は、状態に残る(記録は増えない)
+
+
+def test_assigned_pair_cross_checks_every_step(env):
+    """指定のペア(企画書の担当)の相互確認。文献選択とバイアスリスク評価は 2名が独立に行って照合する(既存)。データ抽出(研究特性)とエビデンス総体(SR-8)は、記入者と別の担当委員が確認する。画面には、担当委員ごとの件数を出す。"""
+    for i in (1, 2, 3): assert call("POST", "/screening/P1/candidates", {"source": "検索(PubMed)", "items": [{"pmid": str(50000000 + i), "title": f"t{i}"}]}, R1)[0] == 200
+    d = call("GET", "/screening/P1", who=R1)[1]; assert d["pair"] == [{"name": "元雄", "s1_done": 0, "s2_done": 0}, {"name": "菊池", "s1_done": 0, "s2_done": 0}]      # 企画書の担当の 2名
+    call("PUT", "/screening/P1/50000001", {"stage": "s1", "decision": "採用"}, R1); call("PUT", "/screening/P1/50000002", {"stage": "s1", "decision": "採用"}, R1); call("PUT", "/screening/P1/50000001", {"stage": "s1", "decision": "採用"}, R2)
+    assert call("GET", "/screening/P1", who=CHAIR)[1]["pair"] == [{"name": "元雄", "s1_done": 2, "s2_done": 0}, {"name": "菊池", "s1_done": 1, "s2_done": 0}]
+    # 研究特性: 記入者(元雄)と別の担当(菊池)が確認する。本人は確認できない。内容を変えると、確認は取り消される
+    assert call("POST", "/papers/P1/50000001/upload-url", {"title": "t1"}, R1)[0] == 200
+    ch = {"design": "RCT", "cancer": "大腸癌", "chemo_class": "白金製剤", "chemo_drugs": "FOLFOX", "n_total": "120", "n_int": "60", "intervention_detail": "牛車腎気丸 7.5g/日", "comparator_detail": "無治療", "followup": "6か月"}
+    assert call("POST", "/papers/P1/50000001/check", {}, R2)[0] == 400                                                       # 記入の前は、確認できない
+    c, p = call("PUT", "/papers/P1/50000001", {"chars": ch}, R1); assert c == 200 and p["chars_by"] == "元雄良治" and "chars_checked_by" not in p
+    assert call("POST", "/papers/P1/50000001/check", {}, R1)[0] == 400 and call("POST", "/papers/P1/50000001/check", {}, dict(email="x@example.org", groups=("SR委員",)))[0] == 403
+    home = lambda who: [(a["kind"], a["target"] + (f" {a['count']}件" if a.get("count") else "")) for a in call("GET", "/dashboard", who=who)[1]["approvals"] if a["can"]]
+    assert ("研究特性の確認(相手が記入)", "牛車腎気丸 1件") in home(R2) and not [k for k, _ in home(R1) if k.startswith("研究特性")]                    # 確認の依頼は、相手のホームに出る
+    c, p = call("POST", "/papers/P1/50000001/check", {}, R2); assert c == 200 and p["chars_checked_by"] == "菊池健" and not [k for k, _ in home(R2) if k.startswith("研究特性")]
+    row = call("GET", "/papers/P1", who=R1)[1][0]; assert row["chars_by"] == "元雄良治" and row["chars_checked_by"] == "菊池健" and row["sr5"] == {"submitted": [], "final": False}
+    c, p = call("PUT", "/papers/P1/50000001", {"chars": ch}, R2); assert p["chars_checked_by"] == "菊池健"                         # 同じ内容の保存では、確認は残る
+    c, p = call("PUT", "/papers/P1/50000001", {"chars": {**ch, "n_total": "118"}}, R2); assert p["chars_by"] == "菊池健" and "chars_checked_by" not in p and ("研究特性の確認(相手が記入)", "牛車腎気丸 1件") in home(R1)
+    # SR-8: 記入者と別の担当が確認する
+    o = "CIPN Grade2以上の発生"; b = {"rob": "-1", "inconsistency": "0", "imprecision": "-1", "indirectness": "0", "publication_bias": "0", "certainty": "C(弱)"}
+    assert call("POST", f"/sr8/P1/{o}/check", {}, R2)[0] == 400
+    c, r = call("PUT", f"/sr8/P1/{o}", b, R1); assert c == 200 and r["by"] == "元雄良治" and "checked_by" not in r
+    assert call("POST", f"/sr8/P1/{o}/check", {}, R1)[0] == 400 and ("SR-8 の確認(相手が記入)", "牛車腎気丸") in home(R2)
+    c, r = call("POST", f"/sr8/P1/{o}/check", {}, R2); assert c == 200 and r["checked_by"] == "菊池健" and call("GET", "/sr8/P1", who=R1)[1]["outcomes"][0]["sr8"]["checked_by"] == "菊池健"
+    c, r = call("PUT", f"/sr8/P1/{o}", {**b, "certainty": "B(中)"}, R2); assert "checked_by" not in r and r["by"] == "菊池健"                # 書き直すと、確認は取り消される
+    acts = [a["action"] for a in call("GET", "/audit")[1]]; assert "研究特性の確認" in acts and "SR-8の確認" in acts
+
+
+def test_guideline_draft_is_exported_from_records(env):
+    """ガイドラインの草案(Word)を、ポータルの記録から出力する: 作成方法(検索、文献選択)、CQ ごとの推奨文・強さ・確実性・投票・解説・文献、FRQ、総論の一覧。記録のない項目は「未記入」と出す。"""
+    sys.path.insert(0, os.path.join(HERE, "..", "api")); import viewer
+    call("POST", "/search/P1", {"database": "PubMed", "date": "2026-11-20", "searcher": "華井明子", "period": "2021/07/01〜2026/10/01", "query": "goshajinkigan", "hits": 5})
+    call("POST", "/screening/P1/candidates", {"source": "検索(PubMed)", "items": [{"pmid": "60000001", "title": "Goshajinkigan trial", "authors": "Kono T", "authors_all": "Kono T, Hata T", "journal": "Cancer Chemother Pharmacol", "year": "2013", "abstract": "a"}]}, R1)
+    call("POST", "/papers/P1/60000001/upload-url", {"title": "Goshajinkigan trial"}, R1)
+    G = dict(email="g1@example.org", groups=("作成グループ",)); call("POST", "/users", {"email": G["email"], "name": "吉田陽一郎", "roles": ["作成グループ"]})
+    assert call("PUT", "/etd/P1", {"rec_draft": "CIPN 症状の予防として、牛車腎気丸を投与しないことを提案する。", "strength": "4 行わないことを弱く推奨", "certainty": "C(弱)", "narrative": "解説の第1段落。\n解説の第2段落。", "considerations": {}, "scope_note": "", "status": "協議中"}, G)[0] == 200
+    c, r = call("GET", "/export/guideline", who=R1); assert c == 200 and r["bytes"] > 2000 and r["key"].endswith("ガイドライン草案.docx")
+    data = boto3.client("s3").get_object(Bucket=H.BUCKET, Key=r["key"])["Body"].read(); v = viewer.docx_view(data)
+    text = "\n".join(c_["v"] for b in v["blocks"] if b["t"] == "table" for row in b["rows"] for c_ in row) + "\n" + "\n".join(b["text"] for b in v["blocks"] if b["t"] != "table")
+    plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8"))
+    heads = [b["text"] for b in v["blocks"] if b["t"] == "h2"]; assert plan["タイトル"] in text and len([h for h in heads if ": " in h]) == 15 and "薬物療法による予防: 牛車腎気丸" in heads
+    for s_ in ("牛車腎気丸を投与しないことを提案する。", "推奨の強さ: 4 行わないことを弱く推奨", "エビデンスの確実性: C(弱)", "解説の第2段落。", "1) Kono T, Hata T. Goshajinkigan trial. Cancer Chemother Pharmacol. 2013. PMID 60000001", "2021/07/01〜2026/10/01", "未記入", "投票: 記録なし", "総論の本文は、執筆者が提出した原稿(Word)による。"): assert s_ in text, s_
+    assert not re.search(r"(?<![A-Za-z0-9])[PNTF]\d(?![A-Za-z0-9])", text) and [b["text"] for b in v["blocks"] if b["t"] == "h1"] == ["1. 作成方法", "2. 推奨(CQ)", "3. FRQ(Future Research Question)", "4. 総論"]
+    import zipfile; assert zipfile.ZipFile(io.BytesIO(data)).testzip() is None and call("GET", "/export/guideline", who=R1)[1]["bytes"] == r["bytes"]      # 同じ記録からは、同じファイル
+    assert any(a["action"] == "ガイドライン草案の出力" for a in call("GET", "/audit")[1])
 
 
 def test_sr8_has_minds_sr8_columns(env):

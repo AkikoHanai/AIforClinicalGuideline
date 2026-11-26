@@ -11,9 +11,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 def main(email):
     tok = token(email)
     ref = json.load(open(os.path.join(ROOT, "data", "search_reference.json"), encoding="utf-8"))["cq"]
+    plan = json.load(open(os.path.join(ROOT, "data", "search_plan.json"), encoding="utf-8"))["searches"]   # 決定済みの検索(式・期間)。ポータルが、この式で PubMed を検索する
     for cq, r in ref.items():
+        r = {**r, "plan": [{k: s[k] for k in ("id", "query", "full_query", "start", "end", "confirmed", "proposal", "formula_kind")} for s in plan if s["cq"] == cq and not s.get("proposal")]}
         out = tok.call("POST", f"/search/{cq}/reference", r)
-        print(cq, "検索式の案", len(r["formula"]), "件 / 2023年版の検索過程", len(r["prior"]), "件", "→", out.get("error", "置きました"))
+        print(cq, "決定済みの検索", sum(1 for s in r["plan"] if s["confirmed"]), "件(式が未確認", sum(1 for s in r["plan"] if not s["confirmed"]), "件)/ 2023年版の検索過程", len(r["prior"]), "件", "→", out.get("error", "置きました"))
 
 
 if __name__ == "__main__":

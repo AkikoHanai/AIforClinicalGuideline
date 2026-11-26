@@ -62,7 +62,8 @@
   const selL = (opts, labels, cur, attrs = "") => `<select class="sm" ${attrs}><option value="">—</option>${opts.map((o) => `<option value="${esc(o)}" ${String(o) === String(cur) ? "selected" : ""}>${esc(labels[o] || o)}</option>`).join("")}</select>`;   // 値と表示名が違う選択肢
   const DESIGN = { RCT: "RCT", non_RCT: "非ランダム化比較試験", meta_analysis: "メタアナリシス", other: "その他" };
   const vsel = (cur, attrs = "") => sel([0, -1, -2], cur === null || cur === undefined ? "" : cur, attrs, true);
-  const cqSelect = (cur, id) => `<select id="${id}">${S.cqs.map((c) => `<option value="${esc(c.id)}" ${c.id === cur ? "selected" : ""}>${esc(c.title)}</option>`).join("")}</select>`;
+  const cqSelect = (cur, id) => `<select id="${id}">${S.cqs.map((c) => `<option value="${esc(c.id)}" ${c.id === cur ? "selected" : ""}>${esc(c.title)}</option>`).join("")}</select> <span class="small">担当: ${esc((S.cqs.find((c) => c.id === cur)?.assignees || []).join("・"))}</span>`;
+  const sei = (n, c) => (c?.assignees || []).find((a) => String(n || "").startsWith(a)) || String(n || "");   // 表の中では、企画書の担当表の表記(姓)で出す
   const manual = (h, doc = "SR委員の手順書") => `<a class="tag" href="#view?doc=${encodeURIComponent(doc)}&h=${encodeURIComponent(h)}">手順書</a>`;   // 手順書の該当の章を、画面に表示する
   const docLinks = (d) => d.available === false ? "未登録" : `<a href="#view?name=${encodeURIComponent(d.name)}">開く</a>${d.drive ? ` <a href="${esc(d.drive)}" target="_blank" rel="noopener">Google Drive</a>` : ""} <a href="${esc(d.url)}">ダウンロード</a>`;
   const auditTable = (list) => `<table><tr><th>日時</th><th>操作者</th><th>操作</th><th>対象</th><th>内容</th></tr>${list.map((a) => `<tr><td class="small">${esc(a.at.slice(0, 16).replace("T", " "))}</td><td>${esc(a.actor)}</td><td>${esc(a.action)}</td><td>${esc(a.target)}</td><td class="small">${esc(a.detail)}</td></tr>`).join("") || "<tr><td colspan=5 class='muted'>なし</td></tr>"}</table>`;
@@ -92,7 +93,8 @@
       mineA.forEach((a) => (grp[a.kind] = grp[a.kind] || []).push(a));
       const rows = [];
       (d.my_votes || []).forEach((v) => rows.push(`<tr><td>推奨の投票(第${v.round}回${v.deadline ? "、締切 " + esc(v.deadline) : ""})</td><td>${esc(v.title)}</td><td class="nw">${link("投票する", "vote", { cq: v.cq })}</td></tr>`));
-      Object.entries(grp).forEach(([k, arr]) => rows.push(`<tr><td>${esc(k)}</td><td>${arr.length}件</td><td class="nw">${link("開く", arr[0].page, arr[0].q)}</td></tr>`));
+      Object.values(mineA.reduce((g2, a) => { (g2[a.kind + "|" + (a.q?.cq || a.target)] = g2[a.kind + "|" + (a.q?.cq || a.target)] || []).push(a); return g2; }, {})).forEach((arr) => { const a = arr[0], c = S.cqs.find((x) => x.id === a.q?.cq);
+        rows.push(`<tr><td>${esc(a.kind)}</td><td>${esc(c ? c.title : a.target)} ${arr.reduce((n, x) => n + (x.count || 1), 0)}件</td><td class="nw">${link("開く", a.page, a.q)}</td></tr>`); });
       const work = d.my_work || [];
       const cell = (n, page, q) => (n ? `<b>${n}</b> ${link("開く", page, q)}` : "0");
       const workTable = !work.length ? "" : `<table><tr><th>担当 CQ</th><th>一次<br><span class="small">未判定</span></th><th>二次<br><span class="small">未判定</span></th><th>SR-5<br><span class="small">未提出 / 対象</span></th><th>SR-8<br><span class="small">未記入</span></th></tr>
@@ -109,8 +111,10 @@
         ${rows.length ? `<div class="card"><h3>対応が必要なもの</h3><table><tr><th>内容</th><th>対象</th><th></th></tr>${rows.join("")}</table></div>` : ""}
         ${work.length ? `<div class="card"><h3>担当 CQ</h3>${workTable}</div>` : ""}
         ${soronTable ? `<div class="card"><h3>担当の総論</h3>${soronTable}</div>` : ""}
+        ${can("統括委員会", "事務局", "SR委員長", "作成グループ") ? '<div class="row"><button id="glBtn">ガイドライン草案(Word)を出力</button></div>' : ""}
         ${nothing ? `<div class="card"><p class="muted">${S.me.name ? "担当と、対応が必要なものは、ありません。" : "氏名が登録されていません。統括委員長に連絡してください。"}</p></div>` : ""}
         ${overview}`;
+      $("#glBtn")?.addEventListener("click", async () => { try { const r = await api("/export/guideline"); if (r.url) window.open(r.url, "_blank"); toast("出力しました"); } catch (e) { toast(e.message, true); } });
     },
 
     async cq(m) {
@@ -128,11 +132,12 @@
       m.innerHTML = `<h2>論文</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
         <p class="small">二次スクリーニングで採用した論文を、PMID と PDF で登録する。</p>
         ${ed ? `<div class="card"><div class="row"><input id="pmid" placeholder="PMID" size="10"><input id="ptitle" placeholder="題名(任意)" size="40"><input type="file" id="pdf" accept="application/pdf"><button id="regBtn" class="primary">登録する</button></div></div>` : ""}
-        <div class="scroll"><table style="margin-top:12px"><tr><th>PMID</th><th>筆頭著者・雑誌・発行年</th><th>題名</th><th>研究デザイン</th><th>対象者数<br><span class="small">全体 / 介入群</span></th><th>介入</th><th>対照</th><th>評価時点</th><th></th></tr>
+        <div class="scroll"><table style="margin-top:12px"><tr><th>PMID</th><th>筆頭著者・雑誌・発行年</th><th>題名</th><th>研究デザイン</th><th>対象者数<br><span class="small">全体 / 介入群</span></th><th>介入</th><th>対照</th><th>評価時点</th><th>担当の記録</th><th></th></tr>
         ${list.map((p) => { const ch = p.chars || {}; return `<tr data-pmid="${esc(p.pmid)}"><td><a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.pmid)}/" target="_blank" rel="noopener">${esc(p.pmid)}</a></td>
           <td class="small">${esc([(p.authors || "").split(/[,;]/)[0], p.journal, p.year].filter(Boolean).join(". "))}</td><td class="w">${esc(p.title)}</td><td>${esc(DESIGN[ch.design] || ch.design || "")}</td>
           <td class="num">${esc(ch.n_total || "")}${ch.n_int ? " / " + esc(ch.n_int) : ""}</td><td class="small">${esc(ch.intervention_detail || "")}</td><td class="small">${esc(ch.comparator_detail || "")}</td><td class="small">${esc(ch.followup || "")}</td>
-          <td class="nw">${p.s3_key ? '<button data-act="pdf">PDF</button> ' : ""}${ed && p.s3_key && !String(p.status || "").startsWith("本文抽出済") ? '<button data-act="extract">本文を抽出する</button> ' : ""}${ed ? '<button data-act="chars">研究特性</button> ' : ""}<a href="#f45?cq=${esc(cqid)}&pmid=${esc(p.pmid)}">SR-5</a></td></tr>`; }).join("") || "<tr><td colspan=9 class='muted'>登録された論文はありません</td></tr>"}</table></div>
+          <td class="small nw">研究特性: ${p.chars_by ? `${esc(sei(p.chars_by, c))} 記入 / ${p.chars_checked_by ? esc(sei(p.chars_checked_by, c)) + " 確認" : "確認なし"}` : "記入なし"}<br>SR-5: 提出 ${p.sr5.submitted.length} 名${p.sr5.final ? "、確定" : ""}</td>
+          <td class="nw">${p.s3_key ? '<button data-act="pdf">PDF</button> ' : ""}${ed && p.s3_key && !String(p.status || "").startsWith("本文抽出済") ? '<button data-act="extract">本文を抽出する</button> ' : ""}${ed ? '<button data-act="chars">研究特性</button> ' : ""}<a href="#f45?cq=${esc(cqid)}&pmid=${esc(p.pmid)}">SR-5</a></td></tr>`; }).join("") || "<tr><td colspan=10 class='muted'>登録された論文はありません</td></tr>"}</table></div>
         <div id="charsBox"></div>`;
       $("#cqSel").addEventListener("change", () => go("papers", { cq: $("#cqSel").value }));
       $("#regBtn")?.addEventListener("click", async () => {
@@ -153,7 +158,8 @@
           if (b.dataset.act === "extract") { const x = await api(`/papers/${cqid}/${pmid}/extract`, "POST", {}); toast(`本文を抽出しました(${x.pages}頁、${x.paragraphs}段落)`); render(); }
           if (b.dataset.act === "chars") {
             const p = list.find((x) => x.pmid === pmid); const ch = p.chars || {};
-            $("#charsBox").innerHTML = `<div class="card" style="margin-top:12px"><h3>研究特性 PMID ${esc(pmid)}</h3><div class="row">
+            $("#charsBox").innerHTML = `<div class="card" style="margin-top:12px"><h3>研究特性 PMID ${esc(pmid)} <span class="small">${p.chars_by ? `記入: ${esc(p.chars_by)} / 確認: ${esc(p.chars_checked_by || "なし")}` : ""}</span></h3>
+              ${ed && p.chars_by && p.chars_by !== S.me.name && !p.chars_checked_by ? '<div class="row"><button id="charsCheck" class="approve">内容を確認した(記入者と別の担当)</button></div>' : ""}<div class="row">
               <label class="small">題名 <input data-c="title" value="${esc(p.title)}" size="50"></label>
               <label class="small">研究デザイン ${selL(["RCT", "non_RCT", "meta_analysis", "other"], DESIGN, ch.design, 'data-c="design"')}</label>
               <label class="small">がん種 <input data-c="cancer" value="${esc(ch.cancer || "")}" size="16"></label>
@@ -161,6 +167,7 @@
               <label class="small">薬剤名(論文の表記) <input data-c="chemo_drugs" value="${esc(ch.chemo_drugs || "")}" size="24"></label>
               <label class="small">対象者数 <input data-c="n_total" value="${esc(ch.n_total || "")}" size="5"></label><label class="small">介入群の人数 <input data-c="n_int" value="${esc(ch.n_int || "")}" size="5"></label></div>
               <div class="row"><label class="small">介入 <input data-c="intervention_detail" value="${esc(ch.intervention_detail || "")}" size="40"></label><label class="small">対照 <input data-c="comparator_detail" value="${esc(ch.comparator_detail || "")}" size="30"></label><label class="small">評価時点 <input data-c="followup" value="${esc(ch.followup || "")}" size="20"></label><button id="charsSave" class="primary">保存</button></div></div>`;
+            $("#charsCheck")?.addEventListener("click", async () => { try { await api(`/papers/${cqid}/${pmid}/check`, "POST", {}); toast("確認を記録しました"); render(); } catch (e) { toast(e.message, true); } });
             $("#charsSave").addEventListener("click", async () => { const chars = {}; let title = p.title; $("#charsBox").querySelectorAll("[data-c]").forEach((i) => { if (i.dataset.c === "title") title = i.value; else chars[i.dataset.c] = i.value; });
               try { await api(`/papers/${cqid}/${pmid}`, "PUT", { title, chars }); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } });
           }
@@ -234,7 +241,7 @@
       const q = Q(); const cqid = q.cq || S.cqs[0]?.id; const c = S.cqs.find((x) => x.id === cqid); const d = await api("/sr8/" + cqid); const ed = own(c) || isLead();
       m.innerHTML = `<h2>SR-8 エビデンス総体評価シート</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
         <div class="row">${manual("エビデンス総体")}</div>
-        ${d.outcomes.map((o) => { const r = o.sr8 || {}; return `<div class="card" style="margin-bottom:12px" data-o="${esc(o.outcome)}"><h3>${esc(o.outcome)} <span class="small">確定した SR-5: ${o.n_studies} 研究</span></h3>
+        ${d.outcomes.map((o) => { const r = o.sr8 || {}; return `<div class="card" style="margin-bottom:12px" data-o="${esc(o.outcome)}"><h3>${esc(o.outcome)} <span class="small">確定した SR-5: ${o.n_studies} 研究${r.by ? `。記入: ${esc(r.by)} / 確認: ${esc(r.checked_by || "なし")}` : ""}</span></h3>
           <table><tr><th>化学療法の分類</th><th>研究(PMID)</th><th>バイアスリスク(まとめ)</th><th>非直接性(まとめ)</th><th>効果指標</th></tr>
             ${Object.entries(o.by_chemo_class).map(([cls, rows]) => `<tr><td>${esc(cls)}</td><td>${rows.map((x) => esc(x.pmid)).join(", ")}</td><td>${rows.map((x) => x.bias_summary ?? "—").join(", ")}</td><td>${rows.map((x) => x.ind_summary ?? "—").join(", ")}</td><td class="small">${rows.map((x) => x.effect?.measure ? `${esc(x.effect.measure)} ${esc(x.effect.value)}` : "—").join("; ")}</td></tr>`).join("") || "<tr><td colspan=5 class='muted'>確定した SR-5 はありません</td></tr>"}</table>
           <div class="row">${["rob", "inconsistency", "imprecision", "indirectness", "publication_bias"].map((k, i) => `<label class="small">${esc(S.meta.sr8_ja[i])} ${ed ? vsel(r[k], `data-k="${k}"`) : `<b>${r[k] ?? "—"}</b>`}</label>`).join("")}
@@ -246,9 +253,10 @@
             ${ed ? `<button data-sum='${esc(JSON.stringify(o.sums))}'>SR-5 の単純合計を入力(対照群 ${o.sums.ctrl_num}/${o.sums.ctrl_den}、介入群 ${o.sums.int_num}/${o.sums.int_den})</button>` : ""}</div>
           <div class="row"><label class="small">効果指標(種類) <input data-k="eff_type" value="${esc(r.eff_type || "")}" size="10" placeholder="RR など" ${ed ? "" : "readonly"}></label><label class="small">統合値 <input data-k="eff_val" value="${esc(r.eff_val || "")}" size="8" ${ed ? "" : "readonly"}></label><label class="small">95%信頼区間 <input data-k="eff_ci" value="${esc(r.eff_ci || "")}" size="14" ${ed ? "" : "readonly"}></label>
             <label class="small">絶対効果 <input data-k="abs_val" value="${esc(r.abs_val || "")}" size="12" ${ed ? "" : "readonly"}></label><label class="small">絶対効果の95%信頼区間 <input data-k="abs_ci" value="${esc(r.abs_ci || "")}" size="14" ${ed ? "" : "readonly"}></label></div>
-          <div class="row"><label class="small">化学療法の分類ごとの結論 <input data-k="strata" value="${esc(r.strata || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">効果の要約 <input data-k="effect_summary" value="${esc(r.effect_summary || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">備考 <input data-k="note" value="${esc(r.note || "")}" size="30" ${ed ? "" : "readonly"}></label>${ed ? '<button data-act="save">保存</button>' : ""}</div></div>`; }).join("") || '<p class="muted">アウトカムが登録されていません。</p>'}`;
+          <div class="row"><label class="small">化学療法の分類ごとの結論 <input data-k="strata" value="${esc(r.strata || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">効果の要約 <input data-k="effect_summary" value="${esc(r.effect_summary || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">備考 <input data-k="note" value="${esc(r.note || "")}" size="30" ${ed ? "" : "readonly"}></label>${ed ? '<button data-act="save">保存</button>' : ""}${ed && r.certainty && r.by !== S.me.name && !r.checked_by ? ' <button data-act="check" class="approve">内容を確認した(記入者と別の担当)</button>' : ""}</div></div>`; }).join("") || '<p class="muted">アウトカムが登録されていません。</p>'}`;
       $("#cqSel").addEventListener("change", () => go("sr8", { cq: $("#cqSel").value }));
       m.querySelectorAll("button[data-sum]").forEach((b) => b.addEventListener("click", () => { const s = JSON.parse(b.dataset.sum), c = b.closest(".card"); Object.entries(s).forEach(([k, v]) => { c.querySelector(`[data-k="${k}"]`).value = v; }); }));
+      m.querySelectorAll("button[data-act=check]").forEach((b) => b.addEventListener("click", async () => { try { await api(`/sr8/${cqid}/${encodeURIComponent(b.closest(".card").dataset.o)}/check`, "POST", {}); toast("確認を記録しました"); render(); } catch (e) { toast(e.message, true); } }));
       m.querySelectorAll("button[data-act=save]").forEach((b) => b.addEventListener("click", async () => { const d2 = b.closest(".card"); const body = {}; d2.querySelectorAll("[data-k]").forEach((i) => (body[i.dataset.k] = i.value));
         try { await api(`/sr8/${cqid}/${encodeURIComponent(d2.dataset.o)}`, "PUT", body); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } }));
     },
@@ -258,7 +266,7 @@
       const cons = S.meta.etd_considerations;
       m.innerHTML = `<h2>EtD・推奨</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")} ${tag(e.status)}</div>
         <ol class="steps"><li>2023年版の記述と、<a href="#sr8?cq=${esc(cqid)}">SR-8</a> の確実性を確認する</li><li>「2028年版(案)」に記入し、状態を「協議中」にして保存する</li>
-          <li><a href="#vote?cq=${esc(cqid)}">推奨の投票</a>で投票する</li><li>統括委員会が確定する</li></ol><div class="row">${manual("推奨文草案")}</div>
+          <li><a href="#vote?cq=${esc(cqid)}">推奨の投票</a>で投票する</li><li>統括委員会が確定する</li></ol><div class="row">${manual("担当の委員が行うこと")}</div>
         <div class="split">
           <div class="card"><h3>2023年版</h3>${g ? `<p><b>推奨文</b> ${esc(g.rec)}</p><p>推奨の強さ ${esc(g.strength)} / エビデンスの確実性 ${esc(g.certainty)} ${g.votes ? `/ 投票 ${g.votes.denominator} 名(強さ 1〜5 の順: ${(g.votes.counts || []).join("・")}。除外: COI ${g.votes.coi}、SR担当 ${g.votes.sr})` : ""}</p>
             <div class="paras">${(g.paragraphs || []).map((p) => `<div class="para"><span class="pid">${esc(p.id)}</span><div>${esc(p.text)}</div></div>`).join("")}</div>` : '<p class="muted">2023年版の記述は、登録されていません。</p>'}
@@ -292,7 +300,7 @@
       const rows = list.filter((s) => !mineOnly || (S.me.name && s.author.split("・").some((a) => a && S.me.name.startsWith(a))));
       m.innerHTML = `<h2>総論(A〜N)の執筆・査読</h2>
         <ol class="steps"><li>行の「依頼書・2023年版」を開く</li><li>依頼書を修正した原稿(Word)を提出し、状態を「査読中」にして保存する</li><li>統括委員会・事務局が、査読コメントを書く</li><li>修正版を提出する</li><li>統括委員会が「完了」にする</li></ol>
-        ${can("統括委員会", "事務局", "総説執筆者") ? `<div class="row">${manual("手順と期限", "総説執筆者の手順書")}</div>` : ""}
+        ${can("統括委員会", "事務局", "総説執筆者") ? `<div class="row">${manual("手順", "総説執筆者の手順書")}</div>` : ""}
         <table><tr><th>項目</th><th>題名</th><th>担当</th><th>状態</th><th>期限</th><th>最新の原稿</th><th>査読コメント</th><th>備考</th><th></th></tr>
         ${rows.map((s) => { const o = S.me.name && s.author.split("・").some((a) => a && S.me.name.startsWith(a)); const ed = o || admin;
           return `<tr data-key="${esc(s.key)}"><td class="nw">${esc(s.label)}</td><td class="w">${esc(s.title)}</td><td class="nw">${esc(s.author)}</td>
@@ -320,7 +328,7 @@
 
     async search(m) {
       const q = Q(); const cqid = q.cq || S.cqs[0]?.id; const c = S.cqs.find((x) => x.id === cqid); const ed = own(c) || isLead();
-      const [list, ref] = await Promise.all([api("/search/" + cqid), api(`/search/${cqid}/reference`)]); const cur = list.find((r) => r.id === q.edit) || {};
+      const [list, ref, run] = await Promise.all([api("/search/" + cqid), api(`/search/${cqid}/reference`), api(`/search/${cqid}/run`)]); const cur = list.find((r) => r.id === q.edit) || {};
       const old = (d) => String(d || "").replace(/^CQ\d+-/, ""), ends = (ref.last_search_end_2023 || []).map(old);   // 2023年版の作業フォルダの名前(CQ1-… など)は、名称だけを示す
       const refCard = !(ref.formula || []).length && !(ref.prior || []).length ? "" : `<div class="card"><h3>参考: 検索式の案、2023年版の検索過程</h3>
         ${ends.length ? `<p>2023年版の検索の終了日: <b>${esc(ends.length === 1 ? ends[0].split(": ").pop() : ends.join("、"))}</b>(今回の検索期間: この翌日 〜 2026-10-01)</p>` : '<p>2023年版の検索の終了日: 記録なし(SR委員長に確認する)</p>'}
@@ -329,26 +337,36 @@
           ${ref.prior.map((p) => `<tr><td>${esc(old(p.dir))}</td><td>${esc(p.file)}</td><td>${esc(p.database)}</td><td>${esc(p.period_text)}</td><td class="w">${esc(p.query)}</td><td class="w">${esc((p.flow_lines || []).join(" / "))}</td></tr>`).join("")}</table></details>` : ""}
         ${(ref.notes || []).map((n) => `<p class="small">${esc(n)}</p>`).join("")}</div>`;
       const total = list.reduce((a, r) => a + Number(r.hits || 0), 0);
-      m.innerHTML = `<h2>検索の記録(Minds SR-1 データベース検索結果)</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
-        <ol class="steps"><li><a href="https://pubmed.ncbi.nlm.nih.gov/advanced/" target="_blank" rel="noopener">PubMed</a> で検索する</li><li>検索日・検索期間・検索式・件数を、下の欄に記録する</li>
-          <li>記録の行の「結果を取り込む」で、<a href="#screening?cq=${esc(cqid)}">スクリーニング</a>の対象に登録する</li></ol><div class="row">${manual("検索の実行と記録")}</div>
-        ${ed ? `<div class="card"><h3>${cur.id ? "記録の修正" : "記録の追加"}</h3>
-          <div class="row"><label>データベース <input id="sDb" size="14" value="${esc(cur.database || "PubMed")}"></label><label>検索日 <input id="sDate" type="date" value="${esc(cur.date || "")}"></label>
-            <label>検索者 <input id="sWho" size="14" value="${esc(cur.searcher || S.me.name || "")}"></label><label>検索期間 <input id="sPeriod" size="26" placeholder="例: 2021-07-01〜2026-10-31" value="${esc(cur.period || "")}"></label>
-            <label>件数 <input id="sHits" type="number" min="0" size="8" value="${esc(cur.hits ?? "")}"></label></div>
-          <div class="row"><label>検索式<br><textarea id="sQuery" rows="4" cols="90">${esc(cur.query || "")}</textarea></label></div>
-          <div class="row"><label>備考 <input id="sNote" size="70" value="${esc(cur.note || "")}"></label><button id="sSave" class="primary">${cur.id ? "修正を保存" : "記録する"}</button>${cur.id ? ` <a href="#search?cq=${esc(cqid)}">修正をやめる</a>` : ""}</div></div>` : ""}
-        ${refCard}
+      const recOf = (pl) => list.find((r) => r.plan_id === pl.id), todo = (ref.plan || []).filter((pl) => pl.confirmed && !recOf(pl));
+      const planCard = !(ref.plan || []).length ? "" : `<div class="card"><h3>検索(PubMed)</h3>
+        <table><tr><th>検索式</th><th>検索期間</th><th>実行</th><th class="nw">件数</th></tr>${ref.plan.map((pl) => { const r = recOf(pl); return `<tr><td class="w mono">${esc(pl.query)}</td><td class="nw">${esc(pl.start)}〜${esc(pl.end)}</td>
+          <td class="nw">${r ? `${esc(r.date)} ${esc(r.searcher)}` : pl.confirmed ? "記録なし" : "式が未確認(統括委員会が確認する)"}</td><td class="num">${r ? esc(r.hits) : ""}</td></tr>`; }).join("")}</table>
+        ${run.status === "実行中" ? `<p class="note">検索を実行中(${esc((run.at || "").slice(11, 16))} UTC 開始)。1〜2分後に再読み込みしてください。</p>` : run.status === "失敗" ? `<p class="note need">検索に失敗しました: ${esc(run.error || "")}</p>` : ""}
+        ${isAdmin() && todo.length ? `<div class="row"><button id="runBtn" class="primary">検索を実行し、スクリーニングの対象に登録する(${todo.length} 件)</button><button id="runAll">全 CQ・FRQ の検索を実行する</button></div>` : ""}
+        ${list.some((r) => r.plan_id) ? `<p><a href="#screening?cq=${esc(cqid)}">スクリーニングを開く</a></p>` : ""}</div>`;
+      m.innerHTML = `<h2>検索の記録(Minds SR-1 データベース検索結果)</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")} ${manual("検索と文献の選択")}</div>
+        ${planCard}
         <div class="card"><h3>記録(${list.length} 件。件数の合計 ${total} 件)</h3>
           <table><tr><th>検索日</th><th>データベース</th><th>検索者</th><th>検索期間</th><th>検索式</th><th>件数</th><th>備考</th><th>操作</th></tr>
-          ${list.map((r) => `<tr><td class="nw">${esc(r.date)}</td><td>${esc(r.database)}</td><td>${esc(r.searcher)}</td><td>${esc(r.period)}</td><td class="w">${esc(r.query)}</td><td class="num">${esc(r.hits)}</td><td>${esc(r.note)}</td>
-            <td class="nw">${ed ? `<a href="#search?cq=${esc(cqid)}&edit=${esc(r.id)}">修正</a> <a href="#screening?cq=${esc(cqid)}&search=${esc(r.id)}">結果を取り込む</a>` : ""}${isLead() ? ` <button data-del="${esc(r.id)}">削除</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="8" class="muted">記録なし</td></tr>'}</table>
-          </div>`;
+          ${list.map((r) => `<tr><td class="nw">${esc(r.date)}</td><td class="nw">${esc(r.database)}</td><td class="nw">${esc(r.searcher)}</td><td>${esc(r.period)}</td><td class="w">${esc(r.query)}</td><td class="num">${esc(r.hits)}</td><td>${esc(r.note)}</td>
+            <td class="nw">${ed && !r.plan_id ? `<a href="#search?cq=${esc(cqid)}&edit=${esc(r.id)}">修正</a> <a href="#screening?cq=${esc(cqid)}&search=${esc(r.id)}">結果を取り込む</a>` : ""}${isLead() ? ` <button data-del="${esc(r.id)}">削除</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="8" class="muted">記録なし</td></tr>'}</table>
+          </div>
+        ${ed ? `<details class="card" ${cur.id ? "open" : ""}><summary>担当委員が自分で検索した場合の記録</summary>
+          <div class="row"><label>データベース <input id="sDb" size="14" value="${esc(cur.database || "PubMed")}"></label><label>検索日 <input id="sDate" type="date" value="${esc(cur.date || "")}"></label>
+            <label>検索者 <input id="sWho" size="14" value="${esc(cur.searcher || S.me.name || "")}"></label><label>検索期間 <input id="sPeriod" size="26" placeholder="例: 2021-07-01〜2026-10-01" value="${esc(cur.period || "")}"></label>
+            <label>件数 <input id="sHits" type="number" min="0" size="8" value="${esc(cur.hits ?? "")}"></label></div>
+          <div class="row"><label>検索式<br><textarea id="sQuery" rows="4" cols="90">${esc(cur.query || "")}</textarea></label></div>
+          <div class="row"><label>備考 <input id="sNote" size="70" value="${esc(cur.note || "")}"></label><button id="sSave" class="primary">${cur.id ? "修正を保存" : "記録する"}</button>${cur.id ? ` <a href="#search?cq=${esc(cqid)}">修正をやめる</a>` : ""}</div></details>` : ""}
+        ${refCard}`;
+      $("#runBtn")?.addEventListener("click", async () => { try { await api(`/search/${cqid}/run`, "POST", {}); toast("検索を実行しています"); setTimeout(render, 15000); render(); } catch (e) { toast(e.message, true); } });
+      $("#runAll")?.addEventListener("click", async () => { if (!confirm("全 CQ・FRQ の、決定済みの検索を実行します。")) return; let n = 0;
+        for (const c2 of S.cqs) { try { await api(`/search/${c2.id}/run`, "POST", {}); n++; } catch (e) { if (e.status !== 409) return toast(`${c2.title}: ${e.message}`, true); } }
+        toast(`${n} 件の CQ・FRQ で、検索を実行しています`); setTimeout(render, 15000); render(); });
       $("#cqSel").addEventListener("change", () => go("search", { cq: $("#cqSel").value }));
       $("#sSave")?.addEventListener("click", async () => {
         const b = { database: $("#sDb").value, date: $("#sDate").value, searcher: $("#sWho").value, period: $("#sPeriod").value, query: $("#sQuery").value, hits: $("#sHits").value, note: $("#sNote").value };
         try { await api("/search/" + cqid + (cur.id ? "/" + cur.id : ""), cur.id ? "PUT" : "POST", b); toast("記録しました"); if (cur.id) go("search", { cq: cqid }); else render(); } catch (e) { toast(e.message, true); } });
-      m.querySelectorAll("button[data-fill]").forEach((b) => b.addEventListener("click", () => { $("#sQuery").value = ref.formula[Number(b.dataset.fill)].query; $("#sQuery").scrollIntoView({ behavior: "smooth" }); }));
+      m.querySelectorAll("button[data-fill]").forEach((b) => b.addEventListener("click", () => { $("#sQuery").closest("details").open = true; $("#sQuery").value = ref.formula[Number(b.dataset.fill)].query; $("#sQuery").scrollIntoView({ behavior: "smooth" }); }));
       m.querySelectorAll("button[data-del]").forEach((b) => b.addEventListener("click", async () => { if (!confirm("この検索の記録を削除しますか(削除は作成経過の記録に残ります)")) return;
         try { await api(`/search/${cqid}/${b.dataset.del}`, "DELETE"); render(); } catch (e) { toast(e.message, true); } }));
     },
@@ -389,25 +407,25 @@
             ${cell(p, "s1")}${cell(p, "s2")}</tr>`;
       const cnt = (k) => P.filter(FIL[k][1]).length; const jump = (k, t) => `<a href="#" data-show="${k}">${t} ${cnt(k)} 件</a>`;
       const drawSteps = () => { $("#scrSteps").innerHTML = `<ol class="steps">
-          <li>文献を取り込む: <a href="#search?cq=${esc(cqid)}">検索の記録</a>の「結果を取り込む」${d.can_edit ? '、または <a href="#" data-jump="scrImport">文献の取り込み</a>' : ""}</li>
           <li>一次(題名・抄録)を判定する: ${d.reviewer ? jump("my1", "未判定") : jump("all", "対象")}</li>
           <li>二次(全文)を判定する: ${d.reviewer ? jump("my2", "未判定") : jump("s2", "対象")}</li>
-          <li>不一致の文献に、協議の結論を記録する: ${jump("conflict", "不一致")}</li>
-          <li>採用した文献を登録する: <a href="#papers?cq=${esc(cqid)}">論文</a>(採用 ${cnt("inc")} 件)</li></ol><div class="row">${manual("スクリーニング")}</div>`; };
+          <li>不一致の文献を 2名で協議し、結論を記録する: ${jump("conflict", "不一致")}</li>
+          <li>採用した文献の PDF を登録する: <a href="#papers?cq=${esc(cqid)}">論文</a>(採用 ${cnt("inc")} 件)</li></ol>
+          <p class="small">判定済み: ${(d.pair || []).map((x) => `${esc(x.name)} 一次 ${x.s1_done} / ${f.s1_target}、二次 ${x.s2_done} / ${f.s2_target}`).join("　") || "担当の登録なし"}</p>`; };
       const drawList = () => { drawSteps(); const rows = P.filter(FIL[show][1]); page = Math.min(page, Math.max(0, Math.ceil(rows.length / PER) - 1)); const view = rows.slice(page * PER, page * PER + PER);
         $("#scrList").innerHTML = `<h3>文献(${rows.length} 件 / 対象 ${P.length} 件)</h3>
           <div class="row">${Object.entries(FIL).filter(([k]) => d.reviewer || !k.startsWith("my")).map(([k, [ja, fn]]) => `<button class="tag ${k === show ? "run" : ""}" data-show="${k}">${esc(ja)} ${P.filter(fn).length}</button>`).join("")}</div>
           <table class="scr"><tr><th>PMID</th><th>文献</th><th>一次(題名・抄録)</th><th>二次(全文)</th></tr>${view.map(rowHtml).join("") || '<tr><td colspan="4" class="muted">該当する文献はありません</td></tr>'}</table>
           <div class="row">${page > 0 ? `<button data-page="${page - 1}">前の ${PER} 件</button>` : ""} ${rows.length ? `${page * PER + 1}〜${Math.min(rows.length, (page + 1) * PER)} 件目` : ""} ${(page + 1) * PER < rows.length ? `<button data-page="${page + 1}">次の ${PER} 件</button>` : ""}</div>`; };
-      m.innerHTML = `<h2>スクリーニング(一次・二次)と文献選択の流れ図</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
+      m.innerHTML = `<h2>スクリーニング(一次・二次)と文献選択の流れ図</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")} ${manual("担当の委員が行うこと")}</div>
         <div id="scrSteps"></div>
         <div class="card"><h3>文献選択の流れ図(Minds SR-2 文献検索フローチャート)</h3>${flowHtml}
           <div class="row"><button id="scrReload">件数を更新</button><button id="scrExport" class="primary">別添(文献の一覧。xlsx)を出力</button></div></div>
-        ${d.can_edit ? `<div class="card" id="scrImport"><h3>文献の取り込み</h3>
+        ${d.can_edit ? `<details class="card" id="scrImport" ${q.search ? "open" : ""}><summary>検索以外の文献を追加する(引用文献、ハンドサーチなど)</summary>
           <div class="row"><label>出典 ${sel(d.sources, q.search ? "検索(PubMed)" : "", 'id="iSrc"')}</label><label>検索の記録 <select id="iSearch"><option value="">—</option>${searches.map((r) => `<option value="${esc(r.id)}" ${r.id === q.search ? "selected" : ""}>${esc(r.date)} ${esc(r.database)} ${esc(r.hits)}件</option>`).join("")}</select></label>
             <label><input type="checkbox" id="iDirect"> 一次を経ない(二次の対象に加える)</label><label>追加の理由(データベース検索以外は必須) <input id="iWhy" size="40"></label></div>
           <div class="row"><label>PMID を 1 行に 1 件で貼り付ける(PubMed の「Save → Format: CSV」の内容も可)<br><textarea id="iText" rows="5" cols="100"></textarea></label></div>
-          <div class="row"><input type="file" id="iFile" accept=".csv,.txt"><button id="iBtn" class="primary">取り込む</button><button id="iFetch">題名・抄録を取得</button></div></div>` : ""}
+          <div class="row"><input type="file" id="iFile" accept=".csv,.txt"><button id="iBtn" class="primary">取り込む</button><button id="iFetch">題名・抄録を取得</button></div></details>` : ""}
         <div class="card"><div id="scrList"></div><div id="finalBox"></div></div>`;
       drawList();
       $("#cqSel").addEventListener("change", () => go("screening", { cq: $("#cqSel").value }));
