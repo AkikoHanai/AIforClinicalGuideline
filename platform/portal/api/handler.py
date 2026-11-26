@@ -144,6 +144,9 @@ def put(pk, sk, item):
     table().put_item(Item=_py(item)); return item
 
 
+DOCX_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
 def cq_name(cqid):
     c = table().get_item(Key={"pk": "CQ", "sk": cqid}).get("Item")
     return (c or {}).get("title", cqid)
@@ -252,10 +255,15 @@ def dashboard(user):
                 approvals.append({"kind": "SR-5の照合・確定", "target": f"{c['title']} PMID {w['pmid']} / {w['outcome']}", "record": "2名が提出済(" + "・".join(w["submitted"]) + ")。確定の記録なし",
                                   "approver": "評価した2名、またはSR委員長", "can": lead or name in w["submitted"], "page": "f45", "q": {"cq": c["id"], "pmid": w["pmid"], "outcome": w["outcome"]}})
         if mine:
-            k = sum(1 for p in papers if (p.get("chars") or {}).get("design") and p.get("chars_by") and p.get("chars_by") != name and not p.get("chars_checked_by"))
-            if k: approvals.append({"kind": "研究特性の確認(相手が記入)", "target": c["title"], "count": k, "record": "", "approver": "担当のもう 1 名", "can": True, "page": "papers", "q": {"cq": c["id"]}})
-            k = sum(1 for r in query("SR8", f"{c['id']}#") if r.get("certainty") and r.get("by") != name and not r.get("checked_by"))
-            if k: approvals.append({"kind": "SR-8 の確認(相手が記入)", "target": f"{c['title']}", "record": "", "approver": "担当のもう 1 名", "can": True, "page": "sr8", "q": {"cq": c["id"]}})
+            k = sum(1 for p in papers if name not in (p.get("chars_ok") or {}) and not p.get("chars_agreed_by"))   # 2名の承認が一致した論文は、残りの担当に求めない(担当が 3名の CQ)
+            if k: approvals.append({"kind": "研究特性の承認", "target": c["title"], "count": k, "record": "", "approver": "担当の委員が、それぞれ", "can": True, "page": "papers", "q": {"cq": c["id"]}})
+            k = sum(1 for p in papers if len(p.get("chars_ok") or {}) >= 2 and not p.get("chars_agreed_by"))
+            if k: approvals.append({"kind": "研究特性の不一致", "target": c["title"], "count": k, "record": "", "approver": "担当の委員", "can": True, "page": "papers", "q": {"cq": c["id"]}})
+            fo = {r["outcome"] for r in query("F45", f"{c['id']}#") if r["sk"].endswith("#確定")}; oks = query("SR8OK", f"{c['id']}#")
+            k = sum(1 for o in fo if not any(r["outcome"] == o and r["by"] == name for r in oks) and not get("SR8", f"{c['id']}#{o}"))
+            if k: approvals.append({"kind": "SR-8 の承認", "target": c["title"], "count": k, "record": "", "approver": "担当の委員が、それぞれ", "can": True, "page": "sr8", "q": {"cq": c["id"]}})
+            k = sum(1 for o in fo if len([r for r in oks if r["outcome"] == o]) >= 2 and not get("SR8", f"{c['id']}#{o}"))
+            if k: approvals.append({"kind": "SR-8 の不一致", "target": c["title"], "count": k, "record": "", "approver": "担当の委員", "can": True, "page": "sr8", "q": {"cq": c["id"]}})
         nc = n["flow"]["s1_conflict"] + n["flow"]["s2_conflict"]
         if nc and (lead or mine):
             approvals.append({"kind": "スクリーニングの協議の結論", "target": f"{c['title']}", "record": f"2名の判定が不一致の文献 {nc}件(一次 {n['flow']['s1_conflict']}件、二次 {n['flow']['s2_conflict']}件)。協議の結論の記録なし",
@@ -293,6 +301,8 @@ def handler(event, context=None):
         return run_draft_etd(event)
     if event.get("task") == "run_search":
         return run_search(event)
+    if event.get("task") == "draft_sr8":
+        return run_draft_sr8(event)
     method = (event.get("requestContext") or {}).get("http", {}).get("method") or event.get("httpMethod", "GET")
     path = event.get("rawPath") or event.get("path") or "/"
     path, _, q = path.partition("?")
@@ -315,8 +325,8 @@ def handler(event, context=None):
         return resp(400, {"error": f"項目がありません: {e}"})
 
 
-SORON_ONLY = {"me", "meta", "dashboard", "soron", "audit", "docs", "access"}  # 総説執筆者だけの利用者が使える範囲(SRの流れとは分離)
-SR_ONLY = {"me", "meta", "dashboard", "cq", "papers", "f45", "sr8", "etd", "gl2023", "screening", "search", "audit", "export", "docs", "access"}
+SORON_ONLY = {"me", "meta", "dashboard", "soron", "audit", "docs", "access", "update"}  # 総説執筆者だけの利用者が使える範囲(SRの流れとは分離)
+SR_ONLY = {"me", "meta", "dashboard", "cq", "papers", "f45", "sr8", "etd", "gl2023", "screening", "search", "audit", "export", "docs", "access", "update"}
 
 
 def route(method, parts, body, user):
@@ -370,6 +380,14 @@ def route(method, parts, body, user):
     if head == "vote":
         if not (g & (ROLE_GROUP | ROLE_ADMIN)): raise Forbidden("推奨の投票は、統括委員会・作成グループ(事務局は、運営)に限ります")
         return vote(method, parts, body, user)
+    if head == "update":
+        return update(method, parts, body, user)
+    if head == "sync" and parts[1:2] == ["state"]:
+        # GET・PUT /sync/state : 共有ドライブの Update 版ごとの、最後に転送した内容の要約値(どちらが変わったかを判定する)
+        require(user, ROLE_ADMIN)
+        if method == "GET": return resp(200, {x["sk"]: x.get("digest", "") for x in query("SYNCSTATE")})
+        for k, v in (body.get("items") or {}).items(): put("SYNCSTATE", str(k), {"digest": str(v)})
+        return resp(200, {"ok": True})
     if head == "sync":
         # POST /sync/log : 統括委員長の Mac が、ポータル → 共有ドライブへ転送した内容を、作成経過の記録に残す(転送の内容を後で確認できるようにする)
         require(user, ROLE_ADMIN)
@@ -661,14 +679,16 @@ def papers(method, parts, body, user):
     # PUT /papers/<cq>/<pmid>               研究特性・題名
     if method == "GET" and len(parts) == 2:
         cands = {x["pmid"]: x for x in query("CAND", f"{parts[1]}#")}   # スクリーニングの記録から、著者・雑誌・発行年を添える(SR-4 の引用文献の列)
-        out = []; sr5 = {}
+        out = []; sr5 = {}; ai = {}
         for r in query("F45", f"{parts[1]}#"):
-            base, reviewer = r["sk"].rsplit("#", 1); u = sr5.setdefault(base.split("#", 2)[1], {"submitted": [], "final": False})
+            base, reviewer = r["sk"].rsplit("#", 1); pm_ = base.split("#", 2)[1]; u = sr5.setdefault(pm_, {"submitted": [], "final": False})
             if reviewer == "確定": u["final"] = True
-            elif reviewer != "AI" and r.get("submitted") and reviewer not in u["submitted"]: u["submitted"].append(reviewer)
+            elif reviewer == "AI":   # 研究特性の AI下書き(SR-5 の下書きが、論文の本文から読み取った内容)
+                if r.get("study") or r.get("design"): ai[pm_] = {k: ("" if v is None else str(v)) for k, v in {"design": r.get("design"), **{k: (r.get("study") or {}).get(k) for k in CHAR_KEYS if k != "design"}}.items()}
+            elif r.get("submitted") and reviewer not in u["submitted"]: u["submitted"].append(reviewer)
         for p in sorted(query("PAPER", f"{parts[1]}#"), key=lambda p: p["pmid"]):
             cd = cands.get(p["pmid"]) or {}
-            out.append({**p, "title": p.get("title") or cd.get("title", ""), "authors": cd.get("authors", ""), "journal": cd.get("journal", ""), "year": cd.get("year", ""), "sr5": sr5.get(p["pmid"], {"submitted": [], "final": False})})
+            out.append({**paper_view(p, user, ai.get(p["pmid"])), "title": p.get("title") or cd.get("title", ""), "authors": cd.get("authors", ""), "journal": cd.get("journal", ""), "year": cd.get("year", ""), "sr5": sr5.get(p["pmid"], {"submitted": [], "final": False})})
         return resp(200, out)
     if len(parts) < 3: return resp(400, {"error": "CQ と PMID が必要です"})
     cqid, pmid = parts[1], re.sub(r"\D", "", parts[2])
@@ -708,16 +728,15 @@ def papers(method, parts, body, user):
         if "chars" in body:
             ch = {k: str(body["chars"].get(k, "")) for k in ("design", "cancer", "chemo_drugs", "chemo_class", "n_total", "n_int", "intervention_detail", "comparator_detail", "followup")}
             if ch["chemo_class"] and ch["chemo_class"] not in CHEMO_CLASSES: return resp(400, {"error": "化学療法の分類は " + "/".join(CHEMO_CLASSES)})
-            if ch != p.get("chars"):   # 内容が変わったら、記入者を記録し、確認を取り消す(担当のもう 1 名が確認する)
-                p["chars_by"] = user["name"]; p["chars_at"] = now(); p.pop("chars_checked_by", None); p.pop("chars_checked_at", None)
-            p["chars"] = ch
-        put("PAPER", p["sk"], p); audit(user, "研究特性の更新", f"{cqid} / PMID {pmid}", f"がん種: {p['chars'].get('cancer', '')}、分類: {p['chars'].get('chemo_class', '')}"); return resp(200, p)
-    if method == "POST" and sub == "check":
-        # POST /papers/<cq>/<pmid>/check  研究特性を、記入者と別の担当委員が確認する(データ抽出の相互確認)
-        if not p or not (p.get("chars") or {}).get("design"): return resp(400, {"error": "研究特性が記入されていません"})
-        if p.get("chars_by") == user["name"]: return resp(400, {"error": "記入した本人は確認できません。担当のもう 1 名が確認します"})
-        p["chars_checked_by"] = user["name"]; p["chars_checked_at"] = now(); put("PAPER", p["sk"], p)
-        audit(user, "研究特性の確認", f"{cqid} / PMID {pmid}", f"記入 {p.get('chars_by', '')}"); return resp(200, p)
+            # AI が下書きし、担当の委員が、相手の内容を見ずに、それぞれ承認する。2名の承認が一致した内容が、研究特性になる
+            if not user["name"]: return resp(400, {"error": "氏名が登録されていません。統括委員長に連絡してください"})
+            ok = dict(p.get("chars_ok") or {}); ok[user["name"]] = {"chars": ch, "at": now()}; p["chars_ok"] = ok
+            same, names = agreed({n: v["chars"] for n, v in ok.items()})
+            for k in ("chars", "chars_agreed_by", "chars_by", "chars_at", "chars_checked_by", "chars_checked_at"): p.pop(k, None)
+            if same: p["chars"] = same; p["chars_agreed_by"] = names
+        put("PAPER", p["sk"], p)
+        if "chars" in body: audit(user, "研究特性の承認", f"{cqid} / PMID {pmid}", "2名の承認が一致(" + "・".join(p["chars_agreed_by"]) + ")" if p.get("chars_agreed_by") else f"承認 {len(p.get('chars_ok') or {})} 名")
+        return resp(200, paper_view(p, user))
     if method == "DELETE" and not sub:
         require(user, ROLE_LEAD)
         if p: table().delete_item(Key={"pk": "PAPER", "sk": p["sk"]}); bump(cqid); audit(user, "論文の登録解除", f"{cqid} / PMID {pmid}")
@@ -761,14 +780,25 @@ def f45(method, parts, body, user):
         rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": user["name"], "items": items, "counts": body.get("counts") or {}, "effect": body.get("effect") or {},
                "instrument": str(body.get("instrument", "")), "note": str(body.get("note", "")), "submitted": bool(body.get("submitted")), "submitted_at": now() if body.get("submitted") else ""}
         put("F45", f45_key(cqid, pmid, outcome, user["name"]), rec)
-        audit(user, "SR-5の" + ("提出" if rec["submitted"] else "保存"), f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); return resp(200, rec)
+        audit(user, "SR-5の" + ("提出" if rec["submitted"] else "保存"), f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items))
+        recs[user["name"]] = rec; subs = {k: r for k, r in recs.items() if k not in ("AI", "確定") and r.get("submitted")}
+        if rec["submitted"] and len(subs) >= 2 and "確定" not in recs:
+            core = lambda r: {"items": {k: (r["items"].get(k) or {}).get("v") for k in ITEM_KEYS}, "counts": {k: str((r.get("counts") or {}).get(k) or "") for k in ("ctrl_num", "ctrl_den", "int_num", "int_den")},
+                              "effect": {k: str((r.get("effect") or {}).get(k) or "") for k in ("measure", "value", "ci_low", "ci_high")}}
+            same, names = agreed({k: core(r) for k, r in subs.items()})
+            if same:   # 2名の承認が一致: 確定の記録を作る
+                base = subs[names[0]]
+                put("F45", f45_key(cqid, pmid, outcome, "確定"), {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "確定", "items": base["items"], "counts": base.get("counts") or {}, "effect": base.get("effect") or {},
+                                                                 "instrument": base.get("instrument", ""), "note": "", "fixed_by": "2名の承認が一致", "based_on": names})
+                audit(user, "SR-5の確定(2名の承認が一致)", f"{cqid} / PMID {pmid} / {outcome}", "・".join(names)); request_sr8_draft(user, cqid, outcome); rec = {**rec, "final": True}
+        return resp(200, rec)
     if method == "PUT" and sub == "final":
         if not (lead or (user["name"] in submitted and len(submitted) >= 2)): raise Forbidden("照合の確定は、2名独立の評価を提出した評価者、またはSR委員長以上に限ります")
         if len(submitted) < 2 and not lead: return resp(409, {"error": "2名独立の評価の提出が必要です"})
         items = norm_items(body.get("items") or {})
         rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "確定", "items": items, "counts": body.get("counts") or {}, "effect": body.get("effect") or {}, "instrument": str(body.get("instrument", "")),
                "note": str(body.get("note", "")), "fixed_by": user["name"], "based_on": submitted}
-        put("F45", f45_key(cqid, pmid, outcome, "確定"), rec); audit(user, "SR-5の確定(照合)", f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); return resp(200, rec)
+        put("F45", f45_key(cqid, pmid, outcome, "確定"), rec); audit(user, "SR-5の確定(照合)", f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); request_sr8_draft(user, cqid, outcome); return resp(200, rec)
     if method == "POST" and sub == "draft":
         if not (is_assignee(user, c) or lead): raise Forbidden("この CQ の担当委員に限ります")
         if not str(p.get("status", "")).startswith("本文抽出済"): return resp(409, {"error": "本文がありません。「論文」で PDF を登録してください"})
@@ -839,21 +869,22 @@ def sr8(method, parts, body, user):
                 return t
             dc = {}
             for f in fs: d_ = ((papers.get(f["pmid"], {}).get("chars") or {}).get("design") or "デザイン不明"); dc[d_] = dc.get(d_, 0) + 1
-            out.append({"outcome": o, "n_studies": len(fs), "by_chemo_class": by_class, "sr8": rows.get(f"{cqid}#{o}"),
+            oks = {r["by"]: r for r in query("SR8OK", f"{cqid}#{o}#")}; me = user["name"]; show = bool(set(user["groups"]) & ROLE_LEAD) or me in oks
+            out.append({"outcome": o, "n_studies": len(fs), "by_chemo_class": by_class, "sr8": rows.get(f"{cqid}#{o}"), "ai": get("SR8AI", f"{cqid}#{o}"), "mine": oks.get(me), "approved_by": sorted(oks),
+                        "others": {n: r for n, r in oks.items() if n != me} if show else {}, "state": "一致" if rows.get(f"{cqid}#{o}") else ("不一致" if len(oks) >= 2 else ""),
                         "sums": {k: tot(k) for k in ("ctrl_den", "ctrl_num", "int_den", "int_num")}, "design_n": "、".join(f"{k} {v}件" for k, v in dc.items())})   # 記録の合計(統計的な統合ではない)
         return resp(200, {"cq": cqid, "outcomes": out, "sr8_keys": SR8_KEYS, "sr8_ja": SR8_JA})
-    if method == "POST" and parts[3:4] == ["check"]:
-        # POST /sr8/<cq>/<outcome>/check  SR-8 を、記入者と別の担当委員が確認する(エビデンスの確実性の相互確認)
+    if method == "POST" and parts[3:4] == ["draft"]:
+        # POST /sr8/<cq>/<outcome>/draft  AI下書きの作成(確定した SR-5 を根拠にする。非同期)
         if not (is_assignee(user, c) or set(user["groups"]) & ROLE_LEAD): raise Forbidden("SRチーム(担当委員・SR委員長)に限ります")
-        rec = get("SR8", f"{cqid}#{parts[2]}")
-        if not rec or not rec.get("certainty"): return resp(400, {"error": "SR-8 が記入されていません"})
-        if rec.get("by") == user["name"]: return resp(400, {"error": "記入した本人は確認できません。担当のもう 1 名が確認します"})
-        rec["checked_by"] = user["name"]; rec["checked_at"] = now(); put("SR8", f"{cqid}#{parts[2]}", rec)
-        audit(user, "SR-8の確認", f"{cqid} / {parts[2]}", f"記入 {rec.get('by', '')}"); return resp(200, rec)
+        if not [r for r in query("F45", f"{cqid}#") if r["sk"].endswith("#確定") and r["outcome"] == parts[2]]: return resp(409, {"error": "確定した SR-5 がありません"})
+        request_sr8_draft(user, cqid, parts[2], force=True); return resp(202, {"status": "作成中"})
     if method == "PUT" and len(parts) > 2:
+        # AI が下書きし、担当の委員が、相手の内容を見ずに、それぞれ承認する。2名の承認(判定と数値)が一致した内容が、SR-8 になる
         o = parts[2]
         if o not in (c.get("outcomes") or []): return resp(400, {"error": "アウトカムがありません"})
         if not (is_assignee(user, c) or set(user["groups"]) & ROLE_LEAD): raise Forbidden("SRチーム(担当委員・SR委員長)に限ります")
+        if not user["name"]: return resp(400, {"error": "氏名が登録されていません。統括委員長に連絡してください"})
         rec = {"cq": cqid, "outcome": o, "by": user["name"]}
         for k in ("rob", "inconsistency", "imprecision", "indirectness", "publication_bias"):
             v = body.get(k); rec[k] = int(v) if str(v) in ("0", "-1", "-2") else None
@@ -869,7 +900,11 @@ def sr8(method, parts, body, user):
         imp = str(body.get("importance", "")).strip()
         if imp and imp not in [str(i) for i in range(1, 10)]: return resp(400, {"error": "重要性は 1〜9 です"})
         rec["importance"] = int(imp) if imp else None
-        put("SR8", f"{cqid}#{o}", rec); audit(user, "SR-8の記入", f"{cqid} / {o}", f"確実性 {rec['certainty'] or '—'}"); return resp(200, rec)
+        rec["at"] = now(); put("SR8OK", f"{cqid}#{o}#{user['name']}", rec)
+        oks = {r["by"]: r for r in query("SR8OK", f"{cqid}#{o}#")}; same, names = agreed({n: {k: r.get(k) for k in SR8_AGREE} for n, r in oks.items()})
+        if same: put("SR8", f"{cqid}#{o}", {**{k: v for k, v in oks[names[-1] if user["name"] not in names else user["name"]].items() if k not in ("pk", "sk", "updated_at")}, "by": "・".join(names), "agreed_by": names})
+        elif get("SR8", f"{cqid}#{o}"): table().delete_item(Key={"pk": "SR8", "sk": f"{cqid}#{o}"})
+        audit(user, "SR-8の承認", f"{cqid} / {o}", f"確実性 {rec['certainty'] or '—'}。" + ("2名の承認が一致(" + "・".join(names) + ")" if same else f"承認 {len(oks)} 名")); return resp(200, {**rec, "agreed_by": names})
     return resp(405, {"error": "方法が不正です"})
 
 
@@ -963,12 +998,33 @@ def gl2023_soron(method, parts, body, user):
     return resp(405, {"error": "方法が不正です"})
 
 
+def request_sr8_draft(user, cqid, outcome, force=False):
+    """SR-8 の AI下書きを、非同期で依頼する。SR-5 が確定するたびに作り直す(確定した SR-5 だけを根拠にする)。"""
+    if not (FUNCTION or force): return
+    put("SR8AI", f"{cqid}#{outcome}", {"cq": cqid, "outcome": outcome, "status": "作成中", "requested_by": user.get("name", ""), "at": now()})
+    ev = {"task": "draft_sr8", "cq": cqid, "outcome": outcome, "user": {"name": user.get("name", ""), "email": user.get("email", ""), "groups": list(user.get("groups", []))}}
+    if FUNCTION: boto3.client("lambda").invoke(FunctionName=FUNCTION, InvocationType="Event", Payload=json.dumps(ev, ensure_ascii=False).encode())
+    else: run_draft_sr8(ev)
+
+
+def run_draft_sr8(ev):
+    cqid, o, user = ev["cq"], ev["outcome"], ev.get("user") or {"name": "system", "email": ""}
+    try:
+        import draft45
+        c = get("CQ", cqid); finals = [r for r in query("F45", f"{cqid}#") if r["sk"].endswith("#確定") and r["outcome"] == o]
+        out = draft45.draft_sr8(c, o, finals, query("PAPER", f"{cqid}#"), CERT)
+        put("SR8AI", f"{cqid}#{o}", {"cq": cqid, "outcome": o, "status": "下書き", **out, "model": draft45.MODEL_ID, "at": now(), "based_on": sorted(f["pmid"] for f in finals)})
+        audit(user, "SR-8下書きを作成", f"{cqid} / {o}", f"確定した SR-5 {len(finals)}件を根拠に"); return {"ok": True}
+    except Exception as ex:
+        put("SR8AI", f"{cqid}#{o}", {"cq": cqid, "outcome": o, "status": "失敗", "error": str(ex)[:500], "at": now()}); return {"ok": False}
+
+
 def run_draft_etd(ev):
     cqid, user = ev["cq"], ev.get("user") or {"name": "system", "email": ""}
     e = get("ETD", cqid) or {"cq": cqid, "considerations": {}, "vote": {}, "status": "下書き"}
     try:
         import draft45
-        c = get("CQ", cqid); papers = query("PAPER", f"{cqid}#")
+        c = get("CQ", cqid); c = {**c, "pico": pico_of(c)}; papers = query("PAPER", f"{cqid}#")
         finals = [r for r in query("F45", f"{cqid}#") if r["sk"].endswith("#確定")]
         out = draft45.draft_etd(c, query("SR8", f"{cqid}#"), finals, papers, get("GL2023", cqid))
         e["ai_draft"] = {**out, "status": "下書き", "model": draft45.MODEL_ID, "at": now(), "based_on": {"sr8": len(query("SR8", f"{cqid}#")), "f45_final": len(finals)}}
@@ -1021,12 +1077,21 @@ def export(method, parts, body, user):
     log = (lambda *a, **k: None) if (body.get("_query") or {}).get("sync") == "1" else audit
     if parts[1] == "guideline":
         # GET /export/guideline : ガイドラインの草案(Word)。作成方法、CQ ごとの推奨・解説・文献、FRQ、総論の一覧を、ポータルの記録から組み立てる
-        import guideline
-        plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8")); items = plan["SR項目"] + plan["FRQ項目"]; data = {}
-        for it in items:
-            i = it["id"]; data[i] = {"etd": get("ETD", i), "papers": sorted(query("PAPER", f"{i}#"), key=lambda p: p["pmid"]), "cands": {x["pmid"]: x for x in query("CAND", f"{i}#")},
-                                     "searches": sorted(query("SEARCH", f"{i}#"), key=lambda r: (r.get("date", ""), r["sk"])), "flow": flow_cached(i)}
-        doc = guideline.build(plan["タイトル"], items, data, sorted(query("SORON"), key=lambda s_: s_["sk"]))
+        import guideline, viewer
+        plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8")); items = plan["SR項目"] + plan["FRQ項目"]; data = {it["id"]: cq_data(it["id"]) for it in items}
+        soron_ = sorted(query("SORON"), key=lambda s_: s_["sk"]); units = {}
+        read = lambda k: viewer.docx_view(s3().get_object(Bucket=BUCKET, Key=k)["Body"].read())
+        for s_ in soron_:   # 総論: 提出された原稿(Word)の本文。なければ、2023年版の本文
+            try:
+                if str(s_.get("file", "")).lower().endswith(".docx"): units[f"soron/{s_['key']}"] = guideline.from_view(read(f"soron/{s_['key']}/{s_['file']}"), body_only=True)
+                else: units[f"soron/{s_['key']}"] = [("p", p_["text"]) for p_ in (get("GL2023S", s_["key"]) or {}).get("paragraphs") or []]
+            except Exception: units[f"soron/{s_['key']}"] = [("p", "原稿を読み取れません: " + str(s_.get("file", "")))]
+        for it in items:    # CQ・FRQ: 共有ドライブで編集された Update 版の本文。なければ、ポータルの記録
+            u = get("UPD", f"cq/{it['id']}") or {}
+            if u.get("key"):
+                try: units[f"cq/{it['id']}"] = [b_ for b_ in guideline.from_view(read(u["key"])) if b_ != ("label", f"{guideline.cat(it)}: {it['名称']}") and b_ != ("p", plan["タイトル"])]
+                except Exception: pass
+        doc = guideline.build(plan["タイトル"], items, data, soron_, units)
         key = "exports/guideline/ガイドライン草案.docx"; url = ""
         if BUCKET:
             s3().put_object(Bucket=BUCKET, Key=key, Body=doc, ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
@@ -1119,6 +1184,68 @@ def soron(method, parts, body, user):
         put("SORON", s["key"], s); audit(user, "総論の更新", f"総論{s['label']}", "、".join(ch)); return resp(200, s)
     return resp(405, {"error": "方法が不正です"})
 
+# ---------- Update 版(ガイドラインの本文の作業用の Word。共有ドライブで委員が編集し、fetch.sh がポータルに反映する) ----------
+fname = lambda t: re.sub(r"[^\w一-龥ぁ-んァ-ン・()、]", "_", str(t))   # ファイル名に使える文字にする
+
+
+def cq_data(i):
+    return {"etd": get("ETD", i), "gl2023": get("GL2023", i), "papers": sorted(query("PAPER", f"{i}#"), key=lambda p: p["pmid"]), "cands": {x["pmid"]: x for x in query("CAND", f"{i}#")},
+            "searches": sorted(query("SEARCH", f"{i}#"), key=lambda r: (r.get("date", ""), r["sk"])), "flow": flow_cached(i)}
+
+
+def update_units(user, only=None):
+    """Update 版の一覧。総論: 提出された原稿(なければ、依頼書 = 2023年版の全文)。CQ・FRQ: 共有ドライブで編集された版(なければ、ポータルの記録と 2023年版の記述から作る)。"""
+    import guideline
+    g = set(user["groups"]); admin = bool(g & ROLE_ADMIN); plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8")); out = []
+    link = {x["sk"]: x.get("url", "") for x in query("DOCLINK")}; url = lambda key: s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": key}, ExpiresIn=900) if BUCKET else ""
+    for s_ in (sorted(query("SORON"), key=lambda x: x["key"]) if (admin or "総説執筆者" in g) else []):
+        own = bool(user["name"]) and any(user["name"].startswith(a) for a in re.split("[・]", s_.get("author", "")) if a)
+        unit = f"soron/{s_['key']}"
+        if not (admin or own) or (only and unit != only): continue
+        g23 = get("GL2023S", s_["key"]) or {}; name = "総論" + s_["label"] + "_" + fname(s_["title"]) + "_Update版.docx"
+        key = f"soron/{s_['key']}/{s_['file']}" if str(s_.get("file", "")).lower().endswith(".docx") else g23.get("docx_key")
+        out.append({"unit": unit, "kind": "総論", "name": name, "title": f"総論{s_['label']} {s_['title']}", "key": key or "", "url": url(key) if key else "", "source": "原稿" if s_.get("file") else ("依頼書(2023年版の全文)" if key else ""),
+                    "by": s_.get("file_by", ""), "at": (s_.get("file_at") or "")[:10], "legacy": os.path.basename(g23.get("docx_key") or ""), "drive": link.get(name, "")})
+    for it in (plan["SR項目"] + plan["FRQ項目"] if g & (ROLE_LEAD | {"SR委員", "作成グループ"}) else []):
+        unit = f"cq/{it['id']}"
+        if only and unit != only: continue
+        name = "推奨_" + fname(it["名称"]) + "_Update版.docx"; u = get("UPD", unit) or {}; key = u.get("key")
+        if not key and BUCKET:   # 編集された版がない: ポータルの記録から作る
+            key = f"exports/update/{it['id']}.docx"; s3().put_object(Bucket=BUCKET, Key=key, Body=guideline.build_cq(plan["タイトル"], it, cq_data(it["id"])), ContentType=DOCX_TYPE)
+        out.append({"unit": unit, "kind": "CQ・FRQ", "name": name, "title": it["名称"], "key": key or "", "url": url(key) if key else "", "source": "共有ドライブで編集" if u.get("key") else "ポータルの記録から作成",
+                    "by": u.get("by", ""), "at": (u.get("at") or "")[:10], "legacy": "", "drive": link.get(name, "")})
+    return out
+
+
+def update(method, parts, body, user):
+    # GET  /update                          Update 版の一覧(取得用の署名付きURL)
+    # GET  /update/view?unit=soron/A        画面に表示する構造
+    # POST /update/<種類>/<ID>/upload-url   共有ドライブで編集された版を置く(scripts/sync_drive.py)。総論は、原稿の新しい版になる
+    q_ = body.get("_query") or {}
+    if method == "GET" and parts[1:2] == ["view"]:
+        us = update_units(user, q_.get("unit", "")); d = us[0] if us else None
+        if not d or not d["key"]: return resp(404, {"error": "文書がありません"})
+        import viewer
+        try: v = viewer.docx_view(s3().get_object(Bucket=BUCKET, Key=d["key"])["Body"].read())
+        except Exception: return resp(422, {"error": "この文書は、画面に表示できません。ダウンロードして開いてください", "url": d["url"]})
+        return resp(200, {**{k: d[k] for k in ("unit", "name", "title", "url", "drive", "source", "by", "at")}, "target": d["kind"], **v})
+    if method == "GET": return resp(200, [{k: v for k, v in d.items() if k != "key"} for d in update_units(user)])
+    if method == "POST" and len(parts) == 4 and parts[3] == "upload-url":
+        require(user, ROLE_ADMIN); kind, key = parts[1], parts[2]
+        if kind == "soron":
+            s_ = get("SORON", key)
+            if not s_: return resp(404, {"error": "ありません"})
+            name = f"総論{s_['label']}_Update版.docx"; k = f"soron/{key}/{name}"
+            s_["file"] = name; s_["file_at"] = now(); s_["file_by"] = "共有ドライブで編集"
+            if s_.get("status") in ("原稿未提出", "修正中"): s_["status"] = "執筆中"
+            put("SORON", key, s_); audit(user, "総論の原稿の更新(共有ドライブでの編集を反映)", f"総論{s_['label']}", name)
+        elif kind == "cq" and get("CQ", key):
+            k = f"update/cq/{key}/Update版.docx"; put("UPD", f"cq/{key}", {"key": k, "at": now(), "by": "共有ドライブで編集"}); audit(user, "ガイドライン Update 版の更新(共有ドライブでの編集を反映)", key, k)
+        else: return resp(404, {"error": "ありません"})
+        return resp(200, {"url": s3().generate_presigned_url("put_object", Params={"Bucket": BUCKET, "Key": k, "ContentType": DOCX_TYPE}, ExpiresIn=900), "key": k})
+    return resp(405, {"error": "方法が不正です"})
+
+
 # ---------- 手順書(委員がポータルから受け取る。個別に送らない) ----------
 # (ファイル名に含む語, 対象, 閲覧できる役割。None は全員)
 DOCS = [("操作マニュアル", "全委員", None), ("SR委員の手順書", "SR委員", {"統括委員会", "事務局", "SR委員長", "SR委員", "作成グループ"}), ("SR委員長の業務手順", "SR委員長", ROLE_LEAD),
@@ -1208,6 +1335,33 @@ STAGE_JA = {"s1": "一次", "s2": "二次"}
 
 def can_edit_cq(user, c):
     return is_assignee(user, c) or bool(set(user["groups"]) & ROLE_LEAD)
+
+
+CHAR_KEYS = ("design", "cancer", "chemo_drugs", "chemo_class", "n_total", "n_int", "intervention_detail", "comparator_detail", "followup")
+SR8_AGREE = ("rob", "inconsistency", "imprecision", "indirectness", "publication_bias", "upgrade", "certainty", "design_n", "ctrl_den", "ctrl_num", "int_den", "int_num", "eff_type", "eff_val", "eff_ci", "abs_val", "abs_ci")   # 2名の承認が一致したかを比べる欄(判定と数値)
+
+
+def agreed(versions):
+    """承認した人ごとの内容(名前 → 内容)から、2名以上が同じ内容で承認したものを返す: (内容, その人たち)。なければ (None, [])。"""
+    def plain(x):   # DynamoDB から読んだ数(Decimal)と、画面から来た数を、同じ表記にして比べる
+        if isinstance(x, dict): return {k: plain(v) for k, v in x.items()}
+        if isinstance(x, (list, tuple)): return [plain(v) for v in x]
+        if isinstance(x, bool) or x is None or isinstance(x, str): return x
+        try: f = float(x); return int(f) if f == int(f) else f
+        except (TypeError, ValueError): return str(x)
+    groups = {}
+    for n, v in versions.items(): groups.setdefault(json.dumps(plain(v), ensure_ascii=False, sort_keys=True), []).append(n)
+    k, names = max(groups.items(), key=lambda kv: len(kv[1]), default=(None, []))
+    return (json.loads(k), sorted(names)) if len(names) >= 2 else (None, [])
+
+
+def paper_view(p, user, ai=None):
+    """論文の記録を、画面に返す形にする。研究特性は、AI下書き、自分の承認、相手の承認(自分が承認した後だけ)、一致の有無。"""
+    ok = p.get("chars_ok") or {}; name = user["name"]; show = bool(set(user["groups"]) & ROLE_LEAD) or name in ok
+    out = {k: v for k, v in p.items() if k != "chars_ok"}
+    out.update({"chars_ai": ai, "chars_mine": (ok.get(name) or {}).get("chars"), "chars_ok_by": sorted(ok), "chars_others": {n: v["chars"] for n, v in ok.items() if n != name} if show else {},
+                "chars_state": "一致" if p.get("chars_agreed_by") else ("不一致" if len(ok) >= 2 else "")})
+    return out
 
 
 def pair_status(c, cands, recs):

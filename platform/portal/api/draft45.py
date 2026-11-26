@@ -88,3 +88,98 @@ def normalize(out, paras):
     nb = out.get("numbers") or {}
     out["numbers"] = {"evidence": [e for e in (nb.get("evidence") or []) if e in valid], "quote": str(nb.get("quote") or "")[:400]}
     return out
+
+
+ETD_SYSTEM = ("あなたは診療ガイドライン(Minds診療ガイドライン作成マニュアル2020)の推奨作成の補助です。"
+              "渡された資料(SR-8、確定した SR-5の要約、2023年版の記述。各段落・記録にIDがある)だけを根拠に、2023年版の体裁の EtD(推奨文案、4つの考慮事項、解説文案)の下書きを作り、指定のJSONのみを返してください。"
+              "根拠のない記述は書きません。推奨の強さと確実性は決めません(推奨作成会議の投票とSR-8の判定による)。")
+ETD_PROMPT = """CQ: {cq_title}
+P: {P}
+I: {I}
+C: {C}
+O: {O}
+
+規則:
+- 推奨文案には、適用するがん種と化学療法の分類(白金製剤/タキサン系など)を明記する。予防か治療かを明記する。
+- 4つの考慮事項(益と害のバランス、エビデンスの確実性、患者の価値観・希望、コスト・資源)は、各文の末尾に根拠のIDを [ID] で付ける。根拠は、SR-8(ID: SR8-<アウトカム>)、SR-5 の確定記録(ID: F45-<PMID>-<アウトカム>)、2023年版の段落(ID: GL2023-...)に限る。
+- 解説文案は、2023年版の解説の構成に合わせ、変更点(新しい研究、確実性の変化)を本文で示す。各文の末尾に根拠のIDを付ける。根拠のない一般論は書かない。
+- 推奨の強さ、確実性(A〜D)は書かない。
+
+JSONを1つだけ返す:
+{{"rec_draft": "推奨文案", "considerations": {{"benefit_harm": {{"text": "", "evidence": []}}, "certainty": {{"text": "", "evidence": []}}, "values": {{"text": "", "evidence": []}}, "cost": {{"text": "", "evidence": []}}}}, "narrative": "解説文案", "changes_from_2023": "2023年版からの変更点"}}
+
+--- SR-8 ---
+{sr8}
+--- SR-5(確定)の要約 ---
+{f45}
+--- 2023年版の記述 ---
+{gl}
+"""
+
+
+def draft_etd(cq, sr8_rows, finals, papers, gl2023, model_id=None):
+    pm = {p["pmid"]: p for p in papers}
+    sr8 = "\n".join(f"[SR8-{r['outcome']}] 研究数 {sum(1 for f in finals if f['outcome'] == r['outcome'])}、バイアスリスク {r.get('rob')}、非一貫性 {r.get('inconsistency')}、不精確性 {r.get('imprecision')}、非直接性 {r.get('indirectness')}、その他 {r.get('publication_bias')}、上昇要因 {r.get('upgrade')}、確実性 {r.get('certainty')}。層別: {r.get('strata', '')}。効果の要約: {r.get('effect_summary', '')}" for r in sr8_rows) or "(記入なし)"
+    f45 = "\n".join(f"[F45-{f['pmid']}-{f['outcome']}] {pm.get(f['pmid'], {}).get('title', '')} / がん種 {(pm.get(f['pmid'], {}).get('chars') or {}).get('cancer', '')} / 分類 {(pm.get(f['pmid'], {}).get('chars') or {}).get('chemo_class', '')} / バイアスリスクまとめ {f['items']['bias_summary']['v']} 非直接性まとめ {f['items']['ind_summary']['v']} / 対照 {(f.get('counts') or {}).get('ctrl_num')}/{(f.get('counts') or {}).get('ctrl_den')} 介入 {(f.get('counts') or {}).get('int_num')}/{(f.get('counts') or {}).get('int_den')} / 効果 {(f.get('effect') or {}).get('measure')} {(f.get('effect') or {}).get('value')} [{(f.get('effect') or {}).get('ci_low')}, {(f.get('effect') or {}).get('ci_high')}]" for f in finals) or "(確定なし)"
+    g = gl2023 or {}
+    gl = (f"推奨文: {g.get('rec', '')} / 推奨の強さ {g.get('strength', '')} / 確実性 {g.get('certainty', '')}\n" + "\n".join(f"[{p['id']}] {p['text']}" for p in g.get("paragraphs", []))) if g else "(未取り込み)"
+    prompt = ETD_PROMPT.format(cq_title=cq["title"], P=cq["pico"].get("P", ""), I=cq["pico"].get("I", ""), C=cq["pico"].get("C", ""), O=cq["pico"].get("O", ""), sr8=sr8, f45=f45, gl=gl)
+    client = boto3.client("bedrock-runtime")
+    resp = client.converse(modelId=model_id or MODEL_ID, system=[{"text": ETD_SYSTEM}], messages=[{"role": "user", "content": [{"text": prompt}]}], inferenceConfig={"maxTokens": 6000, "temperature": 0})
+    text = resp["output"]["message"]["content"][0]["text"]
+    m = re.search(r"\{.*\}", text, re.S)
+    out = json.loads(m.group(0) if m else text)
+    valid = {f"SR8-{r['outcome']}" for r in sr8_rows} | {f"F45-{f['pmid']}-{f['outcome']}" for f in finals} | {p["id"] for p in g.get("paragraphs", [])}
+    cons = {}
+    for k in ("benefit_harm", "certainty", "values", "cost"):
+        c = (out.get("considerations") or {}).get(k) or {}
+        cons[k] = {"text": str(c.get("text") or "")[:3000], "evidence": [e for e in (c.get("evidence") or []) if e in valid]}
+    return {"rec_draft": str(out.get("rec_draft") or "")[:1000], "considerations": cons, "narrative": str(out.get("narrative") or "")[:12000], "changes_from_2023": str(out.get("changes_from_2023") or "")[:3000]}
+
+
+SR8_SYSTEM = ("あなたは診療ガイドライン(Minds診療ガイドライン作成マニュアル2020)の系統的レビュー担当の補助です。"
+              "渡された、確定した個別研究の評価(SR-5。各記録にIDがある)だけを根拠に、エビデンス総体(SR-8)の下書きを作り、指定のJSONのみを返してください。"
+              "統合値(メタアナリシス)と絶対効果は計算しません。委員が計算して記入します。下書きであり、担当の委員 2名が、それぞれ確かめて承認します。")
+SR8_PROMPT = """CQ: {cq_title}
+アウトカム: {outcome}
+
+規則(Minds SR-8):
+- バイアスリスク、非一貫性、不精確性、非直接性、その他(出版バイアスなど)を、0 / -1 / -2 で評価する。上昇要因は 0 / 1 / 2(RCT は 0)。
+- バイアスリスクと非直接性は、個別研究の「まとめ」を総合する。結果への寄与が大きい研究を重く見る。
+- 非一貫性は、研究間の効果の方向と大きさで評価する。研究が 1 件のときは、評価できない旨を理由に書き、0 とする。
+- 不精確性は、症例数、イベント数、信頼区間の幅で評価する。
+- エビデンスの確実性は、RCT は A から始め、減点と上昇要因を加減して、{cert} のいずれかにする。
+- strata には、化学療法の分類ごとに効果の方向が異なる場合に、分類ごとの結論を書く。異ならなければ空にする。
+- 各項目の理由を reasons に書き、根拠の記録のID([F45-<PMID>])を文中に付ける。記録にない内容は書かない。
+
+JSONを1つだけ返す:
+{{"rob": 0, "inconsistency": 0, "imprecision": 0, "indirectness": 0, "publication_bias": 0, "upgrade": 0, "certainty": "", "strata": "", "effect_summary": "",
+  "reasons": {{"rob": "", "inconsistency": "", "imprecision": "", "indirectness": "", "publication_bias": "", "upgrade": "", "certainty": ""}}}}
+
+--- 確定した SR-5 ---
+{f45}
+"""
+
+
+def draft_sr8(cq, outcome, finals, papers, cert, model_id=None):
+    """SR-8 の下書き。確定した SR-5 だけを根拠にする。値は 0/-1/-2(上昇要因は 0/1/2)と、確実性の選択肢に限る。"""
+    pm = {p["pmid"]: p for p in papers}
+    line = lambda f: (f"[F45-{f['pmid']}] {pm.get(f['pmid'], {}).get('title', '')} / デザイン {(pm.get(f['pmid'], {}).get('chars') or {}).get('design', '')} / がん種 {(pm.get(f['pmid'], {}).get('chars') or {}).get('cancer', '')}"
+                      f" / 化学療法の分類 {(pm.get(f['pmid'], {}).get('chars') or {}).get('chemo_class', '')} / バイアスリスクまとめ {f['items']['bias_summary']['v']} / 非直接性まとめ {f['items']['ind_summary']['v']}"
+                      f" / 対照群 {(f.get('counts') or {}).get('ctrl_num')}/{(f.get('counts') or {}).get('ctrl_den')} 介入群 {(f.get('counts') or {}).get('int_num')}/{(f.get('counts') or {}).get('int_den')}"
+                      f" / 効果 {(f.get('effect') or {}).get('measure')} {(f.get('effect') or {}).get('value')} [{(f.get('effect') or {}).get('ci_low')}, {(f.get('effect') or {}).get('ci_high')}] / 測定尺度 {f.get('instrument', '')}")
+    prompt = SR8_PROMPT.format(cq_title=cq["title"], outcome=outcome, cert=" / ".join(cert), f45="\n".join(line(f) for f in finals))
+    client = boto3.client("bedrock-runtime")
+    resp = client.converse(modelId=model_id or MODEL_ID, system=[{"text": SR8_SYSTEM}], messages=[{"role": "user", "content": [{"text": prompt}]}], inferenceConfig={"maxTokens": 3000, "temperature": 0})
+    text = resp["output"]["message"]["content"][0]["text"]; m = re.search(r"\{.*\}", text, re.S)
+    return normalize_sr8(json.loads(m.group(0) if m else text), cert)
+
+
+def normalize_sr8(out, cert):
+    """LLM の出力を検査する。値を、様式の選択肢に限る。"""
+    r = {k: (int(out.get(k)) if str(out.get(k)) in ("0", "-1", "-2") else None) for k in ("rob", "inconsistency", "imprecision", "indirectness", "publication_bias")}
+    r["upgrade"] = int(out.get("upgrade")) if str(out.get("upgrade")) in ("0", "1", "2") else None
+    c = str(out.get("certainty") or ""); r["certainty"] = next((x for x in cert if x == c or x.startswith(c[:1]) and c[:1] in "ABCD" and len(c) <= 2), "") if c else ""
+    r["strata"] = str(out.get("strata") or "")[:1000]; r["effect_summary"] = str(out.get("effect_summary") or "")[:1000]
+    r["reasons"] = {k: str((out.get("reasons") or {}).get(k) or "")[:600] for k in ("rob", "inconsistency", "imprecision", "indirectness", "publication_bias", "upgrade", "certainty")}
+    return r

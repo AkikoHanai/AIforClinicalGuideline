@@ -222,6 +222,57 @@ def register_links(tok, docs, ids=drive_attr, wait=60, sleep=time.sleep):
     return len(new), sorted(pending), seen
 
 
+DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
+def sync_updates(tok, L, dry=False, fetch=get_bytes, upload=put_bytes, only=None):
+    """ガイドラインと総論の Update 版(Word)を、共有ドライブの「ガイドライン_Update版」に置き、委員が共有ドライブで編集した版を、ポータルに反映する。
+    どちらが変わったかは、最後に転送した内容の要約値(ポータルに記録)で判定する: 共有ドライブが変わっていれば、ポータルに反映する(上書きしない)。ポータルだけが変わっていれば、共有ドライブを新しい版にする。
+    戻り値: {"placed": 置いたファイル, "pushed": ポータルに反映したファイル, "files": {ファイル名: (場所, 登録済みの Google Drive の URL)}}"""
+    folder = L.top("ガイドライン_Update版"); state = tok.call("GET", "/sync/state"); state = state if isinstance(state, dict) and "error" not in state else {}
+    new, placed, pushed, files = {}, [], [], {}
+    for u in tok.call("GET", "/update"):
+        if only and u["unit"] != only: continue
+        dest = os.path.join(folder, u["name"]); P = fetch(u["url"]) if u.get("url") else None; D = open(dest, "rb").read() if os.path.exists(dest) else None; last = state.get(u["unit"]) or ""
+        if D is None and u.get("legacy"):   # 以前の置き場所(依頼書/)で編集されていた総論は、Update 版として引き継ぐ
+            old = os.path.join(L.top("依頼書"), u["legacy"])
+            if os.path.exists(old) and P is not None and doc_digest(open(old, "rb").read()) != doc_digest(P):
+                D = open(old, "rb").read(); last = ""
+                if not dry:
+                    os.makedirs(folder, exist_ok=True)
+                    with open(dest, "wb") as fh: fh.write(D)
+        if P is None and D is None: continue
+        files[u["name"]] = (dest, u.get("drive", ""))
+        if D is None:                                                     # 共有ドライブにない: 置く
+            if not dry:
+                os.makedirs(folder, exist_ok=True)
+                with open(dest, "wb") as fh: fh.write(P)
+            placed.append(dest); new[u["unit"]] = doc_digest(P)
+        elif P is not None and doc_digest(D) == doc_digest(P):            # 同じ内容
+            if last != doc_digest(P): new[u["unit"]] = doc_digest(P)
+        elif P is not None and last == doc_digest(D):                     # 共有ドライブは変わっていない。ポータルが変わった: 新しい版にする
+            if not dry:
+                with open(dest, "wb") as fh: fh.write(P)
+            placed.append(dest); new[u["unit"]] = doc_digest(P)
+        else:                                                             # 共有ドライブで編集された: ポータルに反映する
+            if not dry:
+                r = tok.call("POST", f"/update/{u['unit']}/upload-url", {})
+                if "url" not in r: sys.exit(f"ポータルへの反映に失敗しました({u['name']}): {r.get('error', r)}")
+                upload(r["url"], D, DOCX)
+            pushed.append(dest); new[u["unit"]] = doc_digest(D)
+    if not dry and new: tok.call("PUT", "/sync/state", {"items": new})
+    if not only:   # 結合した草案(出力。共有ドライブで編集しても、反映されない)
+        r = tok.call("GET", "/export/guideline?sync=1")
+        if r.get("url"):
+            dest = os.path.join(folder, "ガイドライン草案(結合).docx"); data = fetch(r["url"])
+            if not (os.path.exists(dest) and doc_digest(open(dest, "rb").read()) == doc_digest(data)):
+                if not dry:
+                    os.makedirs(folder, exist_ok=True)
+                    with open(dest, "wb") as fh: fh.write(data)
+                placed.append(dest)
+    return {"placed": placed, "pushed": pushed, "files": files}
+
+
 def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=60, upload=put_bytes, generated=generated_digests, reset=None, repo=REPO):
     if not os.path.isdir(drive): sys.exit(f"共有ドライブのフォルダがありません: {drive}")
     copied, skipped, rel = [], [], lambda p: os.path.relpath(p, drive); L = Layout(drive)
@@ -256,7 +307,9 @@ def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=60, upload
     for g in tok.call("GET", "/gl2023/soron"):
         if g.get("docx_key"):
             r = tok.call("GET", f"/soron/{g['key']}/gl2023")
-            if r.get("docx_url"): place(os.path.join(L.top("依頼書"), os.path.basename(g["docx_key"])), fetch(r["docx_url"]), copied, skipped, dry)
+            dest_ = os.path.join(L.top("依頼書"), os.path.basename(g["docx_key"]))
+            if r.get("docx_url") and not os.path.exists(dest_): place(dest_, fetch(r["docx_url"]), copied, skipped, dry)   # 既にあるファイルは置き換えない(共有ドライブでの編集を失わない。編集は「ガイドライン_Update版」で行う)
+            elif os.path.exists(dest_): skipped.append(dest_)
     # Scope は、共有ドライブで人が編集した版(Google スプレッドシートでの編集)を正とし、ポータルへ反映する(ドライブ → ポータル)。
     # 生成した版のままのファイルは、ポータルの新しい版で置き換える(ポータル → ドライブ)。手順書は、生成した版を正とする(編集された版は、別の名前で残してから置き換える)
     placed = {}; pushed, unknown, aside, resets, gsheets = [], [], [], [], []   # placed: 文書のファイル名 -> (置いた場所, ポータルに登録済みの Google Drive の URL)
@@ -293,16 +346,19 @@ def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=60, upload
                     pushed.append(dest); continue
                 aside.append(keep_aside(dest, cur, dry))
         place(dest, data, copied, skipped, dry, overwrite=True)
+    up = sync_updates(tok, L, dry=dry, fetch=fetch, upload=upload); copied += up["placed"]; placed.update(up["files"])   # ガイドラインと総論の Update 版
     print(("【転送の内容の表示だけ。ファイルは置いていません】\n" if dry else "") + f"転送 {len(copied)} 件、変更なしで飛ばした {len(skipped)} 件")
     for p in copied: print("  置いた:" if not dry else "  置く:", rel(p))
     if pushed: print(f"Google Drive で編集された Scope を、ポータルに反映{'する' if dry else 'した'}: {len(pushed)} 件")
     for p in pushed: print("  反映:", rel(p))
+    if up["pushed"]: print(f"共有ドライブで編集された Update 版(ガイドライン・総論)を、ポータルに反映{'する' if dry else 'した'}: {len(up['pushed'])} 件")
+    for p in up["pushed"]: print("  反映:", rel(p))
     if resets: print(f"生成した版に戻{'す' if dry else 'した'}: {len(resets)} 件"); [print("  ", rel(p)) for p in resets]
     if aside: print(f"編集された版を、別の名前で残{'す' if dry else 'した'}: {len(aside)} 件"); [print("  ", rel(p)) for p in aside]
     if unknown: print(f"ポータルと内容が違うが、編集の有無を判定できないため、置き換えていない(git の履歴を読めない): {len(unknown)} 件"); [print("  ", rel(p)) for p in unknown]
     if gsheets: print("Google スプレッドシート形式に変換されたファイルは、ポータルに反映できません。Excel 形式(.xlsx)のファイルを編集してください:"); [print("  ", rel(p)) for p in gsheets]
-    if not dry and (copied or skipped or pushed):
-        tok.call("POST", "/sync/log", {"copied": len(copied), "skipped": len(skipped), "detail": "; ".join([rel(p) for p in copied] + ["ドライブ→ポータル: " + rel(p) for p in pushed])[:800]})
+    if not dry and (copied or skipped or pushed or up["pushed"]):
+        tok.call("POST", "/sync/log", {"copied": len(copied), "skipped": len(skipped), "detail": "; ".join([rel(p) for p in copied] + ["ドライブ→ポータル: " + rel(p) for p in pushed + up["pushed"]])[:800]})
     if not dry and placed:
         n, pending, seen = register_links(tok, placed, ids, wait)
         if not seen: print("Google Drive のリンク: 登録していません(このフォルダのファイルから、Google Drive の ID を読めない)")

@@ -61,6 +61,8 @@
   const sel = (opts, cur, attrs = "", blank = false) => `<select class="sm" ${attrs}>${blank ? '<option value="">—</option>' : ""}${opts.map((o) => `<option value="${esc(o)}" ${String(o) === String(cur) ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
   const selL = (opts, labels, cur, attrs = "") => `<select class="sm" ${attrs}><option value="">—</option>${opts.map((o) => `<option value="${esc(o)}" ${String(o) === String(cur) ? "selected" : ""}>${esc(labels[o] || o)}</option>`).join("")}</select>`;   // 値と表示名が違う選択肢
   const DESIGN = { RCT: "RCT", non_RCT: "非ランダム化比較試験", meta_analysis: "メタアナリシス", other: "その他" };
+  const okLine = (names, state, c) => `承認: ${(names || []).map((n) => esc(sei(n, c))).join("・") || "なし"}${state ? `(${state})` : ""}`;   // 担当の委員の承認の状況
+  const diffs = (mine, others, labels, c) => Object.entries(others || {}).map(([n, o]) => { const d = Object.keys(labels).filter((k) => String((o || {})[k] ?? "") !== String((mine || {})[k] ?? "")); return d.length ? `<div>${esc(sei(n, c))} との違い: ${d.map((k) => `${esc(labels[k])} ${esc(String((o || {})[k] ?? "") || "空欄")}`).join("、")}</div>` : ""; }).join("");
   const vsel = (cur, attrs = "") => sel([0, -1, -2], cur === null || cur === undefined ? "" : cur, attrs, true);
   const cqSelect = (cur, id) => `<select id="${id}">${S.cqs.map((c) => `<option value="${esc(c.id)}" ${c.id === cur ? "selected" : ""}>${esc(c.title)}</option>`).join("")}</select> <span class="small">担当: ${esc((S.cqs.find((c) => c.id === cur)?.assignees || []).join("・"))}</span>`;
   const sei = (n, c) => (c?.assignees || []).find((a) => String(n || "").startsWith(a)) || String(n || "");   // 表の中では、企画書の担当表の表記(姓)で出す
@@ -136,8 +138,8 @@
         ${list.map((p) => { const ch = p.chars || {}; return `<tr data-pmid="${esc(p.pmid)}"><td><a href="https://pubmed.ncbi.nlm.nih.gov/${esc(p.pmid)}/" target="_blank" rel="noopener">${esc(p.pmid)}</a></td>
           <td class="small">${esc([(p.authors || "").split(/[,;]/)[0], p.journal, p.year].filter(Boolean).join(". "))}</td><td class="w">${esc(p.title)}</td><td>${esc(DESIGN[ch.design] || ch.design || "")}</td>
           <td class="num">${esc(ch.n_total || "")}${ch.n_int ? " / " + esc(ch.n_int) : ""}</td><td class="small">${esc(ch.intervention_detail || "")}</td><td class="small">${esc(ch.comparator_detail || "")}</td><td class="small">${esc(ch.followup || "")}</td>
-          <td class="small nw">研究特性: ${p.chars_by ? `${esc(sei(p.chars_by, c))} 記入 / ${p.chars_checked_by ? esc(sei(p.chars_checked_by, c)) + " 確認" : "確認なし"}` : "記入なし"}<br>SR-5: 提出 ${p.sr5.submitted.length} 名${p.sr5.final ? "、確定" : ""}</td>
-          <td class="nw">${p.s3_key ? '<button data-act="pdf">PDF</button> ' : ""}${ed && p.s3_key && !String(p.status || "").startsWith("本文抽出済") ? '<button data-act="extract">本文を抽出する</button> ' : ""}${ed ? '<button data-act="chars">研究特性</button> ' : ""}<a href="#f45?cq=${esc(cqid)}&pmid=${esc(p.pmid)}">SR-5</a></td></tr>`; }).join("") || "<tr><td colspan=10 class='muted'>登録された論文はありません</td></tr>"}</table></div>
+          <td class="small nw">研究特性: ${okLine(p.chars_ok_by, p.chars_state, c)}<br>SR-5: 提出 ${p.sr5.submitted.length} 名${p.sr5.final ? "、確定" : ""}</td>
+          <td>${p.s3_key ? '<button data-act="pdf">PDF</button> ' : ""}${ed && p.s3_key && !String(p.status || "").startsWith("本文抽出済") ? '<button data-act="extract">本文を抽出する</button> ' : ""}${ed ? '<button data-act="chars">研究特性</button> ' : ""}<a href="#f45?cq=${esc(cqid)}&pmid=${esc(p.pmid)}">SR-5</a></td></tr>`; }).join("") || "<tr><td colspan=10 class='muted'>登録された論文はありません</td></tr>"}</table></div>
         <div id="charsBox"></div>`;
       $("#cqSel").addEventListener("change", () => go("papers", { cq: $("#cqSel").value }));
       $("#regBtn")?.addEventListener("click", async () => {
@@ -157,19 +159,19 @@
           if (b.dataset.act === "pdf") { const r = await api(`/papers/${cqid}/${pmid}/pdf-url`); window.open(r.url, "_blank"); }
           if (b.dataset.act === "extract") { const x = await api(`/papers/${cqid}/${pmid}/extract`, "POST", {}); toast(`本文を抽出しました(${x.pages}頁、${x.paragraphs}段落)`); render(); }
           if (b.dataset.act === "chars") {
-            const p = list.find((x) => x.pmid === pmid); const ch = p.chars || {};
-            $("#charsBox").innerHTML = `<div class="card" style="margin-top:12px"><h3>研究特性 PMID ${esc(pmid)} <span class="small">${p.chars_by ? `記入: ${esc(p.chars_by)} / 確認: ${esc(p.chars_checked_by || "なし")}` : ""}</span></h3>
-              ${ed && p.chars_by && p.chars_by !== S.me.name && !p.chars_checked_by ? '<div class="row"><button id="charsCheck" class="approve">内容を確認した(記入者と別の担当)</button></div>' : ""}<div class="row">
+            const p = list.find((x) => x.pmid === pmid); const ch = p.chars_mine || p.chars_ai || p.chars || {}; const CL = { design: "研究デザイン", cancer: "がん種", chemo_class: "化学療法の分類", chemo_drugs: "薬剤名", n_total: "対象者数", n_int: "介入群の人数", intervention_detail: "介入", comparator_detail: "対照", followup: "評価時点" };
+            $("#charsBox").innerHTML = `<div class="card" style="margin-top:12px"><h3>研究特性 PMID ${esc(pmid)} <span class="small">${okLine(p.chars_ok_by, p.chars_state, c)}</span></h3>
+              <p class="small">${p.chars_mine ? "自分が承認した内容" : p.chars_ai ? "AI下書き(論文の本文から)。論文で確かめ、違う欄を直して承認する" : "AI下書きなし(本文の抽出の後に作られる)"}</p>
+              ${p.chars_state === "不一致" ? `<div class="note need">${diffs(p.chars_mine, p.chars_others, CL, c)}</div>` : ""}<div class="row">
               <label class="small">題名 <input data-c="title" value="${esc(p.title)}" size="50"></label>
               <label class="small">研究デザイン ${selL(["RCT", "non_RCT", "meta_analysis", "other"], DESIGN, ch.design, 'data-c="design"')}</label>
               <label class="small">がん種 <input data-c="cancer" value="${esc(ch.cancer || "")}" size="16"></label>
               <label class="small">化学療法の分類 ${sel(S.meta.chemo_classes, ch.chemo_class, 'data-c="chemo_class"', true)}</label>
               <label class="small">薬剤名(論文の表記) <input data-c="chemo_drugs" value="${esc(ch.chemo_drugs || "")}" size="24"></label>
               <label class="small">対象者数 <input data-c="n_total" value="${esc(ch.n_total || "")}" size="5"></label><label class="small">介入群の人数 <input data-c="n_int" value="${esc(ch.n_int || "")}" size="5"></label></div>
-              <div class="row"><label class="small">介入 <input data-c="intervention_detail" value="${esc(ch.intervention_detail || "")}" size="40"></label><label class="small">対照 <input data-c="comparator_detail" value="${esc(ch.comparator_detail || "")}" size="30"></label><label class="small">評価時点 <input data-c="followup" value="${esc(ch.followup || "")}" size="20"></label><button id="charsSave" class="primary">保存</button></div></div>`;
-            $("#charsCheck")?.addEventListener("click", async () => { try { await api(`/papers/${cqid}/${pmid}/check`, "POST", {}); toast("確認を記録しました"); render(); } catch (e) { toast(e.message, true); } });
+              <div class="row"><label class="small">介入 <input data-c="intervention_detail" value="${esc(ch.intervention_detail || "")}" size="40"></label><label class="small">対照 <input data-c="comparator_detail" value="${esc(ch.comparator_detail || "")}" size="30"></label><label class="small">評価時点 <input data-c="followup" value="${esc(ch.followup || "")}" size="20"></label><button id="charsSave" class="approve">承認する</button></div></div>`;
             $("#charsSave").addEventListener("click", async () => { const chars = {}; let title = p.title; $("#charsBox").querySelectorAll("[data-c]").forEach((i) => { if (i.dataset.c === "title") title = i.value; else chars[i.dataset.c] = i.value; });
-              try { await api(`/papers/${cqid}/${pmid}`, "PUT", { title, chars }); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } });
+              try { const r = await api(`/papers/${cqid}/${pmid}`, "PUT", { title, chars }); toast(r.chars_state === "一致" ? "2名の承認が一致しました" : r.chars_state === "不一致" ? "相手の承認と内容が違います" : "承認しました"); render(); } catch (e) { toast(e.message, true); } });
           }
         } catch (e) { toast(e.message, true); }
       }));
@@ -204,9 +206,9 @@
         <div class="card" id="paraBox"><h3>本文の該当箇所 <button id="pdfBtn">PDF</button></h3>${text ? paraPanel(text, [...hl]) : `<p class="muted">本文がありません。<a href="#papers?cq=${esc(cqid)}">論文</a>で PDF を登録してください。</p>`}</div>
         <div class="card"><h3>判定(0 / -1 / -2) ${mine.submitted ? tag("提出済み", "ok") : ""} ${fin ? tag("確定", "ok") : d.reconcile_open ? tag("照合中", "run") : ""}</h3>
           <ol class="steps">${ai?.items
-            ? `<li>AI下書きを確認する(段落 ID を押すと、本文の該当箇所に移る)</li><li>判定が異なる項目だけ修正し、理由を書く</li><li>「確認して提出」を押す</li>`
-            : `<li>${ai?.status === "作成中" ? "AI下書きを作成中(1〜2分後に再読み込み)" : "「AI下書きを作る」を押す、または自分で判定する"}</li><li>「提出」を押す</li>`}
-            ${d.reconcile_open ? "<li>2名の判定を照合し、「照合の結果を確定する」を押す</li>" : ""}</ol>
+            ? `<li>AI下書きを確認する(段落 ID を押すと、本文の該当箇所に移る)</li><li>判定が異なる項目だけ修正し、理由を書く</li><li>「承認する」を押す。2名の内容が一致すると、確定する</li>`
+            : `<li>${ai?.status === "作成中" ? "AI下書きを作成中(1〜2分後に再読み込み)" : "「AI下書きを作る」を押す、または自分で判定する"}</li><li>「承認する」を押す。2名の内容が一致すると、確定する</li>`}
+            ${d.reconcile_open ? "<li>2名の内容が違う。照合し、「照合の結果を確定する」を押す</li>" : ""}</ol>
           <p class="note">${fin ? `確定済み(${esc(fin.fixed_by || "")})` : d.reconcile_open ? "2名が提出済み" : `提出済み: ${d.submitted.length} 名(${esc(d.submitted.join("・")) || "なし"})。相手の判定は、2名の提出後に表示される`}。盲検化の 2 項目は -2 を使わない。</p>
           <div class="row">${ed && text && !ai?.items ? `<button id="draftBtn">AI下書きを作る</button>` : ""}  ${ai && ai.status !== "下書き" ? `<span class="small">AI下書き: ${esc(ai.status || "")} ${ai.error ? esc(ai.error) : ""}</span>` : ""}</div>
           <div class="scroll"><table class="f45"><tr><th>項目</th>${ai?.items ? "<th>AI下書き</th>" : ""}<th>自分(${esc(S.me.name || "—")})</th>${otherCols.map(([n]) => `<th>${esc(n)}</th>`).join("")}${d.reconcile_open || fin || isLead() ? "<th>確定</th>" : ""}</tr>
@@ -219,7 +221,7 @@
             <label class="small">介入群 分子/分母 <input id="inum" value="${esc(dv(mine.counts?.int_num, ai?.counts?.int_num))}" size="4">/<input id="iden" value="${esc(dv(mine.counts?.int_den, ai?.counts?.int_den))}" size="4"></label>
             <label class="small">効果指標 ${sel(["RR", "OR", "HR", "MD", "SMD"], dv(mine.effect?.measure, ai?.effect?.measure), 'id="emeas"', true)} <input id="eval" value="${esc(dv(mine.effect?.value, ai?.effect?.value))}" size="6"> 95%信頼区間 [<input id="elo" value="${esc(dv(mine.effect?.ci_low, ai?.effect?.ci_low))}" size="6">, <input id="ehi" value="${esc(dv(mine.effect?.ci_high, ai?.effect?.ci_high))}" size="6">]</label></div>
           <div class="row"><label class="small">備考 <input id="note45" value="${esc(mine.note || "")}" size="60"></label></div>
-          <div class="row">${ed ? `<button id="save45">一時保存</button> <button id="submit45" class="primary">${ai?.items ? "確認して提出" : "提出"}</button>` : ""} ${(d.reconcile_open && d.submitted.includes(S.me.name)) || isLead() ? `<button id="final45" class="approve">照合の結果を確定する</button>` : ""}</div>
+          <div class="row">${ed ? `<button id="save45">一時保存</button> <button id="submit45" class="approve">承認する</button>` : ""} ${(d.reconcile_open && d.submitted.includes(S.me.name)) || isLead() ? `<button id="final45" class="approve">照合の結果を確定する</button>` : ""}</div>
           ${ai?.paragraphs_used ? `<p class="small">AI下書きの根拠: ${ai.paragraphs_used.length} 段落(Method・Result)。モデル ${esc(ai.model)}</p>` : ""}</div></div>`;
       if (text) wireParas($("#paraBox"));
       $("#pdfBtn")?.addEventListener("click", async () => { try { const r = await api(`/papers/${cqid}/${pmid}/pdf-url`); window.open(r.url, "_blank"); } catch (e) { toast(e.message, true); } });
@@ -232,7 +234,7 @@
       const path = `/f45/${cqid}/${pmid}/${encodeURIComponent(outcome)}`;
       $("#save45")?.addEventListener("click", async () => { try { await api(path, "PUT", { ...collect("mine"), submitted: false }); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } });
       $("#submit45")?.addEventListener("click", async () => { const b = collect("mine"); if (K.some((k) => b.items[k].v === null)) return toast("未判定の項目があります。該当しない項目は -1 とし、備考に理由を書いてください", true);
-        try { await api(path, "PUT", { ...b, submitted: true }); toast("提出しました"); render(); } catch (e) { toast(e.message, true); } });
+        try { const r = await api(path, "PUT", { ...b, submitted: true }); toast(r.final ? "2名の承認が一致し、確定しました" : "承認しました"); render(); } catch (e) { toast(e.message, true); } });
       $("#final45")?.addEventListener("click", async () => { try { await api(path + "/final", "PUT", collect("final")); toast("確定しました"); render(); } catch (e) { toast(e.message, true); } });
       $("#draftBtn")?.addEventListener("click", async () => { try { await api(path + "/draft", "POST", {}); toast("AI下書きを作成中です(1〜2分後に再読み込み)"); setTimeout(render, 60000); } catch (e) { toast(e.message, true); } });
     },
@@ -241,7 +243,11 @@
       const q = Q(); const cqid = q.cq || S.cqs[0]?.id; const c = S.cqs.find((x) => x.id === cqid); const d = await api("/sr8/" + cqid); const ed = own(c) || isLead();
       m.innerHTML = `<h2>SR-8 エビデンス総体評価シート</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
         <div class="row">${manual("エビデンス総体")}</div>
-        ${d.outcomes.map((o) => { const r = o.sr8 || {}; return `<div class="card" style="margin-bottom:12px" data-o="${esc(o.outcome)}"><h3>${esc(o.outcome)} <span class="small">確定した SR-5: ${o.n_studies} 研究${r.by ? `。記入: ${esc(r.by)} / 確認: ${esc(r.checked_by || "なし")}` : ""}</span></h3>
+        ${d.outcomes.map((o) => { const ai = o.ai && o.ai.status === "下書き" ? o.ai : null, r = ed ? (o.mine || ai || o.sr8 || {}) : (o.sr8 || {}); /* 担当の委員には、自分の承認(なければ AI下書き)。それ以外には、2名の承認が一致した内容 */ const SL = { rob: "バイアスリスク", inconsistency: "非一貫性", imprecision: "不精確性", indirectness: "非直接性", publication_bias: "その他", upgrade: "上昇要因", certainty: "確実性", eff_val: "統合値", eff_ci: "95%信頼区間", abs_val: "絶対効果" };
+          return `<div class="card" style="margin-bottom:12px" data-o="${esc(o.outcome)}"><h3>${esc(o.outcome)} <span class="small">確定した SR-5: ${o.n_studies} 研究。${okLine(o.approved_by, o.state, c)}</span></h3>
+          <p class="small">${o.mine ? "自分が承認した内容" : ai ? "AI下書き(確定した SR-5 から)。確かめ、違う欄を直して承認する" : o.ai?.status === "作成中" ? "AI下書きを作成中(1〜2分後に再読み込み)" : o.ai?.status === "失敗" ? "AI下書きに失敗: " + esc(o.ai.error || "") : "AI下書きなし"}${ed && !ai && o.n_studies && o.ai?.status !== "作成中" ? ' <button data-act="draft">AI下書きを作る</button>' : ""}</p>
+          ${ai && !o.mine ? `<details><summary>AI下書きの理由</summary>${Object.entries(ai.reasons || {}).filter(([, v]) => v).map(([k, v]) => `<div class="small"><b>${esc(SL[k] || k)}</b> ${esc(v)}</div>`).join("")}</details>` : ""}
+          ${o.state === "不一致" ? `<div class="note need">${diffs(o.mine, o.others, SL, c)}</div>` : ""}
           <table><tr><th>化学療法の分類</th><th>研究(PMID)</th><th>バイアスリスク(まとめ)</th><th>非直接性(まとめ)</th><th>効果指標</th></tr>
             ${Object.entries(o.by_chemo_class).map(([cls, rows]) => `<tr><td>${esc(cls)}</td><td>${rows.map((x) => esc(x.pmid)).join(", ")}</td><td>${rows.map((x) => x.bias_summary ?? "—").join(", ")}</td><td>${rows.map((x) => x.ind_summary ?? "—").join(", ")}</td><td class="small">${rows.map((x) => x.effect?.measure ? `${esc(x.effect.measure)} ${esc(x.effect.value)}` : "—").join("; ")}</td></tr>`).join("") || "<tr><td colspan=5 class='muted'>確定した SR-5 はありません</td></tr>"}</table>
           <div class="row">${["rob", "inconsistency", "imprecision", "indirectness", "publication_bias"].map((k, i) => `<label class="small">${esc(S.meta.sr8_ja[i])} ${ed ? vsel(r[k], `data-k="${k}"`) : `<b>${r[k] ?? "—"}</b>`}</label>`).join("")}
@@ -253,12 +259,12 @@
             ${ed ? `<button data-sum='${esc(JSON.stringify(o.sums))}'>SR-5 の単純合計を入力(対照群 ${o.sums.ctrl_num}/${o.sums.ctrl_den}、介入群 ${o.sums.int_num}/${o.sums.int_den})</button>` : ""}</div>
           <div class="row"><label class="small">効果指標(種類) <input data-k="eff_type" value="${esc(r.eff_type || "")}" size="10" placeholder="RR など" ${ed ? "" : "readonly"}></label><label class="small">統合値 <input data-k="eff_val" value="${esc(r.eff_val || "")}" size="8" ${ed ? "" : "readonly"}></label><label class="small">95%信頼区間 <input data-k="eff_ci" value="${esc(r.eff_ci || "")}" size="14" ${ed ? "" : "readonly"}></label>
             <label class="small">絶対効果 <input data-k="abs_val" value="${esc(r.abs_val || "")}" size="12" ${ed ? "" : "readonly"}></label><label class="small">絶対効果の95%信頼区間 <input data-k="abs_ci" value="${esc(r.abs_ci || "")}" size="14" ${ed ? "" : "readonly"}></label></div>
-          <div class="row"><label class="small">化学療法の分類ごとの結論 <input data-k="strata" value="${esc(r.strata || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">効果の要約 <input data-k="effect_summary" value="${esc(r.effect_summary || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">備考 <input data-k="note" value="${esc(r.note || "")}" size="30" ${ed ? "" : "readonly"}></label>${ed ? '<button data-act="save">保存</button>' : ""}${ed && r.certainty && r.by !== S.me.name && !r.checked_by ? ' <button data-act="check" class="approve">内容を確認した(記入者と別の担当)</button>' : ""}</div></div>`; }).join("") || '<p class="muted">アウトカムが登録されていません。</p>'}`;
+          <div class="row"><label class="small">化学療法の分類ごとの結論 <input data-k="strata" value="${esc(r.strata || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">効果の要約 <input data-k="effect_summary" value="${esc(r.effect_summary || "")}" size="40" ${ed ? "" : "readonly"}></label><label class="small">備考 <input data-k="note" value="${esc(r.note || "")}" size="30" ${ed ? "" : "readonly"}></label>${ed ? '<button data-act="save" class="approve">承認する</button>' : ""}</div></div>`; }).join("") || '<p class="muted">アウトカムが登録されていません。</p>'}`;
       $("#cqSel").addEventListener("change", () => go("sr8", { cq: $("#cqSel").value }));
       m.querySelectorAll("button[data-sum]").forEach((b) => b.addEventListener("click", () => { const s = JSON.parse(b.dataset.sum), c = b.closest(".card"); Object.entries(s).forEach(([k, v]) => { c.querySelector(`[data-k="${k}"]`).value = v; }); }));
-      m.querySelectorAll("button[data-act=check]").forEach((b) => b.addEventListener("click", async () => { try { await api(`/sr8/${cqid}/${encodeURIComponent(b.closest(".card").dataset.o)}/check`, "POST", {}); toast("確認を記録しました"); render(); } catch (e) { toast(e.message, true); } }));
+      m.querySelectorAll("button[data-act=draft]").forEach((b) => b.addEventListener("click", async () => { try { await api(`/sr8/${cqid}/${encodeURIComponent(b.closest(".card").dataset.o)}/draft`, "POST", {}); toast("AI下書きを作成中です(1〜2分後に再読み込み)"); setTimeout(render, 60000); render(); } catch (e) { toast(e.message, true); } }));
       m.querySelectorAll("button[data-act=save]").forEach((b) => b.addEventListener("click", async () => { const d2 = b.closest(".card"); const body = {}; d2.querySelectorAll("[data-k]").forEach((i) => (body[i.dataset.k] = i.value));
-        try { await api(`/sr8/${cqid}/${encodeURIComponent(d2.dataset.o)}`, "PUT", body); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } }));
+        try { const r2 = await api(`/sr8/${cqid}/${encodeURIComponent(d2.dataset.o)}`, "PUT", body); toast((r2.agreed_by || []).length ? "2名の承認が一致しました" : "承認しました"); render(); } catch (e) { toast(e.message, true); } }));
     },
 
     async etd(m) {
@@ -266,7 +272,7 @@
       const cons = S.meta.etd_considerations;
       m.innerHTML = `<h2>EtD・推奨</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")} ${tag(e.status)}</div>
         <ol class="steps"><li>2023年版の記述と、<a href="#sr8?cq=${esc(cqid)}">SR-8</a> の確実性を確認する</li><li>「2028年版(案)」に記入し、状態を「協議中」にして保存する</li>
-          <li><a href="#vote?cq=${esc(cqid)}">推奨の投票</a>で投票する</li><li>統括委員会が確定する</li></ol><div class="row">${manual("担当の委員が行うこと")}</div>
+          <li><a href="#vote?cq=${esc(cqid)}">推奨の投票</a>で投票する</li><li>統括委員会が確定する</li></ol><div class="row">${manual("担当の委員が行うこと")} <a class="tag" href="#view?u=cq/${esc(cqid)}">Update 版(Word)</a></div>
         <div class="split">
           <div class="card"><h3>2023年版</h3>${g ? `<p><b>推奨文</b> ${esc(g.rec)}</p><p>推奨の強さ ${esc(g.strength)} / エビデンスの確実性 ${esc(g.certainty)} ${g.votes ? `/ 投票 ${g.votes.denominator} 名(強さ 1〜5 の順: ${(g.votes.counts || []).join("・")}。除外: COI ${g.votes.coi}、SR担当 ${g.votes.sr})` : ""}</p>
             <div class="paras">${(g.paragraphs || []).map((p) => `<div class="para"><span class="pid">${esc(p.id)}</span><div>${esc(p.text)}</div></div>`).join("")}</div>` : '<p class="muted">2023年版の記述は、登録されていません。</p>'}
@@ -308,7 +314,7 @@
             <td>${ed ? `<input type="date" data-due value="${esc(s.due || "")}">` : esc(s.due || "")}</td>
             <td class="small">${s.file ? `<a href="#" data-dl="${esc(s.key)}">${esc(s.file)}</a><br>${esc((s.file_at || "").slice(0, 16))} ${esc(s.file_by || "")}` : "—"}${ed ? `<br><input type="file" data-up accept=".docx,.doc,.pdf"> <button data-act="upload">提出</button>` : ""}</td>
             <td>${admin ? `<textarea data-review rows="2" cols="24">${esc(s.review || "")}</textarea>` : esc(s.review || "")}${s.review_by ? `<div class="small">${esc(s.review_by)} ${esc((s.review_at || "").slice(0, 16))}</div>` : ""}</td>
-            <td>${ed ? `<input data-note value="${esc(s.note || "")}" size="14">` : esc(s.note || "")}</td><td>${ed ? '<button data-act="save">保存</button> ' : ""}<button data-gl="${esc(s.key)}">依頼書・2023年版</button></td></tr>`; }).join("") || "<tr><td colspan=9 class='muted'>担当の総論はありません</td></tr>"}</table><div id="gl2023Box"></div>`;
+            <td>${ed ? `<input data-note value="${esc(s.note || "")}" size="14">` : esc(s.note || "")}</td><td>${ed ? '<button data-act="save">保存</button> ' : ""}<button data-gl="${esc(s.key)}">依頼書・2023年版</button> <a href="#view?u=soron/${esc(s.key)}">Update 版</a></td></tr>`; }).join("") || "<tr><td colspan=9 class='muted'>担当の総論はありません</td></tr>"}</table><div id="gl2023Box"></div>`;
       m.querySelectorAll("button[data-act=save]").forEach((b) => b.addEventListener("click", async () => { const tr = b.closest("tr"); const body = { status: tr.querySelector("[data-status]").value, due: tr.querySelector("[data-due]").value, note: tr.querySelector("[data-note]").value };
         const rv = tr.querySelector("[data-review]"); if (rv) body.review = rv.value;
         try { await api("/soron/" + tr.dataset.key, "PUT", body); toast("保存しました"); render(); } catch (e) { toast(e.message, true); } }));
@@ -552,7 +558,7 @@
     },
 
     async view(m) {
-      const q = Q(); const d = await api("/docs/view?" + new URLSearchParams(q.name ? { name: q.name } : { doc: q.doc || "" })); const hex = (c) => /^#[0-9a-f]{6}$/.test(c || "") ? c : "";
+      const q = Q(); const d = q.u ? await api("/update/view?" + new URLSearchParams({ unit: q.u })) : await api("/docs/view?" + new URLSearchParams(q.name ? { name: q.name } : { doc: q.doc || "" })); const hex = (c) => /^#[0-9a-f]{6}$/.test(c || "") ? c : "";
       const cell = (c) => c === null ? "" : `<td${c.rs ? ` rowspan="${Number(c.rs)}"` : ""}${c.cs ? ` colspan="${Number(c.cs)}"` : ""} class="${c.bd ? "bd" : ""}${c.b ? " b" : ""}${c.al ? " c" : ""}${(c.v || "").length <= 4 ? " s" : ""}"${hex(c.bg) ? ` style="background:${hex(c.bg)}"` : ""}>${esc(c.v || "")}</td>`;
       const sheet = (s) => { s.cols = s.cols.map((w) => Math.max(w, 7)); const sum = s.cols.reduce((a, b) => a + b, 0) || 1;   // 狭い列は、画面で読める幅にする
         return `${d.sheets.length > 1 ? `<h3>${esc(s.name)}</h3>` : ""}<table class="xl"><colgroup>${s.cols.map((w) => `<col style="width:${(w / sum * 100).toFixed(2)}%">`).join("")}</colgroup>${s.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("")}</table>`; };
@@ -565,7 +571,7 @@
           else out += `<p class="doc${b.b ? " b" : ""}">${esc(b.text)}</p>`; }
         return out + (open ? "</ul>" : ""); };
       m.innerHTML = `<h2>${esc(d.name.replace(/\.(docx|xlsx)$/, ""))}</h2>
-        <div class="row"><a href="#${d.target === "Scope" ? "scope" : "docs"}">一覧に戻る</a>${d.drive ? `<a href="${esc(d.drive)}" target="_blank" rel="noopener">Google Drive で開く</a>` : ""}<a href="${esc(d.url)}">ダウンロード</a></div>
+        <div class="row"><a href="#${q.u ? (q.u.startsWith("soron") ? "soron" : "etd?cq=" + esc(q.u.split("/")[1])) : d.target === "Scope" ? "scope" : "docs"}">${q.u ? "戻る" : "一覧に戻る"}</a>${q.u ? `<span class="small">${esc(d.source || "")}${d.at ? " " + esc(d.at) : ""}</span>` : ""}${d.drive ? `<a href="${esc(d.drive)}" target="_blank" rel="noopener">Google Drive で開く</a>` : ""}<a href="${esc(d.url)}">ダウンロード</a></div>
         <div class="card docview">${d.kind === "xlsx" ? d.sheets.map(sheet).join("") : blocks(d.blocks)}</div>`;
       if (q.h) setTimeout(() => [...m.querySelectorAll("[data-h]")].find((x) => x.textContent.includes(q.h))?.scrollIntoView(), 0);
     },
