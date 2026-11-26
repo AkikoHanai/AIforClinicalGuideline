@@ -46,6 +46,8 @@ sr_output/
 output/
 *.csv
 *.xlsx
+# 生成した Scope(Minds 公式テンプレートに記入した SC-1〜SC-4)は、リポジトリに入れる
+!platform/scope/out/minds/*.xlsx
 
 # Cache
 .cache/

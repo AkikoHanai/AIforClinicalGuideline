@@ -713,7 +713,8 @@ def test_docs_missing_list_and_setup_verify(env):
     for n in ("2_統括委員会へのお願い.docx", "3_SR委員長の業務手順.docx", "4_SR委員の手順書.docx", "5_総説執筆者の手順書.docx", "6_論文PDFの入手と配置の手順.docx", "6_用語の定義.docx"): boto3.client("s3").put_object(Bucket=H.BUCKET, Key="docs/" + n, Body=b"x")
     plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8"))
     for n in ["SC-1_a.xlsx", "SC-2_a.xlsx", "SC-3_a.xlsx"] + [f"SC-4_{i['名称']}.xlsx" for i in plan["SR項目"] + plan["FRQ項目"]]: boto3.client("s3").put_object(Bucket=H.BUCKET, Key="scope/" + n, Body=b"x")
-    H.put("GL2023S", "A", {"key": "A", "title": "x", "paragraphs": [{"id": "A-1", "text": "t"}], "docx_key": "soron2023/A/a.docx"})
+    for u in json.load(open(os.path.join(HERE, "..", "..", "data", "gl2023", "units.json"), encoding="utf-8")): H.put("GL2023S", u["key"], {"key": u["key"], "title": "x", "paragraphs": [{"id": f"{u['key']}-1", "text": "t"}], "docx_key": f"soron2023/{u['key']}/a.docx"})
+    H.put("GL2023S", "K", {"key": "K", "title": "新規", "paragraphs": [], "docx_key": "soron2023/K/a.docx"})                       # 2023年版にない総論は、本文がなくてよい
     for c in call("GET", "/cq")[1]: H.put("GL2023", c["id"], {"cq": c["id"], "rec": "推奨文", "paragraphs": []})
     call("PUT", "/cq/P1", {"outcomes": ["CIPN"]}); [call("PUT", f"/cq/{c['id']}", {"outcomes": ["CIPN"]}) for c in call("GET", "/cq")[1]]
     res = SP.verify(Tok()); assert all(o for o, _ in res), [m for o, m in res if not o]
@@ -776,6 +777,15 @@ def test_scope_is_placed_in_chapter3_folders(env, tmp_path):
     SD.sync(Tok(), d1, fetch=fetch); assert open(os.path.join(ch3, "chap3_SC_3_スコープ", "SC-3_スコープ.xlsx"), "rb").read() == b"v2"
     d2 = str(tmp_path / "b"); os.makedirs(os.path.join(d2, "Chap3_スコープ")); SD.sync(Tok(), d2, fetch=fetch); assert os.path.exists(os.path.join(d2, "Chap3_スコープ", "SC-3_スコープ.xlsx"))
     d3 = str(tmp_path / "c"); os.makedirs(d3); SD.sync(Tok(), d3, fetch=fetch); assert os.path.exists(os.path.join(d3, "ポータル出力", "Scope", "SC-3_スコープ.xlsx"))
+
+
+def test_scope_files_are_not_git_ignored():
+    """生成した Scope の Excel(18件)は、リポジトリに入る(.gitignore の *.xlsx に除外されない)。除外されると、統括委員長の Mac に届かず、ポータルに登録できない。"""
+    import subprocess
+    root = os.path.join(HERE, "..", "..", ".."); d = os.path.join(root, "platform", "scope", "out", "minds"); files = [os.path.join(d, f) for f in os.listdir(d) if f.endswith(".xlsx")]
+    assert len(files) == 18
+    r = subprocess.run(["git", "check-ignore"] + files, cwd=root, capture_output=True, text=True); assert r.stdout.strip() == "", "除外されているファイルがあります: " + r.stdout[:200]   # 出力なし: どれも除外されない
+    r = subprocess.run(["git", "ls-files", "platform/scope/out/minds"], cwd=root, capture_output=True, text=True); assert len([x for x in r.stdout.splitlines() if x.endswith(".xlsx\"") or x.endswith(".xlsx")]) == 18
 
 
 def test_sr8_has_minds_sr8_columns(env):

@@ -22,7 +22,8 @@ def verify(tok):
     out.append((not miss and bool(have), f"手順書・Scope: 登録 {len(have)}件" + (f"、未登録 {', '.join(miss)}" if miss else "")))
     sor = tok.call("GET", "/gl2023/soron"); sor = sor if isinstance(sor, list) else []
     plan = tok.call("GET", "/soron"); plan = plan if isinstance(plan, list) else []
-    out.append((bool(sor) and all(x.get("paragraphs") for x in sor), f"2023年版の総論の本文: {sum(1 for x in sor if x.get('paragraphs'))}件(総論の項目 {len(plan)}件。2023年版にない項目は、登録がない)"))
+    n23 = len(json.load(open(os.path.join(ROOT, "data", "gl2023", "units.json"), encoding="utf-8"))); n_text = sum(1 for x in sor if x.get("paragraphs"))   # 2023年版にある総論の数(2023年版にない項目の本文は、ない)
+    out.append((n_text >= n23, f"2023年版の総論の本文: {n_text}件(2023年版にある総論 {n23}件。総論の項目 {len(plan)}件のうち、2023年版にない項目は、本文がない)"))
     out.append((bool(sor) and any(x.get("docx_key") for x in sor), f"総論の依頼書(Word): {sum(1 for x in sor if x.get('docx_key'))}件"))
     gl = tok.call("GET", "/gl2023"); gl = gl if isinstance(gl, list) else []
     cqs = tok.call("GET", "/cq"); cqs = cqs if isinstance(cqs, list) else []
