@@ -280,6 +280,9 @@ def test_web_style_rules():
     assert ".approve" in css and js.count('class="approve"') >= 3  # SR-5 の確定、EtD の確定、総論の完了
     assert "対応が必要なもの" in js and "自分の担当 CQ" in js                                  # ホームは、利用者ごとの内容
     for gone in ("現在の段階", "承認(確定)の記録がない件", "統括委員長承認済み", "手順1 CQ・PICO", "PICO は", "論文(PDF登録・本文)", "自分の欄に取り込んで修正する"): assert gone not in js, gone   # 削除した文言(推測の状態・承認の説明・PICO の入力・過剰な作業)
+    for gone in ("相手の判定は、自分がその文献のその段階を判定した後に表示される(2名独立)", "検索結果(「検索の記録」の件数の文献)と", "件数は、検索の記録とスクリーニングの記録から数えた値である", "この枠は参考資料であり", "Word を開く"): assert gone not in js, gone   # 説明文は、手順のリンクに置き換えた
+    assert 'data-show="${k}"' in js and "#search?cq=${esc(cqid)}" in js and "#papers?cq=${esc(cqid)}" in js and 'manual("スクリーニング")' in js      # スクリーニングの手順は、その操作の場所へのリンク
+    assert "#view?name=${encodeURIComponent(d.name)}" in js and "Google Drive" in js and "ダウンロード" in js                                    # 文書の「開く」は、画面の中で表示する
 
 
 def test_extract_does_not_stop_at_front_matter_or_references():
@@ -745,7 +748,10 @@ def test_scope_documents_follow_minds_forms_and_decisions():
     wbs = {f: openpyxl.load_workbook(os.path.join(d, f)) for f in files}; assert all(len(w.worksheets) == 1 for w in wbs.values())     # テンプレートの1シートだけ
     text = lambda f: "\n".join(str(c.value) for ws in wbs[f].worksheets for row in ws.iter_rows() for c in row if c.value is not None)
     sc1, sc2, sc3 = text(files[0]), text(files[1]), text(files[2])
-    assert all(h in sc1 for h in ("【SC-1", "臨床的特徴", "疫学的特徴", "診療の全体的な流れ")) and "【SC-2" in sc2 and "診療アルゴリズム（図）" in sc2 and all(i["名称"] in sc2 for i in its)
+    assert all(h in sc1 for h in ("【SC-1", "臨床的特徴", "疫学的特徴", "診療の全体的な流れ")) and "【SC-2" in sc2 and "診療アルゴリズム（図）" in sc2
+    assert not any(i["名称"] in sc2 or i["キー"] in sc2 for i in its), "SC-2 に個別の介入を載せない(行うかどうかは推奨で決まる。2023年版で行わないことを推奨した介入を、診療の流れに並べない)"
+    assert all(c in sc2 for c in ("薬物療法による予防(CQ)", "非薬物療法による予防(CQ)", "薬物療法による治療(CQ・FRQ)", "非薬物療法による治療(CQ)", "CIPNの評価", "被疑薬の延期・減量・中止"))
+    assert not re.search(r"2023年版 総論|総論[A-N][-0-9]*\)|[（(](表|図)\s*\d|\(SC-\d", sc1 + sc2), "出典・図表・他の様式への参照の表記を付けない"
     assert all(h in sc3 for h in ("【SC-3", "診療ガイドラインがカバーする視点", "既存の診療ガイドラインとの関係", "実施スケジュール", "エビデンスの検索", "推奨作成の基本方針", "外部評価の具体的方法", "公開の予定"))   # テンプレートの項目名
     assert "Individual perspective" in sc3 and wbs[files[2]].worksheets[0]["F52"].value == "記載しない" and plan["タイトル"] in sc3 and "PubMed" in sc3 and "患者代表は含めない" in sc3 and "男性・女性を含む" in sc3 and "地理的要件はない" in sc3
     assert all(f"・{i['名称']}" in sc3 for i in its) and wbs[files[2]].worksheets[0]["D3"].value == "第1版"
@@ -786,6 +792,54 @@ def test_scope_files_are_not_git_ignored():
     assert len(files) == 18
     r = subprocess.run(["git", "check-ignore"] + files, cwd=root, capture_output=True, text=True); assert r.stdout.strip() == "", "除外されているファイルがあります: " + r.stdout[:200]   # 出力なし: どれも除外されない
     r = subprocess.run(["git", "ls-files", "platform/scope/out/minds"], cwd=root, capture_output=True, text=True); assert len([x for x in r.stdout.splitlines() if x.endswith(".xlsx\"") or x.endswith(".xlsx")]) == 18
+
+
+def test_documents_open_in_browser_with_drive_links(env, tmp_path):
+    """Scope・手順書の「開く」は、ダウンロードさせずに画面に表示する(/docs/view)。Google Drive 上の URL は、fetch.sh(sync_drive)が転送したファイルの ID から登録し、一覧と表示の画面にリンクを出す。"""
+    import importlib, urllib.parse
+    sys.path.insert(0, os.path.join(HERE, "..", "scripts")); SD = importlib.import_module("sync_drive"); s3c = boto3.client("s3"); root = os.path.join(HERE, "..", "..")
+    src = {"SC-3_スコープ.xlsx": os.path.join(root, "scope", "out", "minds", "SC-3_スコープ.xlsx"), "SC-2_診療アルゴリズム.xlsx": os.path.join(root, "scope", "out", "minds", "SC-2_診療アルゴリズム.xlsx"),
+           "4_SR委員の手順書.docx": os.path.join(root, "manuals", "out", "4_SR委員の手順書.docx"), "2_統括委員会へのお願い_スケジュールとアプリの精査.docx": os.path.join(root, "manuals", "out", "2_統括委員会へのお願い_スケジュールとアプリの精査.docx")}
+    for n, f in src.items():
+        c, r = call("POST", "/docs/upload-url", {"filename": n}); assert c == 200; s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=open(f, "rb").read())
+    q = lambda **kw: "/docs/view?" + urllib.parse.urlencode(kw)
+    c, v = call("GET", q(name="SC-3_スコープ.xlsx"), who=R1); assert c == 200 and v["kind"] == "xlsx" and v["target"] == "Scope" and v["url"] and v["drive"] == "" and len(v["sheets"]) == 1
+    cells = [x for row in v["sheets"][0]["rows"] for x in row if x]; texts = [x.get("v", "") for x in cells]
+    assert "【SC-3\u3000スコープ】" in texts and "Individual perspective(個人の視点)" in texts and any(x.get("cs", 1) > 1 for x in cells) and any(x.get("bg") for x in cells) and any(x.get("bd") for x in cells)
+    assert all(len(row) == len(v["sheets"][0]["cols"]) for row in v["sheets"][0]["rows"])                                  # 行ごとの列数が揃う(結合の内側は None)
+    for row in v["sheets"][0]["rows"]:                                                                                   # 結合(cs)と None の数が合う(表が崩れない)
+        assert sum(x.get("cs", 1) for x in row if x) <= len(row)
+    ver = next(x for x in cells if x.get("v") == "バージョン："); assert ver.get("cs", 1) >= 2                              # 折り返しのない見出しは、右の空のセルへはみ出す(Excel と同じ)
+    c, v2 = call("GET", q(name="SC-2_診療アルゴリズム.xlsx")); t2 = [x.get("v", "") for row in v2["sheets"][0]["rows"] for x in row if x]; assert "薬物療法による予防(CQ)" in t2 and not any("カルニチン" in x for x in t2)
+    c, d = call("GET", q(doc="SR委員の手順書"), who=R1); assert c == 200 and d["kind"] == "docx" and d["name"] == "4_SR委員の手順書.docx"
+    kinds = {b["t"] for b in d["blocks"]}; assert {"title", "h1", "p", "li", "table"} <= kinds and any(b["t"] == "h1" and "スクリーニング" in b["text"] for b in d["blocks"])
+    assert call("GET", q(name="2_統括委員会へのお願い_スケジュールとアプリの精査.docx"), who=R1)[0] == 404 and call("GET", q(name="2_統括委員会へのお願い_スケジュールとアプリの精査.docx"))[0] == 200   # 役割で見えない文書は、表示もしない
+    assert call("GET", q(name="ない.xlsx"))[0] == 404 and call("GET", q(doc=""))[0] == 404 and call("GET", q(doc="SC-3"), who=R1)[0] == 404
+    assert call("GET", q(name="SC-3_スコープ.xlsx"), who=dict(email="x@example.org", groups=()))[0] == 403           # 承認前の利用者には出さない
+    # Google Drive のリンク: 統括委員会・事務局だけが登録できる。drive.google.com 以外の URL は登録しない
+    u = "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view"
+    assert call("PUT", "/docs/links", {"links": {"SC-3_スコープ.xlsx": u}}, R1)[0] == 403
+    assert call("PUT", "/docs/links", {"links": {"SC-3_スコープ.xlsx": u, "SC-2_診療アルゴリズム.xlsx": "https://example.org/x", "4_SR委員の手順書.docx": "javascript:alert(1)"}})[1] == {"saved": 1}
+    assert call("PUT", "/docs/links", {"links": {"SC-3_スコープ.xlsx": u}})[1] == {"saved": 0}                          # 同じ URL は、記録を増やさない
+    got = {x["name"]: x["drive"] for x in call("GET", "/docs?kind=all")[1]}; assert got["SC-3_スコープ.xlsx"] == u and got["SC-2_診療アルゴリズム.xlsx"] == "" and got["4_SR委員の手順書.docx"] == ""
+    assert call("GET", q(name="SC-3_スコープ.xlsx"), who=R1)[1]["drive"] == u and "key" not in call("GET", "/docs?kind=scope", who=R1)[1][0]
+    # fetch.sh: 置いたファイルの ID(Google Drive for desktop の拡張属性)から URL を登録する。同期前(local-)は待ち、ID を読めないフォルダでは登録しない
+    class Tok:
+        def call(self, method, path, body=None): return call(method, path, body)[1]
+    fetch = lambda url: s3c.get_object(Bucket=H.BUCKET, Key=urllib.parse.unquote(urllib.parse.urlparse(url).path.lstrip("/")))["Body"].read()
+    drive = str(tmp_path / "d"); os.makedirs(drive); n = {"k": 0}
+    def ids(path):
+        n["k"] += 1; base = os.path.basename(path)
+        if base.startswith("SC-2") and n["k"] < 8: return "local-1234567890abcdef"      # 同期前
+        return {"SC-3_スコープ.xlsx": "1AbCdEfGhIjKlMnOpQrStUvWxYz012345", "SC-2_診療アルゴリズム.xlsx": "1ZZZdEfGhIjKlMnOpQrStUvWxYz0SC2xx", "4_SR委員の手順書.docx": "1MMMdEfGhIjKlMnOpQrStUvWxYz0man4x"}.get(base)
+    slept = []; placed = {x["name"]: (os.path.join(drive, x["name"]), x["drive"]) for x in call("GET", "/docs?kind=all")[1]}
+    new, pending, seen = SD.register_links(Tok(), placed, ids=ids, wait=60, sleep=slept.append)
+    assert seen and new == 2 and pending == ["2_統括委員会へのお願い_スケジュールとアプリの精査.docx"] and slept and sum(slept) <= 60    # SC-3 は登録済みのため、新規は SC-2 と手順書。ID のないファイルは未登録
+    got = {x["name"]: x["drive"] for x in call("GET", "/docs?kind=all")[1]}; assert got["SC-2_診療アルゴリズム.xlsx"] == "https://drive.google.com/file/d/1ZZZdEfGhIjKlMnOpQrStUvWxYz0SC2xx/view" and got["4_SR委員の手順書.docx"].endswith("/view")
+    slept2 = []; assert SD.register_links(Tok(), placed, ids=lambda p: None, wait=60, sleep=slept2.append) == (0, sorted(placed), False) and not slept2    # ID を読めないフォルダ(Google Drive for desktop の外)では、待たない
+    SD.sync(Tok(), drive, fetch=fetch, ids=lambda p: None)                                                               # 転送そのものは、ID を読めなくても完了する
+    assert os.path.exists(os.path.join(drive, "ポータル出力", "Scope", "SC-3_スコープ.xlsx"))
+    assert SD.drive_attr(os.path.join(drive, "ポータル出力", "Scope", "SC-3_スコープ.xlsx")) is None                    # Google Drive の外のファイルには、ID がない
 
 
 def test_sr8_has_minds_sr8_columns(env):

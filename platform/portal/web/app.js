@@ -61,6 +61,8 @@
   const sel = (opts, cur, attrs = "", blank = false) => `<select class="sm" ${attrs}>${blank ? '<option value="">—</option>' : ""}${opts.map((o) => `<option value="${esc(o)}" ${String(o) === String(cur) ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
   const vsel = (cur, attrs = "") => sel([0, -1, -2], cur === null || cur === undefined ? "" : cur, attrs, true);
   const cqSelect = (cur, id) => `<select id="${id}">${S.cqs.map((c) => `<option value="${esc(c.id)}" ${c.id === cur ? "selected" : ""}>${esc(c.title)}</option>`).join("")}</select>`;
+  const manual = (h, doc = "SR委員の手順書") => `<a class="tag" href="#view?doc=${encodeURIComponent(doc)}&h=${encodeURIComponent(h)}">手順書</a>`;   // 手順書の該当の章を、画面に表示する
+  const docLinks = (d) => d.available === false ? "未登録" : `<a href="#view?name=${encodeURIComponent(d.name)}">開く</a>${d.drive ? ` <a href="${esc(d.drive)}" target="_blank" rel="noopener">Google Drive</a>` : ""} <a href="${esc(d.url)}">ダウンロード</a>`;
   const auditTable = (list) => `<table><tr><th>日時</th><th>操作者</th><th>操作</th><th>対象</th><th>内容</th></tr>${list.map((a) => `<tr><td class="small">${esc(a.at.slice(0, 16).replace("T", " "))}</td><td>${esc(a.actor)}</td><td>${esc(a.action)}</td><td>${esc(a.target)}</td><td class="small">${esc(a.detail)}</td></tr>`).join("") || "<tr><td colspan=5 class='muted'>なし</td></tr>"}</table>`;
 
   // ---------- 本文の参照ウィンドウ ----------
@@ -254,11 +256,8 @@
       const q = Q(); const cqid = q.cq || S.cqs[0]?.id; const d = await api("/etd/" + cqid); const e = d.etd; const g = d.gl2023; const ed = isGroup();
       const cons = S.meta.etd_considerations;
       m.innerHTML = `<h2>EtD・推奨(2023年版の体裁)</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")} ${tag(e.status)}</div>
-        <ol class="steps"><li>左の 2023年版の記述(推奨文・推奨の強さ・エビデンスの確実性・解説・投票)と、SR-8 の確実性を確認する</li>
-          <li>右に 2028年版の案を書く。推奨文には、適用するがん腫・化学療法の分類を明記する。4つの考慮事項には、根拠(論文の段落 ID、2023年版の段落 ID)を書く</li>
-          <li>状態を「協議中」にして保存する</li>
-          <li>推奨の投票は、「推奨の投票」の画面で、投票者が各自で行う(投票権のある委員の75%以上が参加、80%以上の一致で決定、最大3回。投票除外(直接評価した論文の筆頭著者、そのCQのSR担当者)は分母から除く)</li>
-          <li><span class="approve">承認</span> 統括委員会が確定する</li></ol>
+        <ol class="steps"><li>2023年版の記述と、<a href="#sr8?cq=${esc(cqid)}">SR-8</a> の確実性を確認する</li><li>右の欄に 2028年版の案を書き、状態を「協議中」にして保存する</li>
+          <li><a href="#vote?cq=${esc(cqid)}">推奨の投票</a>で投票する</li><li>統括委員会が確定する</li></ol><div class="row">${manual("推奨文草案")}</div>
         <div class="split">
           <div class="card"><h3>2023年版</h3>${g ? `<p><b>推奨文</b> ${esc(g.rec)}</p><p>強さ ${esc(g.strength)} / 確実性 ${esc(g.certainty)} ${g.votes ? `/ 投票 分母 ${g.votes.denominator} 分布 ${(g.votes.counts || []).join("・")} (COI除外 ${g.votes.coi} SR除外 ${g.votes.sr})` : ""}</p>
             <div class="paras">${(g.paragraphs || []).map((p) => `<div class="para"><span class="pid">${esc(p.id)}</span><div>${esc(p.text)}</div></div>`).join("")}</div>` : '<p class="muted">2023年版の記述が未取り込みです(事務局が etd_2023.json を取り込む)。</p>'}
@@ -292,8 +291,8 @@
       const mineOnly = !admin && !isLead();
       const rows = list.filter((s) => !mineOnly || (S.me.name && s.author.split("・").some((a) => a && S.me.name.startsWith(a))));
       m.innerHTML = `<h2>総論(A〜N)の執筆・査読</h2>
-        <ol class="steps"><li>執筆者が、依頼書(Word。2023年版の全文入り)がある行では、「依頼書・2023年版」から開く</li><li>執筆者が、依頼書を直接修正した原稿(Word)をこの画面で提出し、状態を「査読中」にして保存する</li><li>統括委員会・事務局が査読コメントを書く(状態は「修正中」になる)</li><li>執筆者が修正版を提出する</li><li><span class="approve">承認</span> 統括委員会が「完了」にする</li></ol>
-        <p class="note">企画書の総論${list.length}項目と担当。原稿は版ごとに保存される。SRの流れ(CQ)とは独立している。</p>
+        <ol class="steps"><li>行の「依頼書・2023年版」を開く</li><li>依頼書を修正した原稿(Word)を提出し、状態を「査読中」にして保存する</li><li>統括委員会・事務局が、査読コメントを書く</li><li>修正版を提出する</li><li>統括委員会が「完了」にする</li></ol>
+        ${can("統括委員会", "事務局", "総説執筆者") ? `<div class="row">${manual("手順と期限", "総説執筆者の手順書")}</div>` : ""}
         <table><tr><th>項目</th><th>題名</th><th>担当</th><th>状態</th><th>期限</th><th>最新の原稿</th><th>査読コメント(統括委員会)</th><th>備考</th><th></th></tr>
         ${rows.map((s) => { const o = S.me.name && s.author.split("・").some((a) => a && S.me.name.startsWith(a)); const ed = o || admin;
           return `<tr data-key="${esc(s.key)}"><td class="nw">${esc(s.label)}</td><td class="w">${esc(s.title)}</td><td class="nw">${esc(s.author)}</td>
@@ -323,7 +322,6 @@
       const q = Q(); const cqid = q.cq || S.cqs[0]?.id; const c = S.cqs.find((x) => x.id === cqid); const ed = own(c) || isLead();
       const [list, ref] = await Promise.all([api("/search/" + cqid), api(`/search/${cqid}/reference`)]); const cur = list.find((r) => r.id === q.edit) || {};
       const refCard = !(ref.formula || []).length && !(ref.prior || []).length ? "" : `<div class="card"><h3>参考: 検索式の案と、2023年版の検索過程</h3>
-        <p class="note">この枠は参考資料であり、検索の記録には数えない。検索式の案は、前回Scopeの式(P・C は全CQで共通、I は本CQの介入語)である。検索期間と検索式の変更は、統括委員会の承認が必要である。2023年版の検索過程は、当時の担当者の Word から取り出した記録であり、欠けや誤りがありうる。</p>
         ${(ref.last_search_end_2023 || []).length ? `<p>2023年版の検索の終了日: <b>${esc(ref.last_search_end_2023.join("、"))}</b>(今回の検索期間は、この翌月から)</p>` : '<p>2023年版の検索の終了日: 記録なし(SR委員長に確認する)</p>'}
         ${(ref.formula || []).map((f, i) => `<p><b>検索式の案(${esc(f.dir)})</b>。本CQの介入語: ${esc(f.terms)}<br><span class="mono">${esc(f.query)}</span>${ed ? `<br><button data-fill="${i}">この式を検索式の欄に写す(日付の条件は自分で加える)</button>` : ""}</p>`).join("")}
         ${(ref.prior || []).length ? `<details><summary>2023年版の検索過程(${ref.prior.length} 件)</summary><table><tr><th>CQ</th><th>文書</th><th>データベース</th><th>検索期間(原文)</th><th>検索式(原文)</th><th>件数・除外の記載(原文)</th></tr>
@@ -331,7 +329,8 @@
         ${(ref.notes || []).map((n) => `<p class="small">${esc(n)}</p>`).join("")}</div>`;
       const total = list.reduce((a, r) => a + Number(r.hits || 0), 0);
       m.innerHTML = `<h2>検索の記録(Minds SR-1 データベース検索結果)</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
-        <p class="note">検索を実行するたびに、1 行を記録する(更新検索も 1 行)。検索式は、PubMed の検索窓に入れた文字列を、そのまま貼り付ける。日付の条件は、検索式の中に書く。記録の修正は、作成経過の記録に残る。</p>
+        <ol class="steps"><li><a href="https://pubmed.ncbi.nlm.nih.gov/advanced/" target="_blank" rel="noopener">PubMed</a> で検索する</li><li>検索日・検索期間・検索式・件数を、下の欄に記録する</li>
+          <li>記録の行の「結果を取り込む」で、<a href="#screening?cq=${esc(cqid)}">スクリーニング</a>の対象に登録する</li></ol><div class="row">${manual("検索の実行と記録")}</div>
         ${ed ? `<div class="card"><h3>${cur.id ? "記録の修正" : "記録の追加"}</h3>
           <div class="row"><label>データベース <input id="sDb" size="14" value="${esc(cur.database || "PubMed")}"></label><label>検索日 <input id="sDate" type="date" value="${esc(cur.date || "")}"></label>
             <label>検索者 <input id="sWho" size="14" value="${esc(cur.searcher || S.me.name || "")}"></label><label>検索期間 <input id="sPeriod" size="26" placeholder="例: 2021-07-01〜2026-10-31" value="${esc(cur.period || "")}"></label>
@@ -343,7 +342,7 @@
           <table><tr><th>検索日</th><th>データベース</th><th>検索者</th><th>検索期間</th><th>検索式</th><th>件数</th><th>備考</th><th>操作</th></tr>
           ${list.map((r) => `<tr><td class="nw">${esc(r.date)}</td><td>${esc(r.database)}</td><td>${esc(r.searcher)}</td><td>${esc(r.period)}</td><td class="w">${esc(r.query)}</td><td class="num">${esc(r.hits)}</td><td>${esc(r.note)}</td>
             <td class="nw">${ed ? `<a href="#search?cq=${esc(cqid)}&edit=${esc(r.id)}">修正</a> <a href="#screening?cq=${esc(cqid)}&search=${esc(r.id)}">結果を取り込む</a>` : ""}${isLead() ? ` <button data-del="${esc(r.id)}">削除</button>` : ""}</td></tr>`).join("") || '<tr><td colspan="8" class="muted">記録なし</td></tr>'}</table>
-          <p class="note">検索結果の文献は、「結果を取り込む」から、スクリーニングの対象に登録する。件数は、文献選択の流れ図(スクリーニングの画面)に使う。</p></div>`;
+          </div>`;
       $("#cqSel").addEventListener("change", () => go("search", { cq: $("#cqSel").value }));
       $("#sSave")?.addEventListener("click", async () => {
         const b = { database: $("#sDb").value, date: $("#sDate").value, searcher: $("#sWho").value, period: $("#sPeriod").value, query: $("#sQuery").value, hits: $("#sHits").value, note: $("#sNote").value };
@@ -387,19 +386,23 @@
               ${(p.mine.history || []).length ? `<details><summary>自分の変更の履歴 ${p.mine.history.length} 件</summary>${p.mine.history.map((h) => `${esc(h.at.slice(0, 16).replace("T", " "))} ${esc(h.field)}: ${esc(h.from)} → ${esc(h.to)} ${esc(h.reason)}`).join("<br>")}</details>` : ""}
               ${d.reviewer ? `<div><input data-note size="30" placeholder="備考" value="${esc(p.mine.note || "")}"></div>` : ""}</td>
             ${cell(p, "s1")}${cell(p, "s2")}</tr>`;
-      const drawList = () => { const rows = P.filter(FIL[show][1]); page = Math.min(page, Math.max(0, Math.ceil(rows.length / PER) - 1)); const view = rows.slice(page * PER, page * PER + PER);
+      const cnt = (k) => P.filter(FIL[k][1]).length; const jump = (k, t) => `<a href="#" data-show="${k}">${t} ${cnt(k)} 件</a>`;
+      const drawSteps = () => { $("#scrSteps").innerHTML = `<ol class="steps">
+          <li>文献を取り込む: <a href="#search?cq=${esc(cqid)}">検索の記録</a>の「結果を取り込む」${d.can_edit ? '、または <a href="#" data-jump="scrImport">対象の取り込み</a>' : ""}</li>
+          <li>一次(題名・抄録)を判定する: ${d.reviewer ? jump("my1", "自分が未判定") : jump("all", "対象")}</li>
+          <li>二次(全文)を判定する: ${d.reviewer ? jump("my2", "自分が未判定") : jump("s2", "二次の対象")}</li>
+          <li>不一致の文献に、協議の結論を記録する: ${jump("conflict", "不一致")}</li>
+          <li>採用した文献を登録する: <a href="#papers?cq=${esc(cqid)}">論文</a>(採用 ${cnt("inc")} 件)</li></ol><div class="row">${manual("スクリーニング")}</div>`; };
+      const drawList = () => { drawSteps(); const rows = P.filter(FIL[show][1]); page = Math.min(page, Math.max(0, Math.ceil(rows.length / PER) - 1)); const view = rows.slice(page * PER, page * PER + PER);
         $("#scrList").innerHTML = `<h3>文献(${rows.length} 件 / 対象 ${P.length} 件)</h3>
           <div class="row">${Object.entries(FIL).filter(([k]) => d.reviewer || !k.startsWith("my")).map(([k, [ja, fn]]) => `<button class="tag ${k === show ? "run" : ""}" data-show="${k}">${esc(ja)} ${P.filter(fn).length}</button>`).join("")}</div>
           <table class="scr"><tr><th>PMID</th><th>文献</th><th>一次(題名・抄録)</th><th>二次(全文)</th></tr>${view.map(rowHtml).join("") || '<tr><td colspan="4" class="muted">該当する文献はありません</td></tr>'}</table>
           <div class="row">${page > 0 ? `<button data-page="${page - 1}">前の ${PER} 件</button>` : ""} ${rows.length ? `${page * PER + 1}〜${Math.min(rows.length, (page + 1) * PER)} 件目` : ""} ${(page + 1) * PER < rows.length ? `<button data-page="${page + 1}">次の ${PER} 件</button>` : ""}</div>`; };
       m.innerHTML = `<h2>スクリーニング(一次・二次)と文献選択の流れ図</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
-        <ol class="steps"><li>検索結果(「検索の記録」の件数の文献)と、その他の情報源の文献を、スクリーニングの対象に取り込む</li><li>担当委員 2名が、一次(題名・抄録)の可否を、相手の判定を見ずに入力する。除外には理由を選ぶ。一次では、アウトカムを理由に除外せず、抄録で判断できない文献は残す(Minds 第4章)</li>
-          <li>一次の結果が採用・保留の文献について、全文を読み、二次の可否を入力する</li><li>${need("承認")} 2名の判定が不一致の文献は、2名で協議し、SR委員長に報告して第三者の意見を得たうえで、「協議の結論」に結論・協議の内容・第三者の意見を記録する(担当委員。SR委員長も記録できる)</li><li>採用した文献を、「論文」の画面に登録する</li></ol>
-        <p class="note">相手の判定は、自分がその文献のその段階を判定した後に表示される(2名独立)。2名の判定がそろった後は、自分の判定を変更できない。結果は、2名の判定の一致、または協議の結論である。</p>
+        <div id="scrSteps"></div>
         <div class="card"><h3>文献選択の流れ図(Minds SR-2 文献検索フローチャート)</h3>${flowHtml}
-          <p class="note">件数は、検索の記録とスクリーニングの記録から数えた値である(この画面を開いた時点)。判定を入力した後の件数は、「件数を数え直す」で更新する。別添は、流れ図の枠ごとの文献の一覧(PMID・題名・著者。二次の対象と採用の一覧は Minds SR-3 二次スクリーニング後の一覧表の材料)であり、件数と一覧の行数が一致する。</p>
           <div class="row"><button id="scrReload">件数を数え直す</button><button id="scrExport" class="primary">別添(検索の記録・件数・文献の一覧。xlsx)を出力</button></div></div>
-        ${d.can_edit ? `<div class="card"><h3>対象の取り込み</h3>
+        ${d.can_edit ? `<div class="card" id="scrImport"><h3>対象の取り込み</h3>
           <div class="row"><label>出典 ${sel(d.sources, q.search ? "検索(PubMed)" : "", 'id="iSrc"')}</label><label>検索の記録 <select id="iSearch"><option value="">—</option>${searches.map((r) => `<option value="${esc(r.id)}" ${r.id === q.search ? "selected" : ""}>${esc(r.date)} ${esc(r.database)} ${esc(r.hits)}件</option>`).join("")}</select></label>
             <label><input type="checkbox" id="iDirect"> 一次を経ない(二次の対象として加える)</label><label>追加の理由(データベース検索以外は必須) <input id="iWhy" size="40"></label></div>
           <div class="row"><label>PubMed の「Save → Format: CSV」の内容、または PMID の行(PMID だけ、または「PMID(タブ)題名」)を貼り付ける<br><textarea id="iText" rows="5" cols="100"></textarea></label></div>
@@ -408,6 +411,9 @@
       drawList();
       $("#cqSel").addEventListener("change", () => go("screening", { cq: $("#cqSel").value }));
       $("#scrReload").addEventListener("click", render);
+      $("#scrSteps").addEventListener("click", (ev) => { const a = ev.target.closest("a[data-show],a[data-jump]"); if (!a) return; ev.preventDefault();
+        if (a.dataset.jump) return $("#" + a.dataset.jump).scrollIntoView({ behavior: "smooth" });
+        show = a.dataset.show; page = 0; drawList(); $("#scrList").scrollIntoView({ behavior: "smooth" }); });
       $("#scrExport").addEventListener("click", async () => { try { const r = await api(`/export/${cqid}/screening`); if (r.url) window.open(r.url, "_blank"); toast("別添を出力しました"); } catch (e) { toast(e.message, true); } });
       const L = $("#scrList"); const rowOf = (el) => P.find((p) => p.pmid === el.closest("tr").dataset.pmid);
       const put = async (p, body) => { try { const r = await api(`/screening/${cqid}/${p.pmid}`, "PUT", body); Object.assign(p, r.row); toast("記録しました"); } catch (e) { toast(e.message, true); } drawList(); };
@@ -451,7 +457,7 @@
     async access(m) {
       const list = await api("/access"); const pend = list.filter((a) => a.status === "承認待ち"); const G = S.meta.groups;
       const roleBoxes = (a) => G.map((g) => `<label class="tag"><input type="checkbox" class="aRole" value="${esc(g)}" ${(a.suggest || []).includes(g) ? "checked" : ""}> ${esc(g)}</label>`).join("");
-      m.innerHTML = `<h2>利用申請(承認)</h2><p class="note">委員は、ポータルの「Sign up」でアカウントを作り、氏名と所属を申請する。<span class="approve">承認</span> 統括委員長が、委員であることを確認して承認する(役割を付ける)。承認の前は、何も見えない。氏名が企画書の名簿と一致した申請には、名簿に基づく役割の候補を入れてある(候補であり、承認する人が決める)。承認された委員は、もう一度ログインする。</p>
+      m.innerHTML = `<h2>利用申請(承認)</h2><p class="note">申請の行で役割を選び、承認する。承認された委員は、もう一度ログインする。</p>
         <div class="card"><h3>承認待ち(${pend.length}件)</h3>
           ${pend.length ? `<div class="row"><button id="aAll" class="approve">承認: 名簿に一致する申請(${pend.filter((a) => (a.suggest || []).length).length}件)を、候補の役割で一括承認する</button></div>` : ""}
           <table><tr><th>申請日</th><th>氏名</th><th>メールアドレス</th><th>所属</th><th>役割(候補を入れてある)</th><th>操作</th></tr>
@@ -475,8 +481,8 @@
         <tr><td>票数</td>${r.result.counts.map((n) => `<td class="num">${n}</td>`).join("")}<td class="num">${r.result.abstain}</td><td class="num">${r.result.participants} / ${r.result.eligible}</td><td class="num">${r.result.participation_pct}%</td><td class="num">${r.result.agreement_pct}%</td>
         <td>${r.result.passed ? `<span class="tag ok">成立: ${esc(L[r.result.strength - 1])}</span>` : r.result.final_none ? '<span class="tag warn">3回で成立せず: 推奨なし</span>' : '<span class="tag warn">不成立</span>'}</td></tr></table>`;
       m.innerHTML = `<h2>推奨の投票(電子投票)</h2><div class="row">CQ ${cqSelect(cqid, "cqSel")}</div>
-        <ol class="steps"><li>統括委員会が、推奨文案を確認し、投票のラウンドを開始する(投票者は、統括委員会・作成グループから、そのCQのSR担当と、投票除外を除いた委員)</li><li>投票者が、各自でログインして、投票する(1回だけ。変更できない。無記名)</li>
-          <li><span class="approve">承認</span> 統括委員会が、ラウンドを終了し、集計する(参加が投票者の75%以上、最多の選択肢が参加者の80%以上で成立。最大${d.max_rounds}回。3回で成立しなければ「推奨なし」)</li><li>成立した強さが、EtD・推奨に入る。統括委員会が、EtD・推奨を確定する</li></ol>
+        <ol class="steps"><li>統括委員会が、投票のラウンドを開始する</li><li>投票者が投票する(1回。変更できない。無記名)</li>
+          <li>統括委員会が、ラウンドを終了し、集計する(参加 75%以上、一致 80%以上で成立。最大${d.max_rounds}回)</li><li>成立した強さが、<a href="#etd?cq=${esc(cqid)}">EtD・推奨</a>に入る</li></ol>
         <div class="card"><h3>${esc(d.title)}</h3><p><b>推奨文案</b><br>${d.rec ? esc(d.rec) : '<span class="muted">未記入(「EtD・推奨」に、推奨文案を書く)</span>'}</p>${d.scope_note ? `<p class="small">適用範囲・変更点: ${esc(d.scope_note)}</p>` : ""}
           <p class="small">SR-8 の確実性: ${d.sr8.map((s) => `${esc(s.outcome)} ${esc(s.certainty || "未記入")}`).join("、") || "未記入"} / EtD の状態: ${esc(d.etd_status)} / <a href="#etd?cq=${esc(cqid)}">EtD・推奨を開く</a></p></div>
         <div class="card"><h3>あなたの投票</h3>
@@ -515,15 +521,34 @@
 
     async scope(m) {
       const list = await api("/docs?kind=scope" + (isAdmin() ? "&missing=1" : ""));
-      m.innerHTML = `<h2>Scope</h2><table><tr><th>文書</th><th>更新日</th><th></th></tr>${list.map((d) => `<tr><td>${esc(d.name.replace(/\.(docx|xlsx)$/, ""))}</td><td class="nw">${esc(d.updated)}</td><td class="nw">${d.available === false ? "未登録" : `<a href="${esc(d.url)}" target="_blank" rel="noopener">開く</a>`}</td></tr>`).join("") || '<tr><td colspan="3" class="muted">登録なし</td></tr>'}</table>`;
+      m.innerHTML = `<h2>Scope</h2><table><tr><th>文書</th><th>更新日</th><th></th></tr>${list.map((d) => `<tr><td>${esc(d.name.replace(/\.(docx|xlsx)$/, ""))}</td><td class="nw">${esc(d.updated)}</td><td class="nw">${docLinks(d)}</td></tr>`).join("") || '<tr><td colspan="3" class="muted">登録なし</td></tr>'}</table>`;
     },
 
     async docs(m) {
       const list = await api("/docs" + (isAdmin() ? "?missing=1" : ""));
       const have = list.filter((d) => d.available !== false), miss = list.filter((d) => d.available === false);
       m.innerHTML = `<h2>手順書</h2>
-        ${have.length ? `<table><tr><th>手順書</th><th>対象</th><th>更新日</th><th></th></tr>${have.map((d) => `<tr><td>${esc(d.name.replace(/\.docx$/, ""))}</td><td>${esc(d.target)}</td><td class="nw">${esc(d.updated)}</td><td class="nw"><a href="${esc(d.url)}" target="_blank" rel="noopener">Word を開く</a></td></tr>`).join("")}</table>` : '<p class="muted">登録されている手順書はありません。</p>'}
+        ${have.length ? `<table><tr><th>手順書</th><th>対象</th><th>更新日</th><th></th></tr>${have.map((d) => `<tr><td>${esc(d.name.replace(/\.docx$/, ""))}</td><td>${esc(d.target)}</td><td class="nw">${esc(d.updated)}</td><td class="nw">${docLinks(d)}</td></tr>`).join("")}</table>` : '<p class="muted">登録されている手順書はありません。</p>'}
         ${miss.length ? `<div class="card"><h3>未登録の手順書</h3><p>${miss.map((x) => esc(x.name)).join("、")}</p><p class="small">統括委員長が、Mac で ./setup_portal.sh を実行すると登録される(この欄は、統括委員会・事務局にだけ表示される)。</p></div>` : ""}`;
+    },
+
+    async view(m) {
+      const q = Q(); const d = await api("/docs/view?" + new URLSearchParams(q.name ? { name: q.name } : { doc: q.doc || "" })); const hex = (c) => /^#[0-9a-f]{6}$/.test(c || "") ? c : "";
+      const cell = (c) => c === null ? "" : `<td${c.rs ? ` rowspan="${Number(c.rs)}"` : ""}${c.cs ? ` colspan="${Number(c.cs)}"` : ""} class="${c.bd ? "bd" : ""}${c.b ? " b" : ""}${c.al ? " c" : ""}${(c.v || "").length <= 4 ? " s" : ""}"${hex(c.bg) ? ` style="background:${hex(c.bg)}"` : ""}>${esc(c.v || "")}</td>`;
+      const sheet = (s) => { s.cols = s.cols.map((w) => Math.max(w, 7)); const sum = s.cols.reduce((a, b) => a + b, 0) || 1;   // 狭い列は、画面で読める幅にする
+        return `${d.sheets.length > 1 ? `<h3>${esc(s.name)}</h3>` : ""}<table class="xl"><colgroup>${s.cols.map((w) => `<col style="width:${(w / sum * 100).toFixed(2)}%">`).join("")}</colgroup>${s.rows.map((r) => `<tr>${r.map(cell).join("")}</tr>`).join("")}</table>`; };
+      const blocks = (B) => { let out = "", open = false;
+        for (const b of B) { if (open && b.t !== "li") { out += "</ul>"; open = false; }
+          if (b.t === "table") out += `<table class="doc">${b.rows.map((r, i) => `<tr>${r.map((c) => `<${i ? "td" : "th"}${c.cs ? ` colspan="${Number(c.cs)}"` : ""}${hex(c.bg) ? ` style="background:${hex(c.bg)}"` : ""}>${esc(c.v)}</${i ? "td" : "th"}>`).join("")}</tr>`).join("")}</table>`;
+          else if (b.t === "li") { if (!open) { out += '<ul class="doc">'; open = true; } out += `<li>${esc(b.text)}</li>`; }
+          else if (b.t === "title") out += `<h3 class="doctitle">${esc(b.text)}</h3>`;
+          else if (/^h\d$/.test(b.t)) out += `<h${b.t === "h1" ? 3 : 4} data-h>${esc(b.text)}</h${b.t === "h1" ? 3 : 4}>`;
+          else out += `<p class="doc${b.b ? " b" : ""}">${esc(b.text)}</p>`; }
+        return out + (open ? "</ul>" : ""); };
+      m.innerHTML = `<h2>${esc(d.name.replace(/\.(docx|xlsx)$/, ""))}</h2>
+        <div class="row"><a href="#${d.target === "Scope" ? "scope" : "docs"}">一覧に戻る</a>${d.drive ? `<a href="${esc(d.drive)}" target="_blank" rel="noopener">Google Drive で開く</a>` : ""}<a href="${esc(d.url)}">ダウンロード</a></div>
+        <div class="card docview">${d.kind === "xlsx" ? d.sheets.map(sheet).join("") : blocks(d.blocks)}</div>`;
+      if (q.h) setTimeout(() => [...m.querySelectorAll("[data-h]")].find((x) => x.textContent.includes(q.h))?.scrollIntoView(), 0);
     },
 
     async audit(m) { const list = await api("/audit"); m.innerHTML = `<h2>作成経過の記録</h2><p class="small">全ての操作が追記される。更新・削除の操作はない。${list.length}件</p>${auditTable(list)}`; },

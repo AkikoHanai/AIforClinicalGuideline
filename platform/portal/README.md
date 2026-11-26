@@ -14,7 +14,7 @@ Google ドライブとの受け渡しは統括委員長の Mac を経由する�
 ## 画面と、委員が行う判断
 | 画面 | 内容 | 判断する人(Minds) |
 |---|---|---|
-| Scope | Minds 第3章の様式 SC-1〜SC-4(Excel 18件)。ログイン後の最初の画面。生成: `python3 platform/scope/build_scope_minds.py`(公式テンプレートに記入)。登録: `./setup_portal.sh` | 全員 |
+| Scope | Minds 第3章の様式 SC-1〜SC-4(Excel 18件)。ログイン後の最初の画面。「開く」は画面に表示する(`GET /docs/view`。ダウンロードしない)。「Google Drive」は共有ドライブの同じファイル(`./fetch.sh` が URL を登録した後に出る)。生成: `python3 platform/scope/build_scope_minds.py`(公式テンプレートに記入)。登録: `./setup_portal.sh` | 全員 |
 | ホーム | 利用者ごとに変わる。対応が必要なもの(投票、自分が確定できる記録)、自分の担当 CQ の未判定・未提出の件数(一次・二次スクリーニング、SR-5、SR-8)、自分の担当の総論、全 CQ・FRQ の記録(件数だけ。統括委員会・事務局・SR委員長・作成グループ) | 全員 |
 | CQ一覧 | SR項目11・FRQ項目4(企画書)。読むだけ。P(がん化学療法を受ける患者)・C(無治療)・O(CIPN)は全 CQ で共通、I は CQ の名称。各画面へのリンク | 全員 |
 | 論文 | 二次スクリーニング採用論文を PMID で登録し、PDF を置く。本文を取り込み(Method・Result の段落に ID)、SR-5 の下書きを自動で作る。一覧: PMID、筆頭著者・雑誌・発行年、題名、研究デザイン、対象者数、介入、対照、評価時点 | 担当委員 |
@@ -92,6 +92,7 @@ cd ~/AIforClinicalGuideline && git pull && ./fetch.sh
 ./deploy_portal.sh      # ポータル(AWS)の展開(画面・API を更新したとき)
 ```
 
+- `./fetch.sh` は、転送した Scope・手順書の Google Drive 上の URL を、ポータルに登録する(Google Drive for desktop がファイルに付ける ID `com.google.drivefs.item-id#S` を `xattr` で読む。同期前のファイルは 60 秒まで待ち、残りは次の実行で登録する)。ポータルの「Scope」「手順書」に「Google Drive」のリンクが出る
 - 場所の指定・コードの修正は要らない。共有ドライブのフォルダは、`~/Library/CloudStorage/GoogleDrive-*/共有ドライブ/CIPNガイドライン作成`(英語表示は `Shared drives`)から自動で見つける。`DRIVE_DIR` または `--drive <フォルダ>` で指定もできる。
 - スクリプト(`fetch.sh`、`upload_docs.py`、`import_soron2023.py`、`run_search.py --import` など)のメールアドレスの指定は、省略できる。保存済みのもの(`~/.jascc_gl_portal.json`)、なければ統括委員会の唯一の利用者を使う。プールにいないメールアドレスを指定したときは、プールの利用者の一覧(メールアドレス・氏名・グループ)を表示して止まる。AWS にログインしていなければ、ログインを求める。
 - 置き場所は、共有ドライブの既存のフォルダ(ガイドラインの目次に沿った構成: `新規ガイドライン作成/Chap2_準備` 〜 `Chap8_公開後調整`)を、深さ4まで調べて決める。同じ名前のフォルダ(全角・半角の違いは同じとみなす)があればそこへ置き、なければ `新規ガイドライン作成/ポータル出力/` に作る。既存の構成には、新しいフォルダを作らない。

@@ -19,7 +19,7 @@ Google Drive for desktop の同期フォルダへ書き込むと、Google Drive 
 注意: 共有ドライブのメンバーは、委員に限る(学生を含めない。委員以外に資料を見せない)。
 ポータルでは役割ごとに見える範囲を分けているが、ドライブのフォルダは、ドライブの共有設定で分ける(例: マニュアル/統括委員会 は統括委員会だけ)。
 文献選択の別添と Minds書類は、各委員の判定を、その段階を 2名が判定した後だけ載せる(2名独立)。"""
-import datetime, json, os, re, sys, urllib.request
+import datetime, json, os, re, sys, time, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 DRIVE_NAME = "CIPNガイドライン作成"
@@ -143,7 +143,32 @@ def tree(root, depth=3, sub=None, files=False):
     print(root); walk(root, 1, "  ")
 
 
-def sync(tok, drive, dry=False, fetch=get_bytes):
+def drive_attr(path):
+    """Google Drive for desktop が、同期フォルダのファイルに付ける ID(拡張属性 com.google.drivefs.item-id#S)。取得できないときは None。同期前のファイルは local- で始まる。"""
+    import subprocess
+    try: r = subprocess.run(["xattr", "-p", "com.google.drivefs.item-id#S", path], capture_output=True, text=True, timeout=10)
+    except Exception: return None
+    v = (r.stdout or "").strip()
+    return v if r.returncode == 0 and re.fullmatch(r"[A-Za-z0-9_\-]{10,}", v) else None
+
+
+def register_links(tok, docs, ids=drive_attr, wait=60, sleep=time.sleep):
+    """転送した文書(Scope・手順書)の Google Drive 上の URL を、ポータルに登録する(ポータルの「Google Drive」のリンクになる)。
+    docs: {ファイル名: (置いた場所, 登録済みの URL)}。同期前のファイルは、wait 秒まで待つ。戻り値: (登録した件数, URL を取得できなかったファイル名, ID を 1 件でも読めたか)"""
+    links, pending, seen, t = {}, {n: p for n, (p, _) in docs.items()}, False, 0
+    while pending:
+        local = False   # 同期前(local- で始まる ID)のファイルがあるか
+        for name, path in list(pending.items()):
+            v = ids(path); seen = seen or bool(v); local = local or bool(v and v.startswith("local-"))
+            if v and not v.startswith("local-"): links[name] = f"https://drive.google.com/file/d/{v}/view"; del pending[name]
+        if not pending or not local or t >= wait: break
+        sleep(5); t += 5
+    new = {n: u for n, u in links.items() if u != docs[n][1]}
+    if new: tok.call("PUT", "/docs/links", {"links": new})
+    return len(new), sorted(pending), seen
+
+
+def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=60):
     if not os.path.isdir(drive): sys.exit(f"共有ドライブのフォルダがありません: {drive}")
     copied, skipped, rel = [], [], lambda p: os.path.relpath(p, drive); L = Layout(drive)
     # 1. 総論の原稿(全ての版)と状態
@@ -178,15 +203,24 @@ def sync(tok, drive, dry=False, fetch=get_bytes):
         if g.get("docx_key"):
             r = tok.call("GET", f"/soron/{g['key']}/gl2023")
             if r.get("docx_url"): place(os.path.join(L.top("依頼書"), os.path.basename(g["docx_key"])), fetch(r["docx_url"]), copied, skipped, dry)
+    placed = {}   # 文書のファイル名 -> (置いた場所, ポータルに登録済みの Google Drive の URL)
     for d in tok.call("GET", "/docs?kind=all"):
         if d["target"] == "Scope":   # Scope: SC-1〜SC-4 は、第3章の様式ごとのフォルダ(chap3_SC_1_… など)。なければ Chap3_スコープ、なければ ポータル出力/Scope
             m_ = re.match(r"SC-([1-4])", d["name"]); folder = (L.find([f"chap3_SC_{m_.group(1)}"], prefix=True) if m_ else None) or L.find(["Chap3_スコープ"]) or L.top("Scope")
-            place(os.path.join(folder, d["name"]), fetch(d["url"]), copied, skipped, dry, overwrite=True); continue
-        place(os.path.join(L.top("マニュアル"), safe(d["target"]), d["name"]), fetch(d["url"]), copied, skipped, dry)   # 対象(全委員・SR委員・総論の執筆者・統括委員会など)ごとのフォルダ
+            dest = os.path.join(folder, d["name"]); place(dest, fetch(d["url"]), copied, skipped, dry, overwrite=True)
+        else:
+            dest = os.path.join(L.top("マニュアル"), safe(d["target"]), d["name"]); place(dest, fetch(d["url"]), copied, skipped, dry, overwrite=True)   # 対象(全委員・SR委員・総論の執筆者・統括委員会など)ごとのフォルダ
+        placed[d["name"]] = (dest, d.get("drive", ""))
     print(("【転送の内容の表示だけ。ファイルは置いていません】\n" if dry else "") + f"転送 {len(copied)} 件、変更なしで飛ばした {len(skipped)} 件")
     for p in copied: print("  置いた:" if not dry else "  置く:", rel(p))
     if not dry and (copied or skipped):
         tok.call("POST", "/sync/log", {"copied": len(copied), "skipped": len(skipped), "detail": "; ".join(rel(p) for p in copied)[:800]})
+    if not dry and placed:
+        n, pending, seen = register_links(tok, placed, ids, wait)
+        if not seen: print("Google Drive のリンク: 登録していません(このフォルダのファイルから、Google Drive の ID を読めない)")
+        else:
+            print(f"Google Drive のリンク: 新規に登録 {n} 件、登録済み {len(placed) - len(pending) - n} 件" + (f"、未登録 {len(pending)} 件" if pending else ""))
+            if pending: print("  未登録のファイルは、Google Drive の同期が終わっていません。同期の後に、./fetch.sh をもう一度実行してください: " + "、".join(pending[:5]) + (" ほか" if len(pending) > 5 else ""))
     return copied, skipped
 
 

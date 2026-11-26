@@ -19,6 +19,7 @@ LINE = 16.5   # 1行の高さ(11pt)
 
 def sentences(key, idx):
     t = re.sub(r"\^[^^]*\^", "", UNITS[key]["paras"][idx])
+    t = re.sub(r"[（(](?:表|図)\s*[0-9０-９]+[）)]", "", t)   # 2023年版の図表への参照は、この様式にはないため除く
     return [s.strip() for s in re.split(r"(?<=。)", t) if s.strip()]
 
 
@@ -70,9 +71,9 @@ def sc1(template):
     wb, ws = load(template, "SC-1　テンプレート", "SC-1")
     for c in "ABCDEFGHI": ws.column_dimensions[c].width = 12
     feat = ("がん薬物療法に伴う末梢神経障害(CIPN)は、がん薬物療法に関連して高頻度にみられる有害事象である。主な症状には、しびれ、疼痛、感覚低下、異常感覚、運動障害などがあり、患者の生活の質(quality of life:QOL)の低下、日常生活動作(activities of daily living:ADL)の制限、治療継続への影響、および全人的苦痛の増大につながる重要な病態である。\n"
-            + quote("B", 0, [0, 1]) + "(2023年版 総論B)")
-    epi = quote("A", 0, [0, 2]) + "(2023年版 総論A)\n" + quote("E", 0, [0]) + "(2023年版 総論E)"
-    flow = (quote("H", 1, [0]) + "(2023年版 総論H)\n" + quote("J_1", 5, [0]) + "(2023年版 総論J-1)\n本ガイドラインは、CIPNの予防(薬物療法・非薬物療法)と治療(薬物療法・非薬物療法)をCQとして扱う(SC-2、SC-4)。")
+            + quote("B", 0, [0, 1]))
+    epi = quote("A", 0, [0, 2]) + "\n" + quote("E", 0, [0])
+    flow = quote("H", 1, [0]) + "\n" + quote("J_1", 5, [0]) + "\n本ガイドラインは、CIPNの予防(薬物療法・非薬物療法)と治療(薬物療法・非薬物療法)をCQとして扱う。"
     for anchor, text, r1, r2 in (("A4", feat, 4, 14), ("A16", epi, 16, 26), ("A28", flow, 28, 38)): set_text(ws, anchor, text, r1, r2, "A", "I")
     fit(ws, "A2:I38")
     return wb
@@ -87,7 +88,6 @@ def sc2(template):
     for c in "ABCDEFGHI": ws.column_dimensions[c].width = 15
     thin = Side(style="thin", color="000000"); border = Border(left=thin, right=thin, top=thin, bottom=thin)
     font = Font(name="游ゴシック Medium", size=11); head = PatternFill("solid", fgColor="DAE3F3"); grp = PatternFill("solid", fgColor="EDEDED")
-    nm = {x["id"]: x["名称"] for x in ITEMS}
 
     def box(r, c1, c2, text, fill=None, bold=False):
         ws.merge_cells(start_row=r, start_column=c1, end_row=r, end_column=c2)
@@ -100,15 +100,20 @@ def sc2(template):
         ws.merge_cells(start_row=r, start_column=c1, end_row=r, end_column=c2); cell = ws.cell(row=r, column=c1, value="↓"); cell.alignment = Alignment(horizontal="center"); cell.font = font
     box(4, 1, 9, "がん薬物療法を受ける患者(CIPNを呈しうる、あるいは呈している)", head, True); arrow(5, 1, 9)
     box(6, 1, 4, "予防", head, True); box(6, 6, 9, "治療(CIPNを呈している患者)", head, True)
-    left = [("薬物療法による予防", True)] + [(nm[i], False) for i in ("P1", "P2", "P3")] + [("非薬物療法による予防", True)] + [(nm[i], False) for i in ("N1", "N2", "N3")]
-    right = [("CIPNの評価(総論H)", False), ("↓", None), ("被疑薬の延期・減量・中止(総論J-1)", False), ("↓", None), ("薬物療法による治療", True)] + [(nm[i], False) for i in ("T1", "T2", "T3")] + \
-            [("FRQ(薬物療法による治療)", True)] + [(nm[i], False) for i in ("F1", "F2", "F3", "F4")] + [("非薬物療法による治療", True)] + [(nm[i], False) for i in ("N4", "N5")]
+    # 個別の介入は載せない(介入を行うかどうかは、推奨で決まる。CQ・FRQ の一覧は SC-3、PICO は SC-4)。区分は、企画書の SR項目の区分
+    cat = []
+    for x in PLAN["SR項目"]:
+        c = re.sub(r"\(監修.*?\)$", "", x["区分"])
+        if c not in cat: cat.append(c)
+    frq = "・FRQ" if PLAN["FRQ項目"] and all(x["名称"].endswith("による治療") for x in PLAN["FRQ項目"]) else ""
+    left = [(f"{c}(CQ)", False) for c in cat if c.endswith("予防")]
+    right = [("CIPNの評価", False), ("↓", None), ("被疑薬の延期・減量・中止", False), ("↓", None)] + \
+            [(f"{c}(CQ{frq if c.startswith('薬物療法') else ''})", False) for c in cat if c.endswith("治療")]
     for k, (t, g) in enumerate(left): box(7 + k, 1, 4, t, grp if g else None, g)
     for k, (t, g) in enumerate(right):
         if g is None: arrow(7 + k, 6, 9)
         else: box(7 + k, 6, 9, t, grp if g else None, g)
-    end = 7 + max(len(left), len(right)) + 1
-    ws.cell(row=end, column=1, value="CQ・FRQは、承認済み企画書のSR項目・FRQ項目である(SC-4)。").font = Font(name=font.name, size=10)
+    end = 7 + max(len(left), len(right))
     fit(ws, f"A2:I{end}")
     return wb
 

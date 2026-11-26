@@ -1086,8 +1086,36 @@ DOCS = [("操作マニュアル", "全委員", None), ("SR委員の手順書", "
         ("総説執筆者の手順書", "総論の執筆者", {"統括委員会", "事務局", "総説執筆者"}), ("用語の定義", "全委員", None), ("統括委員会へのお願い", "統括委員会", ROLE_ADMIN)]
 
 
+def doc_list(g, kind, show_missing):
+    """文書の一覧。kind=scope: Scope だけ / all: 全て / 省略: 手順書だけ。g は利用者の役割。"""
+    if not BUCKET: return []
+    link = {x["sk"]: x.get("url", "") for x in query("DOCLINK")}; out = []
+    def row(o, target):
+        name = o["Key"].split("/", 1)[1]
+        return {"name": name, "target": target, "updated": o["LastModified"].isoformat()[:10], "key": o["Key"], "drive": link.get(name, ""), "available": True,
+                "url": s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": o["Key"]}, ExpiresIn=900)}
+    miss = lambda name, target: {"name": name, "target": target, "updated": "", "url": "", "drive": "", "available": False}
+    if kind in ("scope", "all"):
+        sc = s3().list_objects_v2(Bucket=BUCKET, Prefix="scope/").get("Contents", [])
+        plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
+        for pre in ["SC-1", "SC-2", "SC-3"] + [f"SC-4_{it['名称']}" for it in plan["SR項目"] + plan["FRQ項目"]]:
+            o = next((x for x in sc if x["Key"].split("/", 1)[1].startswith(pre)), None)
+            if o: out.append(row(o, "Scope"))
+            elif show_missing: out.append(miss(pre, "Scope"))
+        if kind == "scope": return out
+    objs = s3().list_objects_v2(Bucket=BUCKET, Prefix="docs/").get("Contents", [])
+    for k, target, roles in DOCS:
+        if roles is not None and not (g & roles): continue
+        o = next((x for x in objs if k in x["Key"]), None)
+        if o: out.append(row(o, target))
+        elif show_missing: out.append(miss(k, target))
+    return out
+
+
 def docs(method, parts, body, user):
     # GET  /docs               自分の役割で閲覧できる手順書の一覧(取得用の署名付きURL)
+    # GET  /docs/view?name=    文書を、画面に表示する構造で返す
+    # PUT  /docs/links         Google Drive 上の URL を登録する(scripts/sync_drive.py)
     # POST /docs/upload-url    統括委員会・事務局が手順書を置く(scripts/upload_docs.py)
     g = set(user["groups"])
     if method == "POST" and parts[1:2] == ["upload-url"]:
@@ -1099,27 +1127,26 @@ def docs(method, parts, body, user):
         if not name.endswith(".docx") or not any(k in name for k, _, _ in DOCS): return resp(400, {"error": "手順書のファイル名ではありません"})
         url = s3().generate_presigned_url("put_object", Params={"Bucket": BUCKET, "Key": f"docs/{name}", "ContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}, ExpiresIn=900)
         audit(user, "手順書の登録", name); return resp(200, {"url": url, "key": f"docs/{name}"})
+    if method == "PUT" and parts[1:2] == ["links"]:
+        # Google Drive 上の同じファイルの URL(scripts/sync_drive.py が、転送したファイルの ID から登録する)
+        require(user, ROLE_ADMIN); n = 0
+        for name, url in (body.get("links") or {}).items():
+            if not re.fullmatch(r"https://drive\.google\.com/[\w\-./?=&%]+", str(url)) or "/" in str(name): continue
+            if (get("DOCLINK", str(name)) or {}).get("url") != url: put("DOCLINK", str(name), {"url": url}); n += 1
+        if n: audit(user, "Google Drive のリンクの登録", f"{n}件")
+        return resp(200, {"saved": n})
     if method == "GET":
-        objs = s3().list_objects_v2(Bucket=BUCKET, Prefix="docs/").get("Contents", []) if BUCKET else []
-        out = []; q_ = body.get("_query") or {}; show_missing = q_.get("missing") == "1" and bool(g & ROLE_ADMIN); kind = q_.get("kind", "")   # kind=scope: Scope だけ / all: 全て / 省略: 手順書だけ
-        if kind in ("scope", "all"):
-            sc = s3().list_objects_v2(Bucket=BUCKET, Prefix="scope/").get("Contents", []) if BUCKET else []
-            plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
-            for pre in ["SC-1", "SC-2", "SC-3"] + [f"SC-4_{it['名称']}" for it in plan["SR項目"] + plan["FRQ項目"]]:
-                o = next((x for x in sc if x["Key"].split("/", 1)[1].startswith(pre)), None)
-                if o: out.append({"name": o["Key"].split("/", 1)[1], "target": "Scope", "updated": o["LastModified"].isoformat()[:10], "url": s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": o["Key"]}, ExpiresIn=900), "available": True})
-                elif show_missing: out.append({"name": pre, "target": "Scope", "updated": "", "url": "", "available": False})
-            if kind == "scope": return resp(200, out)
-        for k, target, roles in DOCS:
-            if roles is not None and not (g & roles): continue
-            o = next((x for x in objs if k in x["Key"]), None)
-            if not o:
-                if show_missing: out.append({"name": k, "target": target, "updated": "", "url": "", "available": False})
-                continue
-            name = o["Key"].split("/", 1)[1]
-            out.append({"name": name, "target": target, "updated": o["LastModified"].isoformat()[:10],
-                        "url": s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": o["Key"]}, ExpiresIn=900)})
-        return resp(200, out)
+        q_ = body.get("_query") or {}
+        if parts[1:2] == ["view"]:   # ブラウザで表示する(ダウンロードしない)
+            L = doc_list(g, "all", False)   # name: ファイル名 / doc: 手順書の名称の一部(画面の「手順書」のリンク)
+            d = next((x for x in L if x["name"] == q_.get("name")), None) or next((x for x in L if q_.get("doc") and x["target"] != "Scope" and q_["doc"] in x["name"]), None)
+            if not d: return resp(404, {"error": "文書がありません"})
+            import viewer
+            data = s3().get_object(Bucket=BUCKET, Key=d["key"])["Body"].read()
+            try: v = viewer.view(d["name"], data)
+            except Exception: return resp(422, {"error": "この文書は、画面に表示できません。ダウンロードして開いてください", "url": d["url"]})
+            return resp(200, {**{k: d[k] for k in ("name", "target", "updated", "url", "drive")}, **v})
+        return resp(200, [{k: v for k, v in d.items() if k != "key"} for d in doc_list(g, q_.get("kind", ""), q_.get("missing") == "1" and bool(g & ROLE_ADMIN))])
     return resp(405, {"error": "方法が不正です"})
 
 

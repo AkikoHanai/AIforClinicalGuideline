@@ -107,3 +107,8 @@ button.tag { cursor:pointer; padding:0 8px; }
 
 @media (max-width: 1100px) { .split { grid-template-columns: 1fr; } }
 @media (max-width: 800px) { .app { grid-template-columns:1fr; } .side { border-right:none; border-bottom:1px solid var(--line); } .side .me { margin:0; } main { padding:14px; } }
+/* 文書の表示(Scope・手順書の「開く」)。Excel は、罫線のあるセルだけ枠を描く */
+table.xl { table-layout:fixed; min-width:640px; } table.xl td { border:none; padding:3px 6px; vertical-align:top; white-space:pre-wrap; overflow-wrap:anywhere; }
+table.xl td.bd { border:1px solid #8a8f98; } table.xl td.b, p.doc.b { font-weight:700; } table.xl td.c { text-align:center; } table.xl td.s { white-space:nowrap; overflow-wrap:normal; }
+table.doc td, table.doc th { white-space:pre-wrap; vertical-align:top; } table.doc { margin:8px 0; }
+p.doc { margin:6px 0; white-space:pre-wrap; } ul.doc { margin:6px 0; padding-left:24px; } .docview h3 { margin-top:18px; }
