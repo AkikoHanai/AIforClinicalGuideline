@@ -446,7 +446,7 @@ def access(method, parts, body, user):
     if method == "POST" and sub == "request":
         if user["groups"]: return resp(409, {"error": "すでに承認されています"})
         name = re.sub(r"[\s　]+", "", str(body.get("name", ""))); aff = str(body.get("affiliation", "")).strip()[:100]
-        if not name or len(name) > 40: return resp(400, {"error": "氏名(企画書の表記。例: 華井明子)を入力してください"})
+        if not name or len(name) > 40: return resp(400, {"error": "氏名を入力してください(例: 華井明子)"})
         old = get("ACCESS", me)
         if old and old.get("status") == "承認済み": return resp(200, old)
         rec = put("ACCESS", me, {"email": me, "name": name, "affiliation": aff, "status": "承認待ち", "requested_at": now(), "suggest": roster_roles(name)})
@@ -698,7 +698,7 @@ def papers(method, parts, body, user):
             ch = {k: str(body["chars"].get(k, "")) for k in ("design", "cancer", "chemo_drugs", "chemo_class", "n_total", "n_int", "intervention_detail", "comparator_detail", "followup")}
             if ch["chemo_class"] and ch["chemo_class"] not in CHEMO_CLASSES: return resp(400, {"error": "化学療法の分類は " + "/".join(CHEMO_CLASSES)})
             p["chars"] = ch
-        put("PAPER", p["sk"], p); audit(user, "研究特性の更新", f"{cqid} / PMID {pmid}", f"がん腫: {p['chars'].get('cancer', '')}、分類: {p['chars'].get('chemo_class', '')}"); return resp(200, p)
+        put("PAPER", p["sk"], p); audit(user, "研究特性の更新", f"{cqid} / PMID {pmid}", f"がん種: {p['chars'].get('cancer', '')}、分類: {p['chars'].get('chemo_class', '')}"); return resp(200, p)
     if method == "DELETE" and not sub:
         require(user, ROLE_LEAD)
         if p: table().delete_item(Key={"pk": "PAPER", "sk": p["sk"]}); bump(cqid); audit(user, "論文の登録解除", f"{cqid} / PMID {pmid}")
@@ -721,7 +721,7 @@ def f45(method, parts, body, user):
     sub = parts[4] if len(parts) > 4 else ""
     c = get("CQ", cqid); p = get("PAPER", paper_key(cqid, pmid))
     if not c or not p: return resp(404, {"error": "CQ または論文がありません"})
-    if outcome not in (c.get("outcomes") or []): return resp(400, {"error": "この CQ のアウトカムにありません(CQ・PICO一覧で登録)"})
+    if outcome not in (c.get("outcomes") or []): return resp(400, {"error": "この CQ のアウトカムではありません"})
     recs = {r["sk"].rsplit("#", 1)[1]: r for r in query("F45", f"{cqid}#{pmid}#{outcome}#")}
     reviewers = sorted(k for k in recs if k not in ("AI", "確定"))
     submitted = [k for k in reviewers if recs[k].get("submitted")]
@@ -733,7 +733,7 @@ def f45(method, parts, body, user):
         return resp(200, {"mine": mine, "ai": recs.get("AI"), "final": recs.get("確定"), "others": others, "reviewers": reviewers, "submitted": submitted, "reconcile_open": both,
                           "paper": p, "item_keys": ITEM_KEYS, "item_ja": ITEM_JA})
     if method == "PUT" and not sub:
-        if not user["name"]: return resp(400, {"error": "利用者の氏名が未登録です(事務局に依頼)"})
+        if not user["name"]: return resp(400, {"error": "氏名が登録されていません。統括委員長に連絡してください"})
         if not (is_assignee(user, c) or lead): raise Forbidden("この CQ の担当委員に限ります")
         mine = recs.get(user["name"]) or {}
         if mine.get("submitted") and not lead and body.get("submitted") is not False:
@@ -752,7 +752,7 @@ def f45(method, parts, body, user):
         put("F45", f45_key(cqid, pmid, outcome, "確定"), rec); audit(user, "SR-5の確定(照合)", f"{cqid} / PMID {pmid} / {outcome}", summarize_items(items)); return resp(200, rec)
     if method == "POST" and sub == "draft":
         if not (is_assignee(user, c) or lead): raise Forbidden("この CQ の担当委員に限ります")
-        if not str(p.get("status", "")).startswith("本文抽出済"): return resp(409, {"error": "本文が未抽出です。PDFを登録し、本文を抽出してください(抄録だけでは作りません。画像PDFは OCR で本文を入れます)"})
+        if not str(p.get("status", "")).startswith("本文抽出済"): return resp(409, {"error": "本文がありません。「論文」で PDF を登録してください"})
         request_draft(user, cqid, pmid, outcome)
         audit(user, "SR-5の下書きを依頼", f"{cqid} / PMID {pmid} / {outcome}"); return resp(202, {"status": "作成中"})
     return resp(405, {"error": "方法が不正です"})
@@ -783,7 +783,7 @@ def run_draft45(ev):
         import draft45
         text = json.loads(s3().get_object(Bucket=BUCKET, Key=p["text_key"])["Body"].read())
         paras = relevant(text["paragraphs"])
-        if not paras: return resp(400, {"error": "本文の段落がありません(画像PDF)。OCR で本文を入れてから下書きを作ります"})
+        if not paras: return resp(400, {"error": "画像の PDF のため、AI下書きを作成できません"})
         out = draft45.draft(c["title"], pico_of(c)["P"], pico_of(c)["I"], outcome, paras)
         rec = {"cq": cqid, "pmid": pmid, "outcome": outcome, "reviewer": "AI", "status": "下書き", "items": out["items"], "study": out.get("study") or {}, "design": out.get("design"),
                "counts": out.get("counts") or {}, "effect": out.get("effect") or {}, "numbers": out.get("numbers") or {}, "model": draft45.MODEL_ID, "paragraphs_used": [x["id"] for x in paras], "at": now()}
@@ -1369,10 +1369,10 @@ def screening(method, parts, body, user):
         st = body.get("stage"); dec = str(body.get("decision", "")); reason = str(body.get("reason", "")); why = str(body.get("why", "")).strip()
         if st not in ("s1", "s2") or dec not in (S1_DEC if st == "s1" else S2_DEC): return resp(400, {"error": "段階または判定の値が不正です"})
         if dec == "除外" and reason not in SCREEN_REASONS: return resp(400, {"error": "除外には、除外理由が必要です"})
-        if st == "s1" and reason in S2_ONLY_REASONS: return resp(400, {"error": f"「{reason}」は、全文を読んで決める理由です。一次では使えません(判断できないときは、残します)"})
+        if st == "s1" and reason in S2_ONLY_REASONS: return resp(400, {"error": f"「{reason}」は、二次(全文)で使う除外理由です。一次では使えません"})
         if not why: return resp(400, {"error": "協議の内容(結論の理由)が必要です"})
         opinion = str(body.get("opinion", "")).strip()
-        if not opinion: return resp(400, {"error": "第三者の意見(SR委員長への報告と、その意見)が必要です(Minds: 不一致は、第三者の意見を取り入れて決める)"})
+        if not opinion: return resp(400, {"error": "第三者の意見が必要です"})
         opinion_by = (name or user["email"]) if "SR委員長" in set(user["groups"]) else (str(body.get("opinion_by", "")).strip() or "SR委員長")
         if sum(1 for r in rs if (r.get(st) or {}).get("decision")) < 2 and not lead: return resp(409, {"error": "2名の判定がそろってから、協議の結論を記録します"})
         if st == "s2" and not to_s2(cd, stage_result(cd, rs, "s1")): return resp(409, {"error": "一次の結果が 採用・保留 の文献だけが、二次の対象です"})
@@ -1397,7 +1397,7 @@ def screening(method, parts, body, user):
             if st == "s2" and not (cd.get("direct") or (r.get("s1") or {}).get("decision") in ("採用", "保留") or to_s2(cd, stage_result(cd, rs, "s1"))):
                 return resp(409, {"error": "二次の対象は、一次が 採用・保留 の文献です"})
             if dec == "除外" and reason not in SCREEN_REASONS: return resp(400, {"error": "除外には、除外理由が必要です"})
-            if st == "s1" and reason in S2_ONLY_REASONS: return resp(400, {"error": f"「{reason}」は、全文を読んで決める理由です。一次では使えません(判断できないときは、残します)"})
+            if st == "s1" and reason in S2_ONLY_REASONS: return resp(400, {"error": f"「{reason}」は、二次(全文)で使う除外理由です。一次では使えません"})
             cur = r.get(st) or {}
             if cur.get("decision") and (cur["decision"] != dec or cur.get("reason", "") != (reason if dec == "除外" else "")):
                 # 他の委員の判定が見える状態になった後(2名がそろった後)は、自分の判定を変えない。協議の結論で記録する

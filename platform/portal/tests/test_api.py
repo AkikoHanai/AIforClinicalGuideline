@@ -278,11 +278,15 @@ def test_web_style_rules():
     assert len(re.findall(r"font-size\s*:", css)) == 1 and "font-size" not in js and "font-size" not in html  # body の指定だけ
     assert not re.search(r"(?<![-\w])color\s*:\s*(#fff\b|#ffffff\b|white\b)", css + js + html, re.I)   # 字の色に白を使わない
     assert ".approve" in css and js.count('class="approve"') >= 3  # SR-5 の確定、EtD の確定、総論の完了
-    assert "対応が必要なもの" in js and "自分の担当 CQ" in js                                  # ホームは、利用者ごとの内容
+    assert "対応が必要なもの" in js and "<h3>担当 CQ</h3>" in js                                  # ホームは、利用者ごとの内容
     for gone in ("現在の段階", "承認(確定)の記録がない件", "統括委員長承認済み", "手順1 CQ・PICO", "PICO は", "論文(PDF登録・本文)", "自分の欄に取り込んで修正する"): assert gone not in js, gone   # 削除した文言(推測の状態・承認の説明・PICO の入力・過剰な作業)
     for gone in ("相手の判定は、自分がその文献のその段階を判定した後に表示される(2名独立)", "検索結果(「検索の記録」の件数の文献)と", "件数は、検索の記録とスクリーニングの記録から数えた値である", "この枠は参考資料であり", "Word を開く"): assert gone not in js, gone   # 説明文は、手順のリンクに置き換えた
     assert 'data-show="${k}"' in js and "#search?cq=${esc(cqid)}" in js and "#papers?cq=${esc(cqid)}" in js and 'manual("スクリーニング")' in js      # スクリーニングの手順は、その操作の場所へのリンク
     assert "#view?name=${encodeURIComponent(d.name)}" in js and "Google Drive" in js and "ダウンロード" in js                                    # 文書の「開く」は、画面の中で表示する
+    shown = re.sub(r"(?m)^\s*//.*$|\s{2,}//.*$|/\*.*?\*/", "", js, flags=re.S) + html                                                         # コメントを除いた、画面に出る文言
+    for gone in ("Cognito", "CORS", "check_site", "トークン", "etd_2023.json", "CQ・PICO", "OCR", "Claude", "承認: ", "2023年版の体裁", "論文×アウトカム", "癌腫", "がん腫", "下書きは出発点", "重要性(1〜9)", "取り込みのときに登録済み", "自分が未判定", "記録の合計"):
+        assert gone not in shown, gone   # 委員に見せない語(仕組みの名前、内部のファイル名、廃止した画面名)と、削った説明
+    assert not re.findall(r'<p class="(?:note|small)">[^<$]{90,}', js), "説明文は 90 字までにする(長い規則は、手順書へのリンクで示す)"
 
 
 def test_extract_does_not_stop_at_front_matter_or_references():

@@ -70,7 +70,7 @@ def build(cq, papers, finals, sr8_rows, etd, gl2023, audit, soron_users=None, sc
     style(ws, widths=[11, 44, 30, 16, 20, 8, 22, 12, 8, 22, 12, 30, 30, 30])
 
     ws = wb.create_sheet("研究特性")
-    ws.append(["PMID", "題名", "デザイン", "がん腫", "化学療法の分類", "薬剤名", "全症例数", "介入群症例数", "介入", "対照", "評価時点", "本文"])
+    ws.append(["PMID", "題名", "デザイン", "がん種", "化学療法の分類", "薬剤名", "全症例数", "介入群症例数", "介入", "対照", "評価時点", "本文"])
     for p in sorted(papers, key=lambda p: p["pmid"]):
         ch = p.get("chars") or {}
         ws.append([p["pmid"], p.get("title", ""), ch.get("design", ""), ch.get("cancer", ""), ch.get("chemo_class", ""), ch.get("chemo_drugs", ""), ch.get("n_total", ""), ch.get("n_int", ""),
