@@ -14,7 +14,7 @@ def main(email):
     if not glob.glob(os.path.join(ROOT, "scope", "out", "minds", "SC-*.xlsx")): print("【注意】Scope(platform/scope/out/minds の SC-*.xlsx)がありません。git pull で取得してください")
     for f in files:
         r = tok.call("POST", "/docs/upload-url", {"filename": os.path.basename(f)})
-        if "error" in r: print(os.path.basename(f), "→", r["error"]); continue
+        if "error" in r: print("置き換えません(Google Drive で編集済み):" if "編集済み" in str(r["error"]) else "登録できません:", os.path.basename(f), "" if "編集済み" in str(r["error"]) else r["error"]); continue
         with open(f, "rb") as fh:
             urllib.request.urlopen(urllib.request.Request(r["url"], method="PUT", data=fh.read(), headers={"Content-Type": "application/vnd.openxmlformats-officedocument." + ("spreadsheetml.sheet" if f.endswith(".xlsx") else "wordprocessingml.document")}))
         print("置きました:", os.path.basename(f))

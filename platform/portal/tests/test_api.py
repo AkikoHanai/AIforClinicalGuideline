@@ -778,15 +778,16 @@ def test_scope_is_placed_in_chapter3_folders(env, tmp_path):
     class Tok:
         def call(self, method, path, body=None): return call(method, path, body)[1]
     fetch = lambda url: s3c.get_object(Bucket=H.BUCKET, Key=urllib.parse.unquote(urllib.parse.urlparse(url).path.lstrip("/")))["Body"].read()
+    gen = lambda n: {SD.doc_digest(b"v1 " + n.encode())}   # 共有ドライブの版(v1)は、生成した版のまま(人が編集していない)
     d1 = str(tmp_path / "a"); ch3 = os.path.join(d1, "新規ガイドライン作成", "Chap3_スコープ")
     for f in ("chap3_SC_1_疾患トピックの基本的特徴 ", "chap3_SC_2_アルゴリズム", "chap3_SC_3_スコープ", "chap3_SC_4_CQ"): os.makedirs(os.path.join(ch3, f))
-    SD.sync(Tok(), d1, fetch=fetch)
+    SD.sync(Tok(), d1, fetch=fetch, generated=gen)
     assert open(os.path.join(ch3, "chap3_SC_1_疾患トピックの基本的特徴 ", "SC-1_疾患トピックの基本的特徴.xlsx"), "rb").read().startswith(b"v1") and os.path.exists(os.path.join(ch3, "chap3_SC_2_アルゴリズム", "SC-2_診療アルゴリズム.xlsx"))
     assert os.path.exists(os.path.join(ch3, "chap3_SC_3_スコープ", "SC-3_スコープ.xlsx")) and os.path.exists(os.path.join(ch3, "chap3_SC_4_CQ", "SC-4_牛車腎気丸.xlsx")) and not os.path.exists(os.path.join(d1, "新規ガイドライン作成", "ポータル出力", "Scope"))
     r1 = s3c.get_object(Bucket=H.BUCKET, Key="scope/SC-3_スコープ.xlsx"); s3c.put_object(Bucket=H.BUCKET, Key="scope/SC-3_スコープ.xlsx", Body=b"v2")
-    SD.sync(Tok(), d1, fetch=fetch); assert open(os.path.join(ch3, "chap3_SC_3_スコープ", "SC-3_スコープ.xlsx"), "rb").read() == b"v2"
-    d2 = str(tmp_path / "b"); os.makedirs(os.path.join(d2, "Chap3_スコープ")); SD.sync(Tok(), d2, fetch=fetch); assert os.path.exists(os.path.join(d2, "Chap3_スコープ", "SC-3_スコープ.xlsx"))
-    d3 = str(tmp_path / "c"); os.makedirs(d3); SD.sync(Tok(), d3, fetch=fetch); assert os.path.exists(os.path.join(d3, "ポータル出力", "Scope", "SC-3_スコープ.xlsx"))
+    SD.sync(Tok(), d1, fetch=fetch, generated=gen); assert open(os.path.join(ch3, "chap3_SC_3_スコープ", "SC-3_スコープ.xlsx"), "rb").read() == b"v2"
+    d2 = str(tmp_path / "b"); os.makedirs(os.path.join(d2, "Chap3_スコープ")); SD.sync(Tok(), d2, fetch=fetch, generated=gen); assert os.path.exists(os.path.join(d2, "Chap3_スコープ", "SC-3_スコープ.xlsx"))
+    d3 = str(tmp_path / "c"); os.makedirs(d3); SD.sync(Tok(), d3, fetch=fetch, generated=gen); assert os.path.exists(os.path.join(d3, "ポータル出力", "Scope", "SC-3_スコープ.xlsx"))
 
 
 def test_scope_files_are_not_git_ignored():
@@ -844,6 +845,80 @@ def test_documents_open_in_browser_with_drive_links(env, tmp_path):
     SD.sync(Tok(), drive, fetch=fetch, ids=lambda p: None)                                                               # 転送そのものは、ID を読めなくても完了する
     assert os.path.exists(os.path.join(drive, "ポータル出力", "Scope", "SC-3_スコープ.xlsx"))
     assert SD.drive_attr(os.path.join(drive, "ポータル出力", "Scope", "SC-3_スコープ.xlsx")) is None                    # Google Drive の外のファイルには、ID がない
+
+
+def test_scope_edited_in_google_sheets_is_reflected_to_portal(env, tmp_path, capsys):
+    """Scope は、共有ドライブの Excel を Google スプレッドシートで編集した版を正とする。fetch.sh(sync_drive)は、編集された版をポータルに反映し(ドライブ → ポータル)、上書きしない。
+    生成した版のままのファイルだけを、ポータルの新しい版で置き換える。編集済みの文書は、生成した版の登録(setup_portal.sh)でも置き換えない。"""
+    import importlib, urllib.parse, openpyxl
+    sys.path.insert(0, os.path.join(HERE, "..", "scripts")); SD = importlib.import_module("sync_drive"); s3c = boto3.client("s3"); root = os.path.join(HERE, "..", "..")
+    S3, S2, MAN = "SC-3_スコープ.xlsx", "SC-2_診療アルゴリズム.xlsx", "4_SR委員の手順書.docx"
+    gen = {S3: open(os.path.join(root, "scope", "out", "minds", S3), "rb").read(), S2: open(os.path.join(root, "scope", "out", "minds", S2), "rb").read(), MAN: open(os.path.join(root, "manuals", "out", MAN), "rb").read()}
+    for n, b in gen.items():
+        c, r = call("POST", "/docs/upload-url", {"filename": n}); assert c == 200; s3c.put_object(Bucket=H.BUCKET, Key=r["key"], Body=b)
+    class Tok:
+        def call(self, method, path, body=None): return call(method, path, body)[1]
+    key = lambda url: urllib.parse.unquote(urllib.parse.urlparse(url).path.lstrip("/"))
+    fetch = lambda url: s3c.get_object(Bucket=H.BUCKET, Key=key(url))["Body"].read(); ups = []
+    def upload(url, data, ct): ups.append(key(url)); s3c.put_object(Bucket=H.BUCKET, Key=key(url), Body=data)
+    portal = lambda n: s3c.get_object(Bucket=H.BUCKET, Key=("scope/" if n.startswith("SC-") else "docs/") + n)["Body"].read()
+    drive = str(tmp_path / "d"); os.makedirs(drive); run = lambda **kw: SD.sync(Tok(), drive, fetch=fetch, upload=upload, ids=lambda p: None, **kw)
+    p3, p2 = os.path.join(drive, "ポータル出力", "Scope", S3), os.path.join(drive, "ポータル出力", "Scope", S2); pm = os.path.join(drive, "ポータル出力", "マニュアル", "SR委員", MAN)
+    run(); assert open(p3, "rb").read() == gen[S3] and open(pm, "rb").read() == gen[MAN] and not ups                       # 最初は、ポータル → ドライブ
+    # 生成した版の要約値: リポジトリの現在のファイルと git の履歴から求める。リポジトリにない名前は、判定できない(None)
+    real = SD.generated_digests(S3); assert real and SD.doc_digest(gen[S3]) in real and SD.generated_digests("ない.xlsx") is None
+    assert SD.doc_digest(gen[S3]) == SD.doc_digest(open(p3, "rb").read()) and SD.generated_file(S3).endswith(S3) and SD.generated_file("ない.xlsx") is None
+    # 1. Google スプレッドシートで SC-3 を編集した(同じ xlsx が書き換わる) → ポータルに反映する。ドライブのファイルは、そのまま
+    wb = openpyxl.load_workbook(p3); wb.worksheets[0]["F13"] = "委員が Google スプレッドシートで編集したトピック"; wb.save(p3); edited = open(p3, "rb").read()
+    assert SD.doc_digest(edited) not in real
+    n0 = len(ups); run(dry=True); assert len(ups) == n0 and portal(S3) == gen[S3] and "ポータルに反映する: 1 件" in capsys.readouterr().out      # --dry-run は、表示だけ
+    cp, sk = run(); out = capsys.readouterr().out
+    assert ups == ["scope/" + S3] and portal(S3) == edited and open(p3, "rb").read() == edited and p3 not in cp and "ポータルに反映した: 1 件" in out and S3 in out
+    row = lambda n: next(x for x in call("GET", "/docs?kind=scope")[1] if x["name"] == n); assert row(S3)["edited"] is True and row(S2)["edited"] is False
+    c, v = call("GET", "/docs/view?" + urllib.parse.urlencode({"name": S3}), who=R1); assert c == 200 and any(x and x.get("v") == "委員が Google スプレッドシートで編集したトピック" for r_ in v["sheets"][0]["rows"] for x in r_)   # ポータルの「開く」に、編集した内容が出る
+    assert any(a["action"] == "Scope の更新(Google Drive での編集を反映)" and S3 in a["target"] for a in call("GET", "/audit")[1])
+    run(); assert ups == ["scope/" + S3]                                                                                 # 同じ内容は、繰り返し送らない
+    # 2. 編集済みの文書は、生成した版の登録(setup_portal.sh → upload_docs.py)で置き換えない。Google Drive のリンクの登録でも、編集済みの印は消えない
+    c, r = call("POST", "/docs/upload-url", {"filename": S3}); assert c == 409 and r["edited"] is True and "編集済み" in r["error"] and portal(S3) == edited
+    assert call("POST", "/docs/upload-url", {"filename": S2})[0] == 200                                                    # 編集していない文書は、置き換えられる
+    assert call("PUT", "/docs/links", {"links": {S3: "https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view"}})[1] == {"saved": 1} and row(S3)["edited"] is True and row(S3)["drive"].endswith("/view")
+    # 3. 生成した版のままのファイル(人が編集していない)は、ポータルの新しい版で置き換える(ポータル → ドライブ)
+    wb = openpyxl.load_workbook(io.BytesIO(gen[S2])); wb.worksheets[0]["A30"] = "生成した新しい版"; b = io.BytesIO(); wb.save(b); new2 = b.getvalue(); s3c.put_object(Bucket=H.BUCKET, Key="scope/" + S2, Body=new2)
+    cp, _ = SD.sync(Tok(), drive, fetch=fetch, upload=upload, ids=lambda p: None, generated=lambda n: {SD.doc_digest(gen[S2]), SD.doc_digest(new2)}); assert p2 in cp and open(p2, "rb").read() == new2 and ups == ["scope/" + S3]
+    # 4. 編集の有無を判定できない(git の履歴を読めない)ときは、置き換えも反映もしない
+    wb = openpyxl.load_workbook(p2); wb.worksheets[0]["A31"] = "判定できない変更"; wb.save(p2); u2 = open(p2, "rb").read()
+    cp, _ = SD.sync(Tok(), drive, fetch=fetch, upload=upload, ids=lambda p: None, generated=lambda n: None); assert open(p2, "rb").read() == u2 and portal(S2) == new2 and ups == ["scope/" + S3] and "判定できない" in capsys.readouterr().out
+    # 5. 手順書は、生成した版を正とする。ドライブで編集された版は、別の名前で残してから置き換える(失わない)
+    import zipfile
+    zi = zipfile.ZipFile(io.BytesIO(gen[MAN])); b = io.BytesIO(); zo = zipfile.ZipFile(b, "w", zipfile.ZIP_DEFLATED)
+    for it in zi.infolist(): zo.writestr(it, zi.read(it.filename).replace("SR委員の手順書".encode(), "SR委員の手順書(編集)".encode()) if it.filename == "word/document.xml" else zi.read(it.filename))
+    zo.close(); edm = b.getvalue(); open(pm, "wb").write(edm); run(); sides = [f for f in os.listdir(os.path.dirname(pm)) if "Driveで編集" in f]
+    assert open(pm, "rb").read() == gen[MAN] and len(sides) == 1 and open(os.path.join(os.path.dirname(pm), sides[0]), "rb").read() == edm and "docs/" + MAN not in ups
+    # 6. Google スプレッドシート形式に変換したファイル(.gsheet)は読めない。案内を表示する
+    open(os.path.join(os.path.dirname(p3), "SC-3_スコープ.gsheet"), "w").write("{}"); capsys.readouterr(); run(); assert "Google スプレッドシート形式" in capsys.readouterr().out
+    # 7. 生成した版に戻す(--reset SC-3): 編集された版を別の名前で残し、ポータルとドライブを生成した版にする。編集済みの印は消える
+    assert SD.settings(["--reset", "SC-3", "--drive", drive], str(tmp_path))[2]["reset"] == "SC-3" and SD.settings(["--drive", drive], str(tmp_path))[2]["reset"] is None
+    run(reset="SC-3"); sides = [f for f in os.listdir(os.path.dirname(p3)) if "Driveで編集" in f and f.startswith("SC-3")]
+    assert portal(S3) == gen[S3] and open(p3, "rb").read() == gen[S3] and row(S3)["edited"] is False and len(sides) == 1 and open(os.path.join(os.path.dirname(p3), sides[0]), "rb").read() == edited
+    assert call("POST", "/docs/upload-url", {"filename": S3})[0] == 200                                                    # 戻した後は、生成した版で置き換えられる
+
+
+def test_member_manuals_state_only_decided_facts():
+    """委員向けの手順書に、決定されていない日程(月ごとの期限、更新検索の時期)と、存在しない文書(検索計画(事務局が保管))を書かない。検索期間は、決定の記録(2026-11-20)のとおりに書く。"""
+    import glob
+    sys.path.insert(0, os.path.join(HERE, "..", "api")); import viewer
+    def text(f):
+        out = []
+        for b in viewer.docx_view(open(f, "rb").read())["blocks"]: out += [c["v"] for r in b["rows"] for c in r] if b["t"] == "table" else [b["text"]]
+        return "\n".join(out)
+    d = os.path.join(HERE, "..", "..", "manuals", "out"); docs = {os.path.basename(f): text(f) for f in glob.glob(os.path.join(d, "*.docx"))}; assert len(docs) == 6
+    for n, t in docs.items():
+        for ng in ("更新検索を行う", "検索の更新", "事務局が保管", "2027年3月に更新"): assert ng not in t, (n, ng)
+        if not n.startswith("2_"):   # 統括委員会へのお願い(統括委員会だけが見る)は、日程の案を、案として載せる
+            assert not re.search(r"20\d\d年[0-9〜]+月(末|上旬|中旬|下旬)|2027年[0-9]|期限は案", t), (n, re.findall(r".{0,20}(?:20\d\d年[0-9〜]+月(?:末|上旬|中旬|下旬)|2027年[0-9]).{0,10}", t)[:3])
+    sr = docs["4_SR委員の手順書.docx"]; assert "検索期間は、前回の検索の終了日の翌日から2026年10月1日まで(統括委員長の決定 2026年11月20日)" in sr and "翌月の1日から" in sr
+    plan = json.load(open(os.path.join(HERE, "..", "..", "governance", "approved_plan.json"), encoding="utf-8")); dec = "\n".join(plan["統括委員長の決定(2026-10-07以降。企画書に記載がない事項の決定)"])
+    assert "検索期間は 2026年10月1日まで" in dec and "更新検索" not in dec.replace("2027年3月の更新検索)と", "")    # 決定の記録に、更新検索の決定はない
 
 
 def test_sr8_has_minds_sr8_columns(env):

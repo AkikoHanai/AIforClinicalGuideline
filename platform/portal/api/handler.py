@@ -1089,10 +1089,10 @@ DOCS = [("操作マニュアル", "全委員", None), ("SR委員の手順書", "
 def doc_list(g, kind, show_missing):
     """文書の一覧。kind=scope: Scope だけ / all: 全て / 省略: 手順書だけ。g は利用者の役割。"""
     if not BUCKET: return []
-    link = {x["sk"]: x.get("url", "") for x in query("DOCLINK")}; out = []
+    rec = {x["sk"]: x for x in query("DOCLINK")}; out = []   # Google Drive 上の URL と、Drive で編集済みの印
     def row(o, target):
         name = o["Key"].split("/", 1)[1]
-        return {"name": name, "target": target, "updated": o["LastModified"].isoformat()[:10], "key": o["Key"], "drive": link.get(name, ""), "available": True,
+        return {"name": name, "target": target, "updated": o["LastModified"].isoformat()[:10], "key": o["Key"], "drive": rec.get(name, {}).get("url", ""), "edited": bool(rec.get(name, {}).get("edited")), "available": True,
                 "url": s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": o["Key"]}, ExpiresIn=900)}
     miss = lambda name, target: {"name": name, "target": target, "updated": "", "url": "", "drive": "", "available": False}
     if kind in ("scope", "all"):
@@ -1122,8 +1122,13 @@ def docs(method, parts, body, user):
         require(user, ROLE_ADMIN)
         name = re.sub(r"[^\w.\-一-龥ぁ-んァ-ン（）()・、]", "_", str(body.get("filename", "")))[:100]
         if re.match(r"SC-[1-4]", name) and name.endswith(".xlsx"):   # Scope(Minds 第3章の様式 SC-1〜SC-4)。「Scope」の画面に出す
+            # Scope は、共有ドライブで編集した版(Google スプレッドシートでの編集)を正とする。source=drive: sync_drive.py が、編集された版を置く。
+            # 編集済みの文書は、生成した版(upload_docs.py)では置き換えない(force のときだけ置き換え、編集済みの印を消す)
+            cur = get("DOCLINK", name) or {}; from_drive = body.get("source") == "drive"
+            if cur.get("edited") and not from_drive and not body.get("force"): return resp(409, {"error": "Google Drive で編集済みのため、置き換えません", "edited": True})
+            if from_drive or cur.get("edited"): put("DOCLINK", name, {**({"url": cur["url"]} if cur.get("url") else {}), **({"edited": True, "edited_at": now()} if from_drive else {})})
             url = s3().generate_presigned_url("put_object", Params={"Bucket": BUCKET, "Key": f"scope/{name}", "ContentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}, ExpiresIn=900)
-            audit(user, "Scope の登録", name); return resp(200, {"url": url, "key": f"scope/{name}"})
+            audit(user, "Scope の更新(Google Drive での編集を反映)" if from_drive else "Scope の登録", name); return resp(200, {"url": url, "key": f"scope/{name}"})
         if not name.endswith(".docx") or not any(k in name for k, _, _ in DOCS): return resp(400, {"error": "手順書のファイル名ではありません"})
         url = s3().generate_presigned_url("put_object", Params={"Bucket": BUCKET, "Key": f"docs/{name}", "ContentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}, ExpiresIn=900)
         audit(user, "手順書の登録", name); return resp(200, {"url": url, "key": f"docs/{name}"})
@@ -1132,7 +1137,8 @@ def docs(method, parts, body, user):
         require(user, ROLE_ADMIN); n = 0
         for name, url in (body.get("links") or {}).items():
             if not re.fullmatch(r"https://drive\.google\.com/[\w\-./?=&%]+", str(url)) or "/" in str(name): continue
-            if (get("DOCLINK", str(name)) or {}).get("url") != url: put("DOCLINK", str(name), {"url": url}); n += 1
+            cur = get("DOCLINK", str(name)) or {}
+            if cur.get("url") != url: put("DOCLINK", str(name), {**{k: cur[k] for k in ("edited", "edited_at") if k in cur}, "url": url}); n += 1
         if n: audit(user, "Google Drive のリンクの登録", f"{n}件")
         return resp(200, {"saved": n})
     if method == "GET":

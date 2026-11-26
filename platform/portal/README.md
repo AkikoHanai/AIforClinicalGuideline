@@ -92,6 +92,7 @@ cd ~/AIforClinicalGuideline && git pull && ./fetch.sh
 ./deploy_portal.sh      # ポータル(AWS)の展開(画面・API を更新したとき)
 ```
 
+- Scope は、共有ドライブの Excel を Google スプレッドシートで編集した版を正とする。`./fetch.sh` は、人が編集した版をポータルに反映し(ドライブ → ポータル。上書きしない)、生成した版のままのファイルだけを、ポータルの新しい版で置き換える。人が編集したかは、ファイルの内容の要約値が、リポジトリの生成した版(現在のファイルと git の履歴)にあるかで判定する。編集済みの Scope は、`./setup_portal.sh` でも置き換えない。生成した版に戻すときは `./fetch.sh --reset SC-3`(編集された版は、別の名前で残す)。Google スプレッドシート形式(.gsheet)に変換したファイルは読めない。手順書は、生成した版を正とする(ドライブで編集された版は、別の名前で残してから置き換える)。ポータルの記録から出力する Minds書類・別添は、ポータル → ドライブの一方向
 - `./fetch.sh` は、転送した Scope・手順書の Google Drive 上の URL を、ポータルに登録する(Google Drive for desktop がファイルに付ける ID `com.google.drivefs.item-id#S` を `xattr` で読む。同期前のファイルは 60 秒まで待ち、残りは次の実行で登録する)。ポータルの「Scope」「手順書」に「Google Drive」のリンクが出る
 - 場所の指定・コードの修正は要らない。共有ドライブのフォルダは、`~/Library/CloudStorage/GoogleDrive-*/共有ドライブ/CIPNガイドライン作成`(英語表示は `Shared drives`)から自動で見つける。`DRIVE_DIR` または `--drive <フォルダ>` で指定もできる。
 - スクリプト(`fetch.sh`、`upload_docs.py`、`import_soron2023.py`、`run_search.py --import` など)のメールアドレスの指定は、省略できる。保存済みのもの(`~/.jascc_gl_portal.json`)、なければ統括委員会の唯一の利用者を使う。プールにいないメールアドレスを指定したときは、プールの利用者の一覧(メールアドレス・氏名・グループ)を表示して止まる。AWS にログインしていなければ、ログインを求める。

@@ -2,7 +2,9 @@
 Google Drive for desktop の同期フォルダへ書き込むと、Google Drive for desktop が共有ドライブへ同期する(Apps Script など、Google 側の設定は不要。学術アカウントでよい)。
 使い方(統括委員長の Mac):
   cd ~/AIforClinicalGuideline && git pull && ./fetch.sh            ポータルから共有ドライブへ転送する(場所の指定・コードの修正は要らない)
-  ./fetch.sh --dry-run   置く場所と内容の表示だけ    ./fetch.sh --tree   共有ドライブのフォルダの構成を表示    ./fetch.sh --watch   30分ごとに繰り返す
+  ./fetch.sh --dry-run   置く場所と内容の表示だけ    ./fetch.sh --tree   共有ドライブのフォルダの構成を表示    ./fetch.sh --watch   30分ごとに繰り返す(--watch=5: 5分ごと)
+  ./fetch.sh --reset SC-3   名前に SC-3 を含む Scope を、生成した版に戻す(共有ドライブで編集された版は、別の名前で残す)
+Scope(SC-1〜SC-4)は、共有ドライブの Excel を Google スプレッドシートで編集した版を正とする。編集された版は、ポータルに反映する(ドライブ → ポータル)。上書きしない。
 直接実行するとき:
   python3 <このファイル> [メールアドレス] [--dry-run] [--tree] [--watch[=分]] [--drive <フォルダ>]
 メールアドレスの指定は省略できる(保存済みのもの、なければ統括委員会の唯一の利用者を使う。プールにいないメールアドレスを指定したときは、プールの利用者の一覧を表示する)。
@@ -63,6 +65,58 @@ def same_xlsx(a, b):
         return all(iso.sub(b"", za.read(n)) == iso.sub(b"", zb.read(n)) for n in names)
     except Exception:
         return False
+
+
+def put_bytes(url, data, content_type):
+    urllib.request.urlopen(urllib.request.Request(url, method="PUT", data=data, headers={"Content-Type": content_type}), timeout=120)
+
+
+def doc_digest(data):
+    """文書(xlsx・docx)の内容の要約値。作成日時(docProps)と日時の文字列を除いて計算する(生成のたびに変わるため)。"""
+    import hashlib, io, zipfile
+    iso = re.compile(rb"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:[+-]\d\d:\d\d|Z)?"); h = hashlib.sha256()
+    try:
+        z = zipfile.ZipFile(io.BytesIO(data))
+        for n in sorted(x for x in z.namelist() if not x.startswith("docProps/")): h.update(n.encode("utf-8")); h.update(iso.sub(b"", z.read(n)))
+    except Exception:
+        h = hashlib.sha256(data)
+    return h.hexdigest()
+
+
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+GEN_DIRS = ("platform/scope/out/minds", "platform/manuals/out", "platform/procedures/out")   # 生成した文書の置き場所(リポジトリ)
+
+
+def generated_file(name, repo=REPO):
+    """リポジトリにある、生成した版のファイル。なければ None。"""
+    return next((p for p in (os.path.join(repo, d, name) for d in GEN_DIRS) if os.path.exists(p)), None)
+
+
+def generated_digests(name, repo=REPO):
+    """生成した版(リポジトリの現在のファイルと、git の履歴にある全ての版)の要約値の集合。
+    共有ドライブのファイルの要約値がこの集合にあれば、生成した版のままである(人が編集していない)。git の履歴を読めないときは None(判定できない)。"""
+    import subprocess, unicodedata
+    name = unicodedata.normalize("NFC", name); out = set()
+    for d in GEN_DIRS:
+        rel = f"{d}/{name}"; path = os.path.join(repo, rel)
+        if os.path.exists(path): out.add(doc_digest(open(path, "rb").read()))
+        try:
+            r = subprocess.run(["git", "-C", repo, "log", "--format=%H", "--", rel], capture_output=True, text=True, timeout=60)
+            if r.returncode != 0: return None
+            for rev in r.stdout.split():
+                b = subprocess.run(["git", "-C", repo, "show", f"{rev}:{rel}"], capture_output=True, timeout=60)
+                if b.returncode == 0: out.add(doc_digest(b.stdout))
+        except Exception:
+            return None
+    return out or None
+
+
+def keep_aside(dest, data, dry):
+    """人が編集した版を、別の名前で残す(上書きで失わないため)。残した場所を返す。"""
+    stem, ext = os.path.splitext(dest); side = f"{stem}(Driveで編集 {datetime.datetime.now().strftime('%Y%m%d-%H%M')}){ext}"
+    if not dry:
+        with open(side, "wb") as fh: fh.write(data)
+    return side
 
 
 def place(dest, data, copied, skipped, dry, overwrite=False):
@@ -168,7 +222,7 @@ def register_links(tok, docs, ids=drive_attr, wait=60, sleep=time.sleep):
     return len(new), sorted(pending), seen
 
 
-def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=60):
+def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=60, upload=put_bytes, generated=generated_digests, reset=None, repo=REPO):
     if not os.path.isdir(drive): sys.exit(f"共有ドライブのフォルダがありません: {drive}")
     copied, skipped, rel = [], [], lambda p: os.path.relpath(p, drive); L = Layout(drive)
     # 1. 総論の原稿(全ての版)と状態
@@ -203,18 +257,52 @@ def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=60):
         if g.get("docx_key"):
             r = tok.call("GET", f"/soron/{g['key']}/gl2023")
             if r.get("docx_url"): place(os.path.join(L.top("依頼書"), os.path.basename(g["docx_key"])), fetch(r["docx_url"]), copied, skipped, dry)
-    placed = {}   # 文書のファイル名 -> (置いた場所, ポータルに登録済みの Google Drive の URL)
+    # Scope は、共有ドライブで人が編集した版(Google スプレッドシートでの編集)を正とし、ポータルへ反映する(ドライブ → ポータル)。
+    # 生成した版のままのファイルは、ポータルの新しい版で置き換える(ポータル → ドライブ)。手順書は、生成した版を正とする(編集された版は、別の名前で残してから置き換える)
+    placed = {}; pushed, unknown, aside, resets, gsheets = [], [], [], [], []   # placed: 文書のファイル名 -> (置いた場所, ポータルに登録済みの Google Drive の URL)
+    def up_url(body):
+        r = tok.call("POST", "/docs/upload-url", body)
+        if "url" not in r: sys.exit(f"ポータルへの登録に失敗しました({body['filename']}): {r.get('error', r)}")
+        return r["url"]
+    XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     for d in tok.call("GET", "/docs?kind=all"):
-        if d["target"] == "Scope":   # Scope: SC-1〜SC-4 は、第3章の様式ごとのフォルダ(chap3_SC_1_… など)。なければ Chap3_スコープ、なければ ポータル出力/Scope
-            m_ = re.match(r"SC-([1-4])", d["name"]); folder = (L.find([f"chap3_SC_{m_.group(1)}"], prefix=True) if m_ else None) or L.find(["Chap3_スコープ"]) or L.top("Scope")
-            dest = os.path.join(folder, d["name"]); place(dest, fetch(d["url"]), copied, skipped, dry, overwrite=True)
-        else:
-            dest = os.path.join(L.top("マニュアル"), safe(d["target"]), d["name"]); place(dest, fetch(d["url"]), copied, skipped, dry, overwrite=True)   # 対象(全委員・SR委員・総論の執筆者・統括委員会など)ごとのフォルダ
-        placed[d["name"]] = (dest, d.get("drive", ""))
+        name = d["name"]; scope = d["target"] == "Scope"
+        if scope:   # SC-1〜SC-4 は、第3章の様式ごとのフォルダ(chap3_SC_1_… など)。なければ Chap3_スコープ、なければ ポータル出力/Scope
+            m_ = re.match(r"SC-([1-4])", name); folder = (L.find([f"chap3_SC_{m_.group(1)}"], prefix=True) if m_ else None) or L.find(["Chap3_スコープ"]) or L.top("Scope")
+        else: folder = os.path.join(L.top("マニュアル"), safe(d["target"]))   # 対象(全委員・SR委員・総論の執筆者・統括委員会など)ごとのフォルダ
+        dest = os.path.join(folder, name); placed[name] = (dest, d.get("drive", ""))
+        cur = open(dest, "rb").read() if os.path.exists(dest) else None
+        if scope and os.path.isdir(folder): gsheets += [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".gsheet") and nfc(f).startswith(os.path.splitext(name)[0]) and os.path.join(folder, f) not in gsheets]
+        if scope and reset and reset in name:   # 生成した版に戻す(--reset)。編集された版は、別の名前で残す
+            src = generated_file(name, repo)
+            if not src: print("生成した版がありません:", name); continue
+            gen = open(src, "rb").read()
+            if cur is not None and doc_digest(cur) != doc_digest(gen): aside.append(keep_aside(dest, cur, dry))
+            if not dry:
+                upload(up_url({"filename": name, "force": True}), gen, XLSX)
+                os.makedirs(folder, exist_ok=True)
+                with open(dest, "wb") as fh: fh.write(gen)
+            resets.append(dest); continue
+        data = fetch(d["url"])
+        if cur is not None and doc_digest(cur) != doc_digest(data):
+            gens = generated(name)
+            if gens is None: unknown.append(dest); continue            # 人が編集したかを判定できない: 置き換えない
+            if doc_digest(cur) not in gens:                            # 人が編集した版
+                if scope:
+                    if not dry: upload(up_url({"filename": name, "source": "drive"}), cur, XLSX)
+                    pushed.append(dest); continue
+                aside.append(keep_aside(dest, cur, dry))
+        place(dest, data, copied, skipped, dry, overwrite=True)
     print(("【転送の内容の表示だけ。ファイルは置いていません】\n" if dry else "") + f"転送 {len(copied)} 件、変更なしで飛ばした {len(skipped)} 件")
     for p in copied: print("  置いた:" if not dry else "  置く:", rel(p))
-    if not dry and (copied or skipped):
-        tok.call("POST", "/sync/log", {"copied": len(copied), "skipped": len(skipped), "detail": "; ".join(rel(p) for p in copied)[:800]})
+    if pushed: print(f"Google Drive で編集された Scope を、ポータルに反映{'する' if dry else 'した'}: {len(pushed)} 件")
+    for p in pushed: print("  反映:", rel(p))
+    if resets: print(f"生成した版に戻{'す' if dry else 'した'}: {len(resets)} 件"); [print("  ", rel(p)) for p in resets]
+    if aside: print(f"編集された版を、別の名前で残{'す' if dry else 'した'}: {len(aside)} 件"); [print("  ", rel(p)) for p in aside]
+    if unknown: print(f"ポータルと内容が違うが、編集の有無を判定できないため、置き換えていない(git の履歴を読めない): {len(unknown)} 件"); [print("  ", rel(p)) for p in unknown]
+    if gsheets: print("Google スプレッドシート形式に変換されたファイルは、ポータルに反映できません。Excel 形式(.xlsx)のファイルを編集してください:"); [print("  ", rel(p)) for p in gsheets]
+    if not dry and (copied or skipped or pushed):
+        tok.call("POST", "/sync/log", {"copied": len(copied), "skipped": len(skipped), "detail": "; ".join([rel(p) for p in copied] + ["ドライブ→ポータル: " + rel(p) for p in pushed])[:800]})
     if not dry and placed:
         n, pending, seen = register_links(tok, placed, ids, wait)
         if not seen: print("Google Drive のリンク: 登録していません(このフォルダのファイルから、Google Drive の ID を読めない)")
@@ -227,14 +315,14 @@ def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=60):
 def settings(argv, home=None, need_email=True):
     """引数から (メールアドレス, 共有ドライブのフォルダ, オプション) を決める。"""
     home = home or os.path.expanduser("~"); conf = os.path.join(home, ".jascc_gl_portal.json")
-    opts = {"dry": "--dry-run" in argv, "watch": None}
+    opts = {"dry": "--dry-run" in argv, "watch": None, "reset": argv[argv.index("--reset") + 1] if "--reset" in argv and argv.index("--reset") + 1 < len(argv) else None}
     for x in argv:
         if x == "--watch": opts["watch"] = 30
         elif x.startswith("--watch="): opts["watch"] = max(1, int(x.split("=", 1)[1]))
     pos, skip = [], False
     for k, x in enumerate(argv):
         if skip: skip = False; continue
-        if x == "--drive": skip = True; continue
+        if x in ("--drive", "--reset"): skip = True; continue
         if not x.startswith("--"): pos.append(x)
     drive = (argv[argv.index("--drive") + 1] if "--drive" in argv else "") or os.environ.get("DRIVE_DIR", "")
     if not drive:
@@ -263,7 +351,7 @@ def main(argv, session=None, fetch=get_bytes, home=None):
         session = Session
     import time
     while True:
-        try: sync(session(email), drive, dry=opts["dry"], fetch=fetch)
+        try: sync(session(email), drive, dry=opts["dry"], fetch=fetch, reset=opts["reset"])
         except SystemExit: raise
         except Exception as e:
             if not opts["watch"]: raise
