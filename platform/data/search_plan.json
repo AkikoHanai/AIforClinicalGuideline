@@ -93,6 +93,12 @@
    "同 題名・抄録の神経障害の語に限定(F4-2 の近似)": 57,
    "同 CIPN の語に限定": 11,
    "amitriptyline/ketamine + 神経障害の語 + cancer": 0
+  },
+  "counts_connector_2026-11-27": {
+   "date": "2026-11-27",
+   "by": "PubMedコネクタ",
+   "P2-2 予防のミロガバリン(ASCO の P節・C節 + Mirogabalin)。2021/08/13〜2026/10/01": 21,
+   "同 期間を置かない": 21
   }
  },
  "recall_check": {
@@ -153,6 +159,16 @@
    }
   ]
  },
+ "scope_formula": {
+  "source": "前回Scope(2021-07-02)に記載された ASCO の検索式と運用(統括委員長が 2026-11-22 に提示)",
+  "formula": "(((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND ((Goshajinkigan OR (Calcium and Magnesium) OR Acetyl-L-carnitine OR Alpha-lipoic acid OR Pregabalin OR gabapentin OR Venlafaxine OR duloxetine OR Vitamin E OR Ganglioside-monosialic acid OR amitriptyline/ketamine OR cannabinoid OR nabiximols OR LC07 OR cryotherapy OR scrambler therapy)))",
+  "rules": [
+   "担当者が、自分の担当部分で該当しない用語を省いて検索してよい(例: 牛車腎気丸の担当者は Goshajinkigan 以外の介入語を削除してよい)",
+   "ASCO のガイドラインはサバイバーを対象とするが、本ガイドラインはサバイバーに限らない(P 節の cancer が全がんを含む)",
+   "前回(2023年版)の検索: ASCO の式で全期間 4,290 件、2019〜2021年で 500 件(全件を確認できる件数)",
+   "ASCO ガイドライン 2014・2020 のバイアスリスクの表(quality assessment)は公表されており、そのまま活用する。前回Scope は、Minds の -1/-2 の点数表記は判断が困難なため、ASCO のように ✔ 表記とした"
+  ]
+ },
  "decision": "統括委員長の決定(2026-11-20): 検索期間は 2026年10月1日まで。検索式は前回(2023年版)の式。開始日は、前回の検索の終了日の翌日(終了が月だけの記録は翌月の 1 日)",
  "date_field": "dp(出版日。2023年版の記録と同じ)",
  "searches": [
@@ -177,7 +193,7 @@
   {
    "id": "P2-1",
    "cq": "P2",
-   "cq_name": "ガバペンチノイド(プレガバリン)",
+   "cq_name": "ガバペンチノイド(プレガバリン、ミロガバリン)(予防)",
    "dir": "CQ1-プレガバリン",
    "database": "PubMed",
    "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin",
@@ -191,6 +207,27 @@
    "notes": [],
    "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin) AND (\"2021/08/13\"[dp] : \"2026/10/01\"[dp])",
    "proposal": false
+  },
+  {
+   "id": "P2-2",
+   "cq": "P2",
+   "cq_name": "ガバペンチノイド(プレガバリン、ミロガバリン)(予防)",
+   "dir": "CQ1-プレガバリン",
+   "database": "PubMed",
+   "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Mirogabalin",
+   "formula_kind": "案(予防にミロガバリンを加える)",
+   "formula_source": "統括委員長の決定(2026-11-27): 予防のガバペンチノイドに、ミロガバリンを加える。2023年版の予防の CQ はプレガバリンだけで、ミロガバリンの予防の検索の記録はない。介入語は、治療の検索(T3-2)と同じ語",
+   "confirmed": false,
+   "prior_end": "",
+   "start": "2021/08/13",
+   "start_basis": "案: プレガバリン(P2-1)と同じ開始日。期間を置かない場合も、件数は同じ(PubMed コネクタ 2026-11-27: どちらも 21 件)",
+   "end": "2026/10/01",
+   "notes": [
+    "介入語(Mirogabalin)と開始日を、統括委員長が確認する。確認まで、検索を実行しない",
+    "T3-2(治療)と同じ式のため、同じ文献が、予防と治療の両方に入る"
+   ],
+   "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Mirogabalin) AND (\"2021/08/13\"[dp] : \"2026/10/01\"[dp])",
+   "proposal": true
   },
   {
    "id": "P3-1",
@@ -294,7 +331,7 @@
   {
    "id": "N3-1",
    "cq": "N3",
-   "cq_name": "鍼灸(予防)",
+   "cq_name": "鍼灸による予防",
    "dir": "CQ1-鍼灸",
    "database": "PubMed",
    "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND acupuncture",
@@ -372,7 +409,7 @@
   {
    "id": "T3-1",
    "cq": "T3",
-   "cq_name": "ガバペンチノイド(プレガバリン、ミロガバリン)",
+   "cq_name": "ガバペンチノイド(プレガバリン、ミロガバリン)(治療)",
    "dir": "CQ2-プレガバリン",
    "database": "PubMed",
    "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Pregabalin",
@@ -390,7 +427,7 @@
   {
    "id": "T3-2",
    "cq": "T3",
-   "cq_name": "ガバペンチノイド(プレガバリン、ミロガバリン)",
+   "cq_name": "ガバペンチノイド(プレガバリン、ミロガバリン)(治療)",
    "dir": "CQ2-ミロガバリン",
    "database": "PubMed",
    "query": "((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND ((neuropathy OR \"neuropathy\" OR \"neuropathies\" OR chemotherapy-induced OR \"chemotherapy-induced neuropathy\" OR \"chemotherapy-induced peripheral neuropathy\" OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND Mirogabalin",
@@ -546,15 +583,5 @@
    "full_query": "(((survivor OR (survivor AND cancer) OR \"cancer survivor\" OR cancer)) AND (\"combination therapy\"[tiab] OR \"combined therapy\"[tiab]) AND (neuropathy[tiab] OR \"chemotherapy-induced peripheral neuropathy\"[tiab] OR CIPN[tiab])) AND (\"2021/07/01\"[dp] : \"2026/10/01\"[dp])",
    "proposal": true
   }
- ],
- "scope_formula": {
-  "source": "前回Scope(2021-07-02)に記載された ASCO の検索式と運用(統括委員長が 2026-11-22 に提示)",
-  "formula": "(((survivor OR (survivor AND cancer) OR “cancer survivor” OR cancer)) AND ((neuropathy OR “neuropathy” OR “neuropathies” OR chemotherapy-induced OR “chemotherapy-induced neuropathy” OR “chemotherapy-induced peripheral neuropathy” OR CIPN OR peripheral nervous system/drug effects OR peripheral nerve diseases/chemically induced OR antineoplastic agents/adverse effects OR neoplasms/drug therapy OR neoplasms/complications)) AND ((Goshajinkigan OR (Calcium and Magnesium) OR Acetyl-L-carnitine OR Alpha-lipoic acid OR Pregabalin OR gabapentin OR Venlafaxine OR duloxetine OR Vitamin E OR Ganglioside-monosialic acid OR amitriptyline/ketamine OR cannabinoid OR nabiximols OR LC07 OR cryotherapy OR scrambler therapy)))",
-  "rules": [
-   "担当者が、自分の担当部分で該当しない用語を省いて検索してよい(例: 牛車腎気丸の担当者は Goshajinkigan 以外の介入語を削除してよい)",
-   "ASCO のガイドラインはサバイバーを対象とするが、本ガイドラインはサバイバーに限らない(P 節の cancer が全がんを含む)",
-   "前回(2023年版)の検索: ASCO の式で全期間 4,290 件、2019〜2021年で 500 件(全件を確認できる件数)",
-   "ASCO ガイドライン 2014・2020 のバイアスリスクの表(quality assessment)は公表されており、そのまま活用する。前回Scope は、Minds の -1/-2 の点数表記は判断が困難なため、ASCO のように ✔ 表記とした"
-  ]
- }
+ ]
 }

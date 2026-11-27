@@ -56,7 +56,7 @@ macOSで「検証できませんでした」と出て開けないときは、ダ
 | `core/render_meeting.py` | 推奨作成会議の決定記録シート(HTML 1ファイル) |
 | `core/export_minds_documents.py` | Minds書類の一式を集め、CQごと・書類ごとの作成状況を点検する |
 | `tests/ui_check.py` | 画面のブラウザ操作テスト(playwright) |
-| `governance/plan_guard.py` | 承認済み企画書からの逸脱の検査 |
+| `governance/plan_guard.py` | 基準の企画書(Ver1.2 2026-10-26)からの逸脱の検査 |
 
 ## CQパッケージの書き方（data/cq/*.json）
 

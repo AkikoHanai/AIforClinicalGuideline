@@ -3,7 +3,8 @@
     SC-1_疾患トピックの基本的特徴.xlsx / SC-2_診療アルゴリズム.xlsx / SC-3_スコープ.xlsx / SC-4_<番号>_<名称>.xlsx(CQ・FRQごとに 15件)
 テンプレートの書式(罫線・結合・入力規則)をそのまま使い、記入するセルだけを書く。セルの高さと一部の列幅だけを、本文が収まるように変える。
 出典: 提案書v2、承認済み企画書、前回Scope(2021-07-02)、統括委員長の決定(approved_plan.json と指示)、2023年版 総論(units.json。原文のまま引用)。出典にない項目は書かない。
-公式テンプレートは Minds の著作物であり、リポジトリには置かない(引数または環境変数 MINDS_TEMPLATE で指定する)。"""
+公式テンプレートは Minds の著作物であり、リポジトリには置かない(引数または環境変数 MINDS_TEMPLATE で指定する)。
+テンプレートがないときは、出力済みのファイルを土台にして、企画書で変わる箇所(SC-2 の区分、SC-3 の CQ・FRQ の一覧、SC-4 の全項目)だけを書き直す。"""
 import json, math, os, re, sys
 import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -80,6 +81,20 @@ def sc1(template):
 
 
 # ---------------------------------------------------------------- SC-2
+def sc2_labels():
+    """SC-2 の枠の文(左: 予防、右: 治療)。個別の介入は載せない(介入を行うかどうかは、推奨で決まる。CQ・FRQ の一覧は SC-3、PICO は SC-4)。
+    区分は、企画書の SR項目の区分。FRQ のある区分には「・FRQ」を付ける(FRQ項目の「分類」)。"""
+    cat = []
+    for x in PLAN["SR項目"]:
+        c = re.sub(r"\(監修.*?\)$", "", x["区分"])
+        if c not in cat: cat.append(c)
+    frq = {x.get("分類") for x in PLAN["FRQ項目"]}
+    lab = lambda c: f"{c}(CQ{'・FRQ' if c in frq else ''})"
+    left = [(lab(c), False) for c in cat if c.endswith("予防")]
+    right = [("CIPNの評価", False), ("↓", None), ("被疑薬の延期・減量・中止", False), ("↓", None)] + [(lab(c), False) for c in cat if c.endswith("治療")]
+    return left, right
+
+
 def sc2(template):
     wb, ws = load(template, "SC-2　テンプレート", "SC-2")
     for rng in list(ws.merged_cells.ranges):
@@ -100,15 +115,7 @@ def sc2(template):
         ws.merge_cells(start_row=r, start_column=c1, end_row=r, end_column=c2); cell = ws.cell(row=r, column=c1, value="↓"); cell.alignment = Alignment(horizontal="center"); cell.font = font
     box(4, 1, 9, "がん薬物療法を受ける患者(CIPNを呈しうる、あるいは呈している)", head, True); arrow(5, 1, 9)
     box(6, 1, 4, "予防", head, True); box(6, 6, 9, "治療(CIPNを呈している患者)", head, True)
-    # 個別の介入は載せない(介入を行うかどうかは、推奨で決まる。CQ・FRQ の一覧は SC-3、PICO は SC-4)。区分は、企画書の SR項目の区分
-    cat = []
-    for x in PLAN["SR項目"]:
-        c = re.sub(r"\(監修.*?\)$", "", x["区分"])
-        if c not in cat: cat.append(c)
-    frq = "・FRQ" if PLAN["FRQ項目"] and all(x["名称"].endswith("による治療") for x in PLAN["FRQ項目"]) else ""
-    left = [(f"{c}(CQ)", False) for c in cat if c.endswith("予防")]
-    right = [("CIPNの評価", False), ("↓", None), ("被疑薬の延期・減量・中止", False), ("↓", None)] + \
-            [(f"{c}(CQ{frq if c.startswith('薬物療法') else ''})", False) for c in cat if c.endswith("治療")]
+    left, right = sc2_labels()
     for k, (t, g) in enumerate(left): box(7 + k, 1, 4, t, grp if g else None, g)
     for k, (t, g) in enumerate(right):
         if g is None: arrow(7 + k, 6, 9)
@@ -119,11 +126,15 @@ def sc2(template):
 
 
 # ---------------------------------------------------------------- SC-3
+def cq_list():
+    return "【SR項目(CQ)】\n" + "\n".join(f"・{x['名称']}" for x in PLAN["SR項目"]) + "\n【FRQ】\n" + "\n".join(f"・{x['名称']}" for x in PLAN["FRQ項目"])
+
+
 def sc3(template):
     wb, ws = load(template, "SC-3　テンプレート", "SC-3")
     for c in "IJK": ws.column_dimensions[c].width = 24
     ws["D3"].value = "第1版"; ws["C4"].value = "2026年11月25日"; ws["C5"].value = "ガイドライン統括委員会 委員長 華井明子"
-    cq = "【SR項目(CQ)】\n" + "\n".join(f"・{x['名称']}" for x in PLAN["SR項目"]) + "\n【FRQ】\n" + "\n".join(f"・{x['名称']}" for x in PLAN["FRQ項目"])
+    cq = cq_list()
     V = {  # アンカー: (本文, 先頭行, 末尾行, 先頭列, 末尾列)
       "F7": (TITLE + "(日本がんサポーティブケア学会 編)", 7, 9),
       "F10": ("がん薬物療法に伴う末梢神経障害(chemotherapy-induced peripheral neuropathy:CIPN)を有する、または発症する可能性のある成人がん患者を対象とし、医師、看護師、薬剤師、作業療法士、理学療法士などを含む多職種医療チームが診療に活用できる指針を示すことを目的とする。\n改善するアウトカム: 予防としてはCIPNの発症頻度や症状(しびれ、疼痛)の軽減、治療としては症状(しびれ、疼痛)の軽減。", 10, 12),
@@ -157,12 +168,18 @@ def sc3(template):
 
 # ---------------------------------------------------------------- SC-4
 def plain(n):
-    return re.sub(r"による治療$", "", re.sub(r"\((予防|治療)\)$", "", n))
+    return re.sub(r"による(治療|予防)$", "", re.sub(r"\((予防|治療)\)$", "", n))
 
 
 def sc4(template, x):
     wb, ws = load(template, "SC-4　テンプレート", "SC-4")
-    treat = x["id"].startswith("F") or "治療" in x.get("区分", "")
+    sc4_fill(ws, x)
+    return wb
+
+
+def sc4_fill(ws, x):
+    """SC-4 の記入(テンプレートのシートにも、出力済みのシートにも書ける)。予防か治療かは、企画書の区分(FRQ は分類)で決める。"""
+    treat = "治療" in (x.get("区分") or x.get("分類") or "")
     ws["A4"].value = "CIPNの治療(薬物療法および非薬物療法)" if treat else "CIPNの予防(薬物療法および非薬物療法)"
     ws["B11"].value = "指定なし"                                        # 男性・女性を含む
     ws["B12"].value = None; ws["D12"].value = "18歳以上(成人)"
@@ -176,7 +193,6 @@ def sc4(template, x):
     ws["B13"].alignment = Alignment(wrap_text=True, vertical="center", horizontal="left"); ws["B22"].alignment = Alignment(wrap_text=True, vertical="center", horizontal="left")
     ws.row_dimensions[22].height = 32; ws.row_dimensions[13].height = 32; ws.row_dimensions[15].height = 32
     fit(ws, "A2:J40")
-    return wb
 
 
 def safe(s):
@@ -193,7 +209,33 @@ def main(template):
     print(f"{len(made)}件: {OUT}")
 
 
+def update_existing():
+    """テンプレートがないとき: 出力済みのファイルを土台にして、企画書で変わる箇所だけを書き直す。名称が変わった項目の SC-4 は、以前の名称のファイルを土台にする。"""
+    p = lambda n: os.path.join(OUT, n)
+    wb = openpyxl.load_workbook(p("SC-2_診療アルゴリズム.xlsx")); ws = wb.worksheets[0]; left, right = sc2_labels()
+    for k, (t, g) in enumerate(left):
+        if not ws.cell(row=7 + k, column=1).value: sys.exit("SC-2 の枠の数が変わりました。テンプレートから作り直してください")
+        ws.cell(row=7 + k, column=1).value = t
+    for k, (t, g) in enumerate(right):
+        if not ws.cell(row=7 + k, column=6).value: sys.exit("SC-2 の枠の数が変わりました。テンプレートから作り直してください")
+        ws.cell(row=7 + k, column=6).value = "↓" if g is None else t
+    if ws.cell(row=7 + len(left), column=1).value or ws.cell(row=7 + len(right), column=6).value: sys.exit("SC-2 の枠の数が変わりました。テンプレートから作り直してください")
+    wb.save(p("SC-2_診療アルゴリズム.xlsx"))
+    wb = openpyxl.load_workbook(p("SC-3_スコープ.xlsx")); set_text(wb.worksheets[0], "G41", cq_list(), 41, 50, "G", "K"); wb.save(p("SC-3_スコープ.xlsx"))
+    keep = {"SC-1_疾患トピックの基本的特徴.xlsx", "SC-2_診療アルゴリズム.xlsx", "SC-3_スコープ.xlsx"}; books = {}
+    for x in ITEMS:
+        name = f"SC-4_{safe(x['名称'])}.xlsx"; src = next((n for n in [name] + [f"SC-4_{safe(o)}.xlsx" for o in x.get("旧名称") or []] if os.path.exists(p(n))), None)
+        if not src: sys.exit(f"土台にする SC-4 がありません: {name}")
+        wb = openpyxl.load_workbook(p(src)); ws = wb.worksheets[0]; cells = ("A4", "B13", "A17", "A33"); was = [ws[a].value for a in cells]
+        sc4_fill(ws, x); keep.add(name)
+        if src != name or was != [ws[a].value for a in cells]: books[name] = wb   # 内容も名称も変わらない項目は、書き直さない
+    for name, wb in books.items(): wb.save(p(name))
+    for f in os.listdir(OUT):
+        if f.endswith(".xlsx") and f not in keep: os.remove(p(f))
+    print(f"{len(keep)}件(出力済みのファイルを土台に更新): {OUT}")
+
+
 if __name__ == "__main__":
     t = (sys.argv[1] if len(sys.argv) > 1 else "") or os.environ.get("MINDS_TEMPLATE", "") or DEFAULT_TEMPLATE
-    if not os.path.exists(t): sys.exit(f"Minds の公式テンプレートがありません: {t}")
-    main(t)
+    if os.path.exists(t): main(t)
+    else: update_existing()

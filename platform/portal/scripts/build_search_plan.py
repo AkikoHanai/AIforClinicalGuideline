@@ -21,6 +21,7 @@ NSAIDS = ('Cancer peripheral (neuropathy OR neurotoxi*) ("non steroidal anti inf
 S = [
  ("P1-1", "P1", "CQ1-牛車腎気丸", "goshajinkigan (neuropathy OR neurotoxi*) (prevent* OR management* OR effect*)", T, "2023年版の委員ワークシート(PubMed 2020〜2021.6、53件)", True, "2021-06", "2021/07/01", "前回の検索の終了月(2021年6月)の翌月", []),
  ("P2-1", "P2", "CQ1-プレガバリン", asco("Pregabalin"), A, "検索過程 プレガバリン・ミロガバリン.docx(治療の CQ と同じ文書。予防の CQ だけの記録はない)", True, "2021-08-12", "2021/08/13", "前回の検索の終了日(2021年8月12日)の翌日", []),
+ ("P2-2", "P2", "CQ1-プレガバリン", asco("Mirogabalin"), "案(予防にミロガバリンを加える)", "統括委員長の決定(2026-11-27): 予防のガバペンチノイドに、ミロガバリンを加える。2023年版の予防の CQ はプレガバリンだけで、ミロガバリンの予防の検索の記録はない。介入語は、治療の検索(T3-2)と同じ語", False, "", "2021/08/13", "案: プレガバリン(P2-1)と同じ開始日。期間を置かない場合も、件数は同じ(PubMed コネクタ 2026-11-27: どちらも 21 件)", ["介入語(Mirogabalin)と開始日を、統括委員長が確認する。確認まで、検索を実行しない", "T3-2(治療)と同じ式のため、同じ文献が、予防と治療の両方に入る"]),
  ("P3-1", "P3", "CQ1-カルニチン-アセチル‒L‒カルニチン", asco("Acetyl-L-carnitine"), A, "カルニチン 平山検索過程.docx(検索式1)", True, "2021-06-30", "2021/07/01", "前回の検索の終了日(2021年6月30日)の翌日", ["2023年版は「検索式2」でも検索している(2件)。検索式2 の式は記録に残っていない"]),
  ("N1-1", "N1", "CQ1-冷却・圧迫", asco("Cryotherapy"), A, "検索過程_冷却_山田華井.docx「検索式: ASCO 検索式(Cryotherapy のみ)」", True, "2021-08-03", "2021/08/04", "前回の検索の日(2021年8月3日)の翌日", []),
  ("N1-2", "N1", "CQ1-冷却・圧迫", asco('"Compression Bandages"[Mesh]'), A, "圧迫の 2023年版の検索式は記録に残っていない。介入語は委員会提示の語", False, "", "2021/07/01", GL, ["圧迫の前回の式と検索の終了日を確認する"]),
@@ -48,7 +49,7 @@ for sid, cq, d, q, kind, src, ok, prior_end, start, basis, notes in S:
     assert cq in names and d in dirs and q.count("(") == q.count(")"), sid
     out.append({"id": sid, "cq": cq, "cq_name": names[cq], "dir": d, "database": "PubMed", "query": q, "formula_kind": kind, "formula_source": src, "confirmed": ok, "prior_end": prior_end,
                 "start": start, "start_basis": basis, "end": END, "notes": notes, "full_query": f'({q}) AND ("{start}"[dp] : "{END}"[dp])'})
-for s_ in out: s_["proposal"] = s_["id"] in ("N1-3", "T2-2", "F4-2")   # 案は、確認済み・未確認の件数に数えず、--only で指定したときだけ取得する
+for s_ in out: s_["proposal"] = s_["id"] in ("N1-3", "T2-2", "F4-2", "P2-2")   # 案は、確認済み・未確認の件数に数えず、--only で指定したときだけ取得する
 assert {s["cq"] for s in out} == set(names)
 _old = os.path.join(ROOT, "data", "search_plan.json"); _keep = {k: v for k, v in (json.load(open(_old, encoding="utf-8")) if os.path.exists(_old) else {}).items() if k not in ("decision", "date_field", "searches")}   # 確認結果(mesh_check、count_check、recall_check)は残す
 json.dump({**_keep, "decision": "統括委員長の決定(2026-11-20): 検索期間は 2026年10月1日まで。検索式は前回(2023年版)の式。開始日は、前回の検索の終了日の翌日(終了が月だけの記録は翌月の 1 日)",

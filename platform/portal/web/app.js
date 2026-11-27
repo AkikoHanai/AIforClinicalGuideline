@@ -64,7 +64,8 @@
   const okLine = (names, state, c) => `承認: ${(names || []).map((n) => esc(sei(n, c))).join("・") || "なし"}${state ? `(${state})` : ""}`;   // 担当の委員の承認の状況
   const diffs = (mine, others, labels, c) => Object.entries(others || {}).map(([n, o]) => { const d = Object.keys(labels).filter((k) => String((o || {})[k] ?? "") !== String((mine || {})[k] ?? "")); return d.length ? `<div>${esc(sei(n, c))} との違い: ${d.map((k) => `${esc(labels[k])} ${esc(String((o || {})[k] ?? "") || "空欄")}`).join("、")}</div>` : ""; }).join("");
   const vsel = (cur, attrs = "") => sel([0, -1, -2], cur === null || cur === undefined ? "" : cur, attrs, true);
-  const cqSelect = (cur, id) => `<select id="${id}">${S.cqs.map((c) => `<option value="${esc(c.id)}" ${c.id === cur ? "selected" : ""}>${esc(c.title)}</option>`).join("")}</select> <span class="small">担当: ${esc((S.cqs.find((c) => c.id === cur)?.assignees || []).join("・"))}</span>`;
+  const tanto = (c) => [...(c?.assignees || []), ...(Number(c?.open_call) ? ["公募"] : [])].join("・");   // 担当(企画書の担当表)。決まっていない枠は「公募」
+  const cqSelect = (cur, id) => `<select id="${id}">${S.cqs.map((c) => `<option value="${esc(c.id)}" ${c.id === cur ? "selected" : ""}>${esc(c.title)}</option>`).join("")}</select> <span class="small">担当: ${esc(tanto(S.cqs.find((c) => c.id === cur)))}</span>`;
   const sei = (n, c) => (c?.assignees || []).find((a) => String(n || "").startsWith(a)) || String(n || "");   // 表の中では、企画書の担当表の表記(姓)で出す
   const manual = (h, doc = "SR委員の手順書") => `<a class="tag" href="#view?doc=${encodeURIComponent(doc)}&h=${encodeURIComponent(h)}">手順書</a>`;   // 手順書の該当の章を、画面に表示する
   const docLinks = (d) => d.available === false ? "未登録" : `<a href="#view?name=${encodeURIComponent(d.name)}">開く</a>${d.drive ? ` <a href="${esc(d.drive)}" target="_blank" rel="noopener">Google Drive</a>` : ""} <a href="${esc(d.url)}">ダウンロード</a>`;
@@ -106,7 +107,7 @@
       const nothing = !rows.length && !work.length && !soronTable;
       const overview = !(showSr && can("統括委員会", "事務局", "SR委員長", "作成グループ")) ? "" : `<div class="card"><h3>全 CQ・FRQ の記録(件数)</h3>
         <div class="scroll"><table><tr><th>CQ・FRQ</th><th>担当</th><th class="nw">検索</th><th>一次<br><span class="small">結果あり / 対象</span></th><th>二次<br><span class="small">結果あり / 対象</span></th><th class="nw">採用</th><th>SR-5<br><span class="small">確定 / 対象</span></th><th>SR-8<br><span class="small">記入 / アウトカム</span></th></tr>
-        ${d.cq.map((c) => { const n = c.counts, f = n.flow, nc = f.s1_conflict + f.s2_conflict; return `<tr class="${c.mine ? "mine" : ""}"><td>${link(esc(c.title), "papers", { cq: c.id })}</td><td>${esc((c.assignees || []).join("・"))}</td>
+        ${d.cq.map((c) => { const n = c.counts, f = n.flow, nc = f.s1_conflict + f.s2_conflict; return `<tr class="${c.mine ? "mine" : ""}"><td>${link(esc(c.title), "papers", { cq: c.id })}</td><td>${esc(tanto(c))}</td>
           <td class="num">${link(f.searches, "search", { cq: c.id })}</td><td class="num">${f.s1_target - f.s1_open} / ${f.s1_target}</td><td class="num">${f.s2_target - f.s2_open} / ${f.s2_target}${nc ? ` <a href="${href("screening", { cq: c.id, show: "conflict" })}">不一致 ${nc}</a>` : ""}</td>
           <td class="num">${link(f.s2_include, "screening", { cq: c.id })}</td><td class="num">${n.f45_fixed} / ${n.f45_need}</td><td class="num">${n.sr8} / ${n.outcomes}</td></tr>`; }).join("")}</table></div></div>`;
       m.innerHTML = `<h2>ホーム</h2><p class="small">${esc(S.me.name || S.me.email)}(${esc(S.me.groups.join("・"))})</p>
@@ -124,7 +125,7 @@
       m.innerHTML = `<h2>CQ一覧</h2>
         <div class="card">P: <b>${esc(p0.P)}</b> / I: 下表の介入 / C: <b>${esc(p0.C)}</b> / O: <b>${esc(p0.O)}</b>(全 CQ・FRQ で共通)</div>
         <table style="margin-top:12px"><tr><th>区分</th><th>介入</th><th>担当</th><th>画面</th></tr>
-        ${list.map((c) => `<tr class="${own(c) ? "mine" : ""}"><td>${esc(c.category)}</td><td>${esc(c.title)}${c.pico.O !== p0.O ? ` <span class="small">(アウトカム: ${esc(c.pico.O)})</span>` : ""}</td><td>${esc(c.assignees.join("・"))}</td>
+        ${list.map((c) => `<tr class="${own(c) ? "mine" : ""}"><td>${esc(c.category)}</td><td>${esc(c.title)}${c.pico.O !== p0.O ? ` <span class="small">(アウトカム: ${esc(c.pico.O)})</span>` : ""}</td><td>${esc(tanto(c))}</td>
           <td class="nw"><a href="#search?cq=${esc(c.id)}">検索の記録</a> <a href="#screening?cq=${esc(c.id)}">スクリーニング</a> <a href="#papers?cq=${esc(c.id)}">論文</a> <a href="#f45?cq=${esc(c.id)}">SR-5</a> <a href="#sr8?cq=${esc(c.id)}">SR-8</a> <a href="#etd?cq=${esc(c.id)}">EtD</a></td></tr>`).join("")}</table>`;
     },
 

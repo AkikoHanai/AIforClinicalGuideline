@@ -23,10 +23,10 @@ def surname_match(voter, short):
 
 def items():
     out = []
-    for it in PLAN["SR項目"] + PLAN["FRQ項目"]:
+    for it in [dict(x, frq=False) for x in PLAN["SR項目"]] + [dict(x, frq=True) for x in PLAN["FRQ項目"]]:   # CQ か FRQ かは、企画書のどちらの表にあるか
         for d in it["dir"]:
             sr = [v for v in VOTERS if any(v.startswith(s) for s in it["担当"])]
-            out.append({"id": d, "name": it["名称"], "plan_id": it["id"], "kind": "FRQ" if it["id"].startswith("F") else "CQ",
+            out.append({"id": d, "name": it["名称"], "plan_id": it["id"], "kind": "FRQ" if it["frq"] else "CQ",
                         "sr": it["担当"], "sr_voters": sr})
     return out
 

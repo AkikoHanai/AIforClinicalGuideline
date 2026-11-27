@@ -1,7 +1,7 @@
-"""承認済み企画書からの逸脱を検査する。逸脱が1件でもあれば終了コード1。
+"""基準の企画書(approved_plan.json の「ファイル」。企画書 Ver1.2 2026-10-26)からの逸脱を検査する。逸脱が1件でもあれば終了コード1。
   python3 platform/governance/plan_guard.py
 検査:
- 1. 承認済み企画書(docx)のSHA-256が approved_plan.json の値と一致する(企画書が書き換えられていない)
+ 1. 企画書(docx)のSHA-256が approved_plan.json の値と一致する(企画書が書き換えられていない)。項目の数は、SR項目10・FRQ項目5
  2. 作業フォルダ(CQ名)がすべて企画書のSR項目・FRQ項目に対応する(企画書にない項目が無い)
  3. 生成物(scope / procedures / review / core / README)に、企画書にない介入名・旧体制の氏名が現れない
  4. Scope改訂案に、企画書のSR項目・FRQ項目の名称がすべて載っている
@@ -13,11 +13,12 @@ P = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
 errs = []
 
 # 1
-f = glob.glob(os.path.join(HERE, "承認済み企画書_*.docx"))
-if not f: errs.append("承認済み企画書のdocxがありません")
-else:
-    h = hashlib.sha256(open(f[0], "rb").read()).hexdigest()
-    if h != P["sha256"]: errs.append(f"承認済み企画書のSHA-256が一致しません: {h}")
+for name, want in ((P["ファイル"], P["sha256"]), (P["旧版"]["ファイル"], P["旧版"]["sha256"])):   # 基準の企画書と、旧版(経緯の記録)
+    f = os.path.join(HERE, name)
+    if not os.path.exists(f): errs.append(f"企画書のdocxがありません: {name}"); continue
+    h = hashlib.sha256(open(f, "rb").read()).hexdigest()
+    if h != want: errs.append(f"企画書のSHA-256が一致しません({name}): {h}")
+if (len(P["SR項目"]), len(P["FRQ項目"])) != (10, 5): errs.append(f"項目の数が、SR項目10・FRQ項目5 ではありません: SR項目{len(P['SR項目'])}・FRQ項目{len(P['FRQ項目'])}")
 
 v2 = glob.glob(os.path.join(HERE, "提案書v2_*.docx"))
 if not v2 or hashlib.sha256(open(v2[0], "rb").read()).hexdigest() != P["提案書v2(正。企画書と異なる点はこちらが優先)"]["sha256"]: errs.append("提案書v2が無い、またはSHA-256が一致しません")
@@ -72,4 +73,4 @@ if os.path.exists(sc):
 
 if errs:
     print("【企画書からの逸脱を検出】"); [print(" -", e) for e in errs]; sys.exit(1)
-print("OK: 承認済み企画書(Ver1 2026-06-17)からの逸脱はありません")
+print("OK: 企画書(Ver1.2 2026-10-26)からの逸脱はありません")

@@ -1,6 +1,7 @@
 """ポータルに、委員が使う資料を全て登録し、登録された内容を確認する(統括委員長の Mac。何度実行しても同じ結果になる)。
   ./setup_portal.sh      (リポジトリ直下)
 登録するもの:
+  0. 企画書の項目(CQ・FRQ、総論)の名称・担当 → 登録済みの項目を、企画書に合わせる
   1. 手順書(Word)と用語の定義      → ポータルの「手順書」
   2. 2023年版の総論の本文・依頼書    → 「総論の執筆・査読」の各行(2023年版を参照する)
   3. 2023年版の CQ の記述           → 「EtD・推奨」の 2023年版の欄
@@ -30,12 +31,18 @@ def verify(tok):
     out.append((bool(gl) and all(g.get("rec") or g.get("paragraphs") for g in gl), f"2023年版の CQ の記述: {len(gl)}件(CQ・FRQ {len(cqs)}件。2023年版にない CQ は、登録がない)"))
     bad = [c["id"] for c in cqs if (c.get("outcomes") or []) != ["CIPN"]]
     out.append((not bad and bool(cqs), "アウトカム CIPN: " + ("全 CQ・FRQ に登録済み" if not bad else f"CIPN でない CQ: {', '.join(bad)}")))
+    # 企画書の項目と担当: ポータルの CQ・FRQ(名称、担当、CQ か FRQ か)と総論(題名、担当)が、企画書と同じか
+    P = json.load(open(os.path.join(ROOT, "governance", "approved_plan.json"), encoding="utf-8")); have = {c["id"]: c for c in cqs}
+    want = [(it, "SR") for it in P["SR項目"]] + [(it, "FRQ") for it in P["FRQ項目"]]
+    diff = [it["名称"] for it, kind in want if (have.get(it["id"], {}).get("title"), list(have.get(it["id"], {}).get("assignees") or []), have.get(it["id"], {}).get("kind")) != (it["名称"], it["担当"], kind)]
+    diff += [f"総論{k}" for k, v in P["総論"].items() if (lambda s: (s.get("title"), s.get("author")))(next((x for x in plan if x.get("key") == k), {})) != (v.rpartition(":")[0], v.rpartition(":")[2])]
+    out.append((not diff and len(have) == len(want), f"企画書の項目と担当: CQ {len(P['SR項目'])}件・FRQ {len(P['FRQ項目'])}件、総論 {len(P['総論'])}件" + ("。企画書と同じ" if not diff else f"。企画書と違う: {', '.join(diff)}")))
     return out
 
 
 def main(email=None):
     import admin_user, upload_docs, import_soron2023, import_search_reference
-    steps = [("手順書", lambda: upload_docs.main(email)), ("2023年版の総論", lambda: import_soron2023.main(email)),
+    steps = [("企画書の項目と担当", lambda: admin_user.seed(email)), ("手順書", lambda: upload_docs.main(email)), ("2023年版の総論", lambda: import_soron2023.main(email)),
              ("2023年版の CQ の記述", lambda: admin_user.gl2023(os.path.join(ROOT, "data", "gl2023", "etd_2023.json"), email)),
              ("検索の参考資料", lambda: import_search_reference.main(email)), ("アウトカム CIPN", lambda: admin_user.outcomes(email))]
     failed = []

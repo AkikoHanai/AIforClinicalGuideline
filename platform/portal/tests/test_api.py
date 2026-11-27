@@ -69,10 +69,26 @@ def register_paper(pmid="12345678"):
 
 
 def test_seed_follows_plan(env):
-    c, cqs = call("GET", "/cq"); assert c == 200 and len(cqs) == 15 and sum(1 for x in cqs if x["kind"] == "SR") == 11
-    c, soron = call("GET", "/soron"); assert len(soron) == 19 and next(s for s in soron if s["key"] == "K")["title"] == "漢方・鍼灸治療"
-    assert call("POST", "/admin/seed")[1]["created"] == 0
+    """項目は、企画書(Ver1.2 2026-10-26。統括委員長が 2026-11-27 に基準として指定)のとおり: SR項目10・FRQ項目5。鍼灸による予防は FRQ。企画書の順(予防 → 治療 → FRQ)に並べる。
+    登録済みの項目は、名称・担当・CQ か FRQ かを、企画書に合わせる(記録は変えない)。"""
+    c, cqs = call("GET", "/cq"); by = {x["id"]: x for x in cqs}; assert c == 200 and len(cqs) == 15 and sum(1 for x in cqs if x["kind"] == "SR") == 10 and sum(1 for x in cqs if x["kind"] == "FRQ") == 5
+    assert [x["title"] for x in cqs][:3] == ["牛車腎気丸", "ガバペンチノイド(プレガバリン、ミロガバリン)(予防)", "カルニチン(アセチルLカルニチン)"] and [x["title"] for x in cqs][10] == "鍼灸による予防" and cqs[-1]["title"] == "併用療法による治療"
+    assert by["N3"]["kind"] == "FRQ" and by["N3"]["assignees"] == ["田辺", "鈴木"] and by["N2"]["assignees"] == ["荒尾", "山本", "鈴木"] and by["N5"]["assignees"] == ["神田", "久保"]
+    assert by["P2"]["assignees"] == ["中島"] and by["P2"]["open_call"] == 1 and by["F3"]["assignees"] == ["山田"] and by["F3"]["open_call"] == 1 and by["P1"]["open_call"] == 0       # 公募の枠は、氏名を入れない
+    assert by["P2"]["pico"]["I"] == "ガバペンチノイド(プレガバリン、ミロガバリン)(予防)" and by["T3"]["title"] == "ガバペンチノイド(プレガバリン、ミロガバリン)(治療)" and len({x["title"] for x in cqs}) == 15   # 予防と治療を、名称で区別する
+    names = [n for lst in json.load(open(os.path.join(HERE, "..", "api", "approved_plan.json"), encoding="utf-8"))["体制"].values() for n in lst]
+    assert not any(n.startswith(x) for n in names for x in ("伊藤哲也", "高木雄亮", "草場正彦", "京田亜由美")) and any(n.startswith("鈴木克喜") for n in names) and H.roster_roles("鈴木克喜") == ["SR委員"]
+    c, soron = call("GET", "/soron"); assert len(soron) == 19 and next(s for s in soron if s["key"] == "K")["title"] == "漢方・鍼灸治療" and next(s for s in soron if s["key"] == "J_2")["title"] == "薬物療法の考え方(実際の処方)デュロキセチン"
+    assert call("POST", "/admin/seed")[1] == {"created": 0, "updated": []}
     assert call("POST", "/admin/seed", who=R1)[0] == 403
+    # 以前の企画書(Ver1)で登録された項目: 名称・担当・種別を、企画書に合わせる。記録(アウトカム、備考)は変えない
+    old = H.get("CQ", "N3"); old.update({"title": "鍼灸(予防)", "assignees": ["草場", "田辺"], "kind": "SR", "category": "非薬物療法による予防(監修:華井)", "note": "記録"}); old.pop("open_call"); old.pop("old_titles"); H.put("CQ", "N3", old)
+    s_ = H.get("SORON", "J_2"); s_["title"] = "デュロキセチン"; s_["status"] = "執筆中"; H.put("SORON", "J_2", s_)
+    r = call("POST", "/admin/seed")[1]; assert r["created"] == 0 and r["updated"] == ["鍼灸による予防", "総論J-2"]
+    p1 = H.get("CQ", "P1"); p1["approved"] = "統括委員長承認済み(企画書 Ver1 2026-06-17)"; H.put("CQ", "P1", p1); assert call("POST", "/admin/seed")[1]["updated"] == [] and "Ver1.2" in H.get("CQ", "P1")["approved"]   # 基準の版の表記だけの更新は、数えない
+    n3 = H.get("CQ", "N3"); assert (n3["title"], n3["assignees"], n3["kind"], n3["category"], n3["note"], n3["outcomes"]) == ("鍼灸による予防", ["田辺", "鈴木"], "FRQ", "FRQ", "記録", ["CIPN"]) and n3["old_titles"] == ["鍼灸(予防)"]
+    j2 = H.get("SORON", "J_2"); assert j2["title"] == "薬物療法の考え方(実際の処方)デュロキセチン" and j2["status"] == "執筆中"
+    assert any(a["action"] == "企画書に合わせて更新" and "鍼灸(予防) → 鍼灸による予防" in a["detail"] for a in call("GET", "/audit")[1])
 
 
 def test_paper_register_extract_and_sections(env):
@@ -445,7 +461,8 @@ def test_run_search_saves_and_imports_exact_lists(env, monkeypatch, tmp_path):
     import importlib, re
     sys.path.insert(0, os.path.join(HERE, "..", "scripts")); RS = importlib.import_module("run_search"); import pubmed
     plan = json.load(open(RS.PLAN, encoding="utf-8"))["searches"]
-    assert len(plan) == 20 and sum(s["proposal"] for s in plan) == 3 and sum(s["confirmed"] and not s["proposal"] for s in plan) == 10 and all(s["end"] == "2026/10/01" and s["full_query"].endswith(f'AND ("{s["start"]}"[dp] : "2026/10/01"[dp])') for s in plan)
+    p22 = next(s for s in plan if s["id"] == "P2-2"); assert p22["proposal"] and not p22["confirmed"] and p22["query"].endswith("AND Mirogabalin") and p22["cq_name"] == "ガバペンチノイド(プレガバリン、ミロガバリン)(予防)"   # 予防へのミロガバリンの追加は、案(統括委員長の確認まで実行しない)
+    assert len(plan) == 21 and sum(s["proposal"] for s in plan) == 4 and sum(s["confirmed"] and not s["proposal"] for s in plan) == 10 and all(s["end"] == "2026/10/01" and s["full_query"].endswith(f'AND ("{s["start"]}"[dp] : "2026/10/01"[dp])') for s in plan)
     assert next(s for s in plan if s["id"] == "T1-1")["start"] == "2021/12/13" and next(s for s in plan if s["id"] == "P1-1")["query"].startswith("goshajinkigan (neuropathy OR neurotoxi*)")
     # 模擬の PubMed: 文献ごとに出版日を持ち、期間で絞る
     base = RS.s2d("2021/07/01"); DB = {"goshajinkigan": [(str(40000000 + i), base + __import__("datetime").timedelta(days=i * 37)) for i in range(25)], "duloxetine": [(str(41000000 + i), RS.s2d("2022/01/01")) for i in range(3)]}
@@ -756,11 +773,15 @@ def test_scope_documents_follow_minds_forms_and_decisions():
     sc1, sc2, sc3 = text(files[0]), text(files[1]), text(files[2])
     assert all(h in sc1 for h in ("【SC-1", "臨床的特徴", "疫学的特徴", "診療の全体的な流れ")) and "【SC-2" in sc2 and "診療アルゴリズム（図）" in sc2
     assert not any(i["名称"] in sc2 or i["キー"] in sc2 for i in its), "SC-2 に個別の介入を載せない(行うかどうかは推奨で決まる。2023年版で行わないことを推奨した介入を、診療の流れに並べない)"
-    assert all(c in sc2 for c in ("薬物療法による予防(CQ)", "非薬物療法による予防(CQ)", "薬物療法による治療(CQ・FRQ)", "非薬物療法による治療(CQ)", "CIPNの評価", "被疑薬の延期・減量・中止"))
+    assert all(c in sc2 for c in ("薬物療法による予防(CQ)", "非薬物療法による予防(CQ・FRQ)", "薬物療法による治療(CQ・FRQ)", "非薬物療法による治療(CQ)", "CIPNの評価", "被疑薬の延期・減量・中止")) and "非薬物療法による予防(CQ)" not in sc2   # 鍼灸による予防は FRQ(企画書 Ver1.2)
     assert not re.search(r"2023年版 総論|総論[A-N][-0-9]*\)|[（(](表|図)\s*\d|\(SC-\d", sc1 + sc2), "出典・図表・他の様式への参照の表記を付けない"
     assert all(h in sc3 for h in ("【SC-3", "診療ガイドラインがカバーする視点", "既存の診療ガイドラインとの関係", "実施スケジュール", "エビデンスの検索", "推奨作成の基本方針", "外部評価の具体的方法", "公開の予定"))   # テンプレートの項目名
     assert "Individual perspective" in sc3 and wbs[files[2]].worksheets[0]["F52"].value == "記載しない" and plan["タイトル"] in sc3 and "PubMed" in sc3 and "患者代表は含めない" in sc3 and "男性・女性を含む" in sc3 and "地理的要件はない" in sc3
-    assert all(f"・{i['名称']}" in sc3 for i in its) and wbs[files[2]].worksheets[0]["D3"].value == "第1版"
+    assert all(f"・{i['名称']}" in sc3 for i in its) and wbs[files[2]].worksheets[0]["D3"].value == "第1版" and "鍼灸(予防)" not in sc3 and "ガバペンチノイド(プレガバリン)\n" not in sc3
+    assert sc3.index("【FRQ】") < sc3.index("・鍼灸による予防") and sc3.index("・鍼灸(治療)") < sc3.index("【FRQ】") and len(plan["SR項目"]) == 10 and len(plan["FRQ項目"]) == 5
+    a33 = lambda n: wbs[f"SC-4_{n}.xlsx"].worksheets[0]["A33"].value
+    assert a33("鍼灸による予防") == "がん化学療法を受ける患者に対して、CIPNの予防として、鍼灸は推奨されるか。" and a33("ガバペンチノイド(プレガバリン、ミロガバリン)(予防)") == "がん化学療法を受ける患者に対して、CIPNの予防として、ガバペンチノイド(プレガバリン、ミロガバリン)は推奨されるか。"
+    assert a33("ガバペンチノイド(プレガバリン、ミロガバリン)(治療)").startswith("CIPNを呈している患者に対して、CIPNの治療として、ガバペンチノイド(プレガバリン、ミロガバリン)は")
     for it in its:
         f = [x for x in files if x == f"SC-4_{it['名称']}.xlsx"]; assert len(f) == 1, it["id"]; ws = wbs[f[0]].worksheets[0]; t = text(f[0])
         assert ws["A17"].value == it["名称"] and ws["E17"].value == "無治療" and ws["B11"].value == "指定なし" and ws["B14"].value == "なし" and "18歳以上" in str(ws["D12"].value)
@@ -1084,6 +1105,46 @@ def test_sr8_has_minds_sr8_columns(env):
     assert row["研究デザイン／研究数"] == "RCT 1件" and row["対照群 (%)"] == 50.0 and row["介入群 (%)"] == 33.3 and row["効果指標 統合値"] == "0.67" and row["絶対効果"] == "-167/1000" and row["重要性(1〜9)"] == 9 and row["エビデンスの強さ"] == "B(中)"
 
 
+def test_renamed_items_keep_their_files_in_drive(env, tmp_path):
+    """企画書で名称が変わった項目(鍼灸(予防) → 鍼灸による予防、予防・治療のガバペンチノイド)と、題名が変わった総論(J-2)のファイルは、共有ドライブで新しい名前に変える。
+    共有ドライブでの編集を失わず、古い名前のファイルを残さない。"""
+    import importlib, urllib.parse, zipfile
+    sys.path.insert(0, os.path.join(HERE, "..", "scripts")); SD = importlib.import_module("sync_drive"); s3c = boto3.client("s3"); SD.RENAMED.clear()
+    key = lambda url: urllib.parse.unquote(urllib.parse.urlparse(url).path.lstrip("/")); fetch = lambda url: s3c.get_object(Bucket=H.BUCKET, Key=key(url))["Body"].read()
+    by = {u["unit"]: u for u in call("GET", "/update")[1]}
+    assert by["cq/N3"]["name"] == "推奨_鍼灸による予防_Update版.docx" and by["cq/N3"]["old_names"] == ["推奨_鍼灸(予防)_Update版.docx"]
+    assert by["cq/P2"]["name"] == "推奨_ガバペンチノイド(プレガバリン、ミロガバリン)(予防)_Update版.docx" and by["cq/P2"]["old_names"] == ["推奨_ガバペンチノイド(プレガバリン)_Update版.docx"]
+    assert by["cq/T3"]["name"] == "推奨_ガバペンチノイド(プレガバリン、ミロガバリン)(治療)_Update版.docx" and by["cq/T3"]["old_names"] == ["推奨_ガバペンチノイド(プレガバリン、ミロガバリン)_Update版.docx"] and by["cq/P1"]["old_names"] == []
+    assert len({u["name"] for u in by.values()}) == len(by)                                                                       # ファイル名は、項目ごとに違う
+    # 以前の名前のファイルが、共有ドライブにある。鍼灸は、委員が編集済み
+    drive = str(tmp_path / "d"); folder = os.path.join(drive, "ポータル出力", "ガイドライン_Update版"); os.makedirs(folder)
+    def edited(data):
+        zi = zipfile.ZipFile(io.BytesIO(data)); b = io.BytesIO(); zo = zipfile.ZipFile(b, "w", zipfile.ZIP_DEFLATED)
+        for it in zi.infolist(): zo.writestr(it, zi.read(it.filename).replace("解説".encode(), "解説(共有ドライブで編集)".encode()) if it.filename == "word/document.xml" else zi.read(it.filename))
+        zo.close(); return b.getvalue()
+    eN3 = edited(fetch(by["cq/N3"]["url"])); open(os.path.join(folder, "推奨_鍼灸(予防)_Update版.docx"), "wb").write(eN3)
+    open(os.path.join(folder, "推奨_ガバペンチノイド(プレガバリン)_Update版.docx"), "wb").write(fetch(by["cq/P2"]["url"])); open(os.path.join(folder, "推奨_ガバペンチノイド(プレガバリン、ミロガバリン)_Update版.docx"), "wb").write(fetch(by["cq/T3"]["url"]))
+    class Tok:
+        def call(self, method, path, body=None): return call(method, path, body)[1]
+    ups = []
+    def upload(url, data, ct): ups.append(key(url)); s3c.put_object(Bucket=H.BUCKET, Key=key(url), Body=data)
+    r = SD.sync_updates(Tok(), SD.Layout(drive), fetch=fetch, upload=upload); names = sorted(os.listdir(folder))
+    assert not any(n in names for o in ("cq/N3", "cq/P2", "cq/T3") for n in by[o]["old_names"]) and all(by[o]["name"] in names for o in ("cq/N3", "cq/P2", "cq/T3")) and len(SD.RENAMED) == 3
+    assert open(os.path.join(folder, "推奨_鍼灸による予防_Update版.docx"), "rb").read() == eN3 and ups == ["update/cq/N3/Update版.docx"] and [os.path.basename(p) for p in r["pushed"]] == ["推奨_鍼灸による予防_Update版.docx"]   # 編集は、ポータルに反映する
+    assert len([n for n in names if n.startswith("推奨_")]) == 15
+    # 総論(題名が名前に入る): 同じ項目のファイルが 1つだけのとき、新しい名前に変える。依頼書も同じ
+    f2 = str(tmp_path / "s"); os.makedirs(f2); open(os.path.join(f2, "総論J-2_デュロキセチン_Update版.docx"), "wb").write(b"x"); open(os.path.join(f2, "総論J-1_被疑薬の減量・中止_Update版.docx"), "wb").write(b"y")
+    new = os.path.join(f2, "総論J-2_薬物療法の考え方(実際の処方)デュロキセチン_Update版.docx"); assert SD.carry(new, [], False, "総論J-2_", "_Update版.docx") and open(new, "rb").read() == b"x" and sorted(os.listdir(f2)) == ["総論J-1_被疑薬の減量・中止_Update版.docx", os.path.basename(new)]
+    assert not SD.carry(new, [], False, "総論J-2_", "_Update版.docx") and not SD.carry(os.path.join(f2, "総論K_x_Update版.docx"), [], False, "総論K_", "_Update版.docx")   # 既にある・土台がない: 何もしない
+    f3 = str(tmp_path / "r"); os.makedirs(f3); open(os.path.join(f3, "総論J_2_デュロキセチン.docx"), "wb").write(b"z"); d3 = os.path.join(f3, "総論J_2_薬物療法の考え方(実際の処方)デュロキセチン.docx")
+    assert SD.carry(d3, [], True, "総論J_2_", ".docx") and not os.path.exists(d3) and SD.carry(d3, [], False, "総論J_2_", ".docx") and os.listdir(f3) == [os.path.basename(d3)]   # dry は表示だけ
+    # Scope と Minds 様式のファイルにも、以前の名前を付ける
+    s3c.put_object(Bucket=H.BUCKET, Key="scope/SC-4_鍼灸による予防.xlsx", Body=b"x"); d = next(x for x in call("GET", "/docs?kind=all")[1] if x["name"] == "SC-4_鍼灸による予防.xlsx"); assert d["old_names"] == ["SC-4_鍼灸(予防).xlsx"]
+    fm = call("GET", "/export/N3/forms?sync=1")[1]["forms"]; assert fm[0]["name"] == "chap4_SR_1_鍼灸による予防.xlsx" and fm[0]["old_names"] == ["chap4_SR_1_鍼灸(予防).xlsx"] and call("GET", "/export/P1/forms?sync=1")[1]["forms"][0]["old_names"] == []
+    assert os.path.exists(os.path.join(HERE, "..", "..", "soron", "out", "総論J_2_薬物療法の考え方(実際の処方)デュロキセチン.docx")) and not os.path.exists(os.path.join(HERE, "..", "..", "soron", "out", "総論J_2_デュロキセチン.docx"))
+    SD.RENAMED.clear()
+
+
 def test_self_registration_and_approval(env):
     """自己登録: 承認の前は、何も見えない。申請 → 統括委員長が承認(役割が付く)。名簿に基づく役割の候補を示す。委員以外は、承認されない"""
     cog = boto3.client("cognito-idp"); pool = cog.create_user_pool(PoolName="t")["UserPool"]["Id"]; H.USER_POOL = pool
@@ -1099,7 +1160,7 @@ def test_self_registration_and_approval(env):
         assert call("POST", "/access/request", {"name": "山田太郎"}, S)[1]["suggest"] == []                                                   # 名簿にない氏名は、候補なし
         # 字体・空白だけが企画書と違う氏名(例: 邊 と 辺)は、同じ人として扱い、企画書の表記にそろえる(担当の照合は、企画書の担当表の表記で行うため)
         cog.admin_create_user(UserPoolId=pool, Username="v@example.org"); V = dict(email="v@example.org", groups=()); c, r = call("POST", "/access/request", {"name": "渡邊　大地"}, V); assert r["name"] == "渡辺大地" and r["suggest"] == ["SR委員"]
-        assert H.roster_name("荒尾 晴恵") == "荒尾晴惠" and H.roster_name("髙木雄亮") == "高木雄亮" and H.roster_name("中川　貴之") == "中川貴之" and H.roster_name("山田太郎") == "山田太郎" and H.roster_name("渡邊太郎") == "渡邊太郎"   # 名簿にない氏名は、入力のまま
+        assert H.roster_name("荒尾 晴恵") == "荒尾晴惠" and H.roster_name("田邊裕子") == "田辺裕子" and H.roster_name("髙木雄亮") == "髙木雄亮" and H.roster_name("中川　貴之") == "中川貴之" and H.roster_name("山田太郎") == "山田太郎" and H.roster_name("渡邊太郎") == "渡邊太郎"   # 名簿にない氏名は、入力のまま
         assert call("POST", "/access/v@example.org/approve", {"roles": ["SR委員"], "name": "渡邊大地"})[1]["name"] == "渡辺大地"
         VV = dict(email="v@example.org", groups=("SR委員",)); t3 = next(x for x in call("GET", "/cq", who=VV)[1] if "渡辺" in x["assignees"])
         assert call("GET", "/me", who=VV)[1]["name"] == "渡辺大地" and any(w["cq"] == t3["id"] for w in call("GET", "/dashboard", who=VV)[1]["my_work"])   # 担当の CQ として扱われる

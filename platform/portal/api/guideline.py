@@ -68,7 +68,7 @@ def refs(papers, cands):
 
 def cq_blocks(it, d, with_2023=True):
     """1つの CQ・FRQ の本文。2028年版の記録(推奨文案、解説)があればそれを、なければ 2023年版の記述を、改訂の元の文として置く。"""
-    e = d.get("etd") or {}; g = d.get("gl2023") or {}; v = e.get("vote") or {}; frq = it["id"][0] == "F"; B = []
+    e = d.get("etd") or {}; g = d.get("gl2023") or {}; v = e.get("vote") or {}; frq = bool(it.get("frq")); B = []   # FRQ かどうかは、企画書のどちらの表にあるか(handler.plan_items)
     rec = e.get("rec_draft") or g.get("rec") or NONE; narr = e.get("narrative") or "\n".join(p["text"] for p in g.get("paragraphs") or []) or NONE
     if not e.get("rec_draft") and not e.get("narrative") and g: B.append(("p", "下の推奨文と解説は、2023年版の記述である。改訂して、2028年版の文にする。"))
     B += [("label", "記載" if frq else "推奨文"), ("p", rec)]
@@ -119,7 +119,7 @@ def build(title, items, data, soron, units=None):
         B += units.get(f"soron/{s_['key']}") or [("p", NONE)]
     for head, frq in (("3. 推奨(CQ)", False), ("4. FRQ(Future Research Question)", True)):
         B.append(("h1", head))
-        for it in [x for x in items if (x["id"][0] == "F") == frq]:
+        for it in [x for x in items if bool(x.get("frq")) == frq]:
             B.append(("h2", f"{cat(it)}: {it['名称']}"))
             B += units.get(f"cq/{it['id']}") or cq_blocks(it, data[it["id"]], with_2023=False)
     return docx(B)

@@ -131,6 +131,24 @@ def place(dest, data, copied, skipped, dry, overwrite=False):
     copied.append(dest)
 
 
+RENAMED = []   # 名称が変わったため、名前を変えたファイル(表示用)
+
+
+def carry(dest, olds, dry=False, stem="", suffix=""):
+    """企画書で名称が変わった項目のファイルを、新しい名前に変える(共有ドライブでの編集と、Google Drive のリンクを引き継ぐ。古い名前のファイルを残さない)。
+    olds: 以前のファイル名。stem・suffix: 名前の先頭と末尾(総論は題名が名前に入るため、「総論J-2_」で始まり suffix で終わるファイルが 1つだけのとき、それを引き継ぐ)。"""
+    if os.path.exists(dest): return False
+    folder = os.path.dirname(dest); cand = [os.path.join(folder, o) for o in olds or []]
+    if stem and os.path.isdir(folder):
+        same = [f for f in os.listdir(folder) if nfc(f).startswith(nfc(stem)) and nfc(f).endswith(nfc(suffix))]
+        if len(same) == 1: cand.append(os.path.join(folder, same[0]))
+    for old in cand:
+        if os.path.exists(old):
+            if not dry: os.rename(old, dest)
+            RENAMED.append((old, dest)); return True
+    return False
+
+
 def nfc(x):
     """フォルダ名の比較用。NFD(macOS)と全角・半角の違い(SR_１ と SR_1 など)を同じとみなす。"""
     import unicodedata
@@ -234,7 +252,8 @@ def sync_updates(tok, L, dry=False, fetch=get_bytes, upload=put_bytes, only=None
     new, placed, pushed, files = {}, [], [], {}
     for u in tok.call("GET", "/update"):
         if only and u["unit"] != only: continue
-        dest = os.path.join(folder, u["name"]); P = fetch(u["url"]) if u.get("url") else None; D = open(dest, "rb").read() if os.path.exists(dest) else None; last = state.get(u["unit"]) or ""
+        dest = os.path.join(folder, u["name"]); carry(dest, u.get("old_names"), dry, u.get("stem", ""), "_Update版.docx")
+        P = fetch(u["url"]) if u.get("url") else None; D = open(dest, "rb").read() if os.path.exists(dest) else None; last = state.get(u["unit"]) or ""
         if D is None and u.get("legacy"):   # 以前の置き場所(依頼書/)で編集されていた総論は、Update 版として引き継ぐ
             old = os.path.join(L.top("依頼書"), u["legacy"])
             if os.path.exists(old) and P is not None and doc_digest(open(old, "rb").read()) != doc_digest(P):
@@ -296,19 +315,21 @@ def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=300, uploa
         folder = L.cq(c)
         for kind, path in (("Minds書類", f"/export/{c['id']}?sync=1"), ("文献選択の別添", f"/export/{c['id']}/screening?sync=1")):
             r = tok.call("GET", path)
-            if "url" in r and r["url"]: place(os.path.join(folder, f"{kind}_{safe(c['title'])}.xlsx"), fetch(r["url"]), copied, skipped, dry, overwrite=True)
+            if "url" in r and r["url"]:
+                dest = os.path.join(folder, f"{kind}_{safe(c['title'])}.xlsx"); carry(dest, [f"{kind}_{safe(o)}.xlsx" for o in c.get("old_titles") or []], dry)
+                place(dest, fetch(r["url"]), copied, skipped, dry, overwrite=True)
             elif "error" in r: print("  出力できませんでした:", c["id"], kind, r["error"])
         # Minds 様式ごとのファイルを、様式番号のフォルダ(Chap4_SR/SR_n、Chap6_推奨)へ置く。フォルダがなければ、この CQ のフォルダの 様式別/ に置く
         r = tok.call("GET", f"/export/{c['id']}/forms?sync=1")
         for fm in r.get("forms", []) if isinstance(r, dict) else []:
             if fm.get("url"):
-                dest = L.form(fm["folder"]) or os.path.join(folder, "様式別")
+                dest = L.form(fm["folder"]) or os.path.join(folder, "様式別"); carry(os.path.join(dest, fm["name"]), fm.get("old_names"), dry)
                 place(os.path.join(dest, fm["name"]), fetch(fm["url"]), copied, skipped, dry, overwrite=True)
     # 3. 依頼書(総論)と手順書
     for g in tok.call("GET", "/gl2023/soron"):
         if g.get("docx_key"):
             r = tok.call("GET", f"/soron/{g['key']}/gl2023")
-            dest_ = os.path.join(L.top("依頼書"), os.path.basename(g["docx_key"]))
+            dest_ = os.path.join(L.top("依頼書"), os.path.basename(g["docx_key"])); carry(dest_, [], dry, f"総論{g['key']}_", ".docx")   # 題名が変わった総論の依頼書
             if r.get("docx_url") and not os.path.exists(dest_): place(dest_, fetch(r["docx_url"]), copied, skipped, dry)   # 既にあるファイルは置き換えない(共有ドライブでの編集を失わない。編集は「ガイドライン_Update版」で行う)
             elif os.path.exists(dest_): skipped.append(dest_)
     # Scope は、共有ドライブで人が編集した版(Google スプレッドシートでの編集)を正とし、ポータルへ反映する(ドライブ → ポータル)。
@@ -324,7 +345,7 @@ def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=300, uploa
         if scope:   # SC-1〜SC-4 は、第3章の様式ごとのフォルダ(chap3_SC_1_… など)。なければ Chap3_スコープ、なければ ポータル出力/Scope
             m_ = re.match(r"SC-([1-4])", name); folder = (L.find([f"chap3_SC_{m_.group(1)}"], prefix=True) if m_ else None) or L.find(["Chap3_スコープ"]) or L.top("Scope")
         else: folder = os.path.join(L.top("マニュアル"), safe(d["target"]))   # 対象(全委員・SR委員・総論の執筆者・統括委員会など)ごとのフォルダ
-        dest = os.path.join(folder, name); placed[name] = (dest, d.get("drive", ""))
+        dest = os.path.join(folder, name); placed[name] = (dest, d.get("drive", "")); carry(dest, d.get("old_names"), dry)
         cur = open(dest, "rb").read() if os.path.exists(dest) else None
         if scope and os.path.isdir(folder): gsheets += [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith(".gsheet") and nfc(f).startswith(os.path.splitext(name)[0]) and os.path.join(folder, f) not in gsheets]
         if scope and reset and reset in name:   # 生成した版に戻す(--reset)。編集された版は、別の名前で残す
@@ -340,6 +361,8 @@ def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=300, uploa
         data = fetch(d["url"])
         if cur is not None and doc_digest(cur) != doc_digest(data):
             gens = generated(name)
+            for o in d.get("old_names") or []:   # 名称が変わった項目: 以前の名前で生成した版も、生成した版として扱う(人が編集した版と取り違えない)
+                g_ = generated(o); gens = (gens | g_) if gens is not None and g_ else gens
             if gens is None: unknown.append(dest); continue            # 人が編集したかを判定できない: 置き換えない
             if doc_digest(cur) not in gens:                            # 人が編集した版
                 if scope:
@@ -350,6 +373,7 @@ def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=300, uploa
     up = sync_updates(tok, L, dry=dry, fetch=fetch, upload=upload); copied += up["placed"]; placed.update(up["files"])   # ガイドラインと総論の Update 版
     print(("【転送の内容の表示だけ。ファイルは置いていません】\n" if dry else "") + f"転送 {len(copied)} 件、変更なしで飛ばした {len(skipped)} 件")
     for p in copied: print("  置いた:" if not dry else "  置く:", rel(p))
+    if RENAMED: print(f"企画書で名称が変わった項目のファイルの名前を変え{'る' if dry else 'た'}: {len(RENAMED)} 件"); [print("  ", rel(a), "→", os.path.basename(b)) for a, b in RENAMED]; RENAMED.clear()
     if pushed: print(f"Google Drive で編集された Scope を、ポータルに反映{'する' if dry else 'した'}: {len(pushed)} 件")
     for p in pushed: print("  反映:", rel(p))
     if up["pushed"]: print(f"共有ドライブで編集された Update 版(ガイドライン・総論)を、ポータルに反映{'する' if dry else 'した'}: {len(up['pushed'])} 件")

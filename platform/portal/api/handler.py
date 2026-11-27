@@ -166,21 +166,52 @@ def strip(s):
     return re.sub(r"\(.*?\)", "", s).strip()
 
 
+PLAN_VERSION = "企画書 Ver1.2 2026-10-26"
+
+
+def plan_items(plan=None):
+    """企画書の SR項目と FRQ項目(企画書の順)。各項目に frq(FRQ かどうか)を付ける。FRQ かどうかは、企画書のどちらの表にあるかで決まる(内部コードの先頭の文字では決めない)。"""
+    plan = plan or json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
+    return [dict(it, frq=False) for it in plan["SR項目"]] + [dict(it, frq=True) for it in plan["FRQ項目"]]
+
+
+@functools.lru_cache(maxsize=1)
+def plan_order():
+    return {it["id"]: i for i, it in enumerate(plan_items())}
+
+
+def in_plan_order(cqs):
+    """CQ・FRQ を、企画書の順に並べる(予防 → 治療 → FRQ)。"""
+    o = plan_order(); return sorted(cqs, key=lambda c: (o.get(c["id"], len(o)), c["id"]))
+
+
 def seed(user):
+    """企画書の項目(CQ・FRQ、総論)を登録する。登録済みの項目は、名称・担当・区分を企画書に合わせる(PICO・アウトカム・記録は変えない)。何度実行してもよい。"""
     plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
-    n = 0
-    for it in plan["SR項目"] + plan["FRQ項目"]:
-        if not get("CQ", it["id"]):
-            put("CQ", it["id"], {"id": it["id"], "kind": "SR" if it["id"][0] != "F" else "FRQ", "category": it.get("区分", "FRQ"), "title": it["名称"], "assignees": it["担当"], "dirs": it["dir"],
-                                 "approved": "統括委員長承認済み(企画書 Ver1 2026-06-17)", "pico": {"P": "", "I": it["名称"], "C": "", "O": DEFAULT_OUTCOME}, "outcomes": [DEFAULT_OUTCOME], "note": ""}); n += 1
+    n = 0; changed = []
+    for it in plan_items(plan):
+        want = {"kind": "FRQ" if it["frq"] else "SR", "category": it.get("区分") or "FRQ", "title": it["名称"], "assignees": it["担当"], "open_call": int(it.get("公募") or 0), "dirs": it["dir"],
+                "old_titles": it.get("旧名称") or [], "approved": f"統括委員長承認済み({PLAN_VERSION})"}
+        c = get("CQ", it["id"])
+        if not c:
+            put("CQ", it["id"], {"id": it["id"], **want, "pico": {"P": "", "I": it["名称"], "C": "", "O": DEFAULT_OUTCOME}, "outcomes": [DEFAULT_OUTCOME], "note": ""}); n += 1; continue
+        diff = {k: v for k, v in want.items() if c.get(k, [] if k == "old_titles" else 0 if k == "open_call" else None) != v}   # DynamoDB の数(Decimal)は、整数と比べられる
+        if diff:
+            was = "、".join(f"{ja} {c.get(k)} → {diff[k]}" for k, ja in (("title", "名称"), ("assignees", "担当"), ("kind", "種別")) if k in diff)
+            c.update(diff); put("CQ", it["id"], c)
+            if was or "open_call" in diff: changed.append(it["名称"])   # 名称・担当・CQ か FRQ か・公募の枠が変わった項目(基準の版の表記だけの更新は、数えない)
+            if was: audit(user, "企画書に合わせて更新", it["名称"], was)
     for k, v in plan["総論"].items():
-        if not get("SORON", k):
-            title, _, author = v.rpartition(":")
+        title, _, author = v.rpartition(":"); s_ = get("SORON", k)
+        if not s_:
             put("SORON", k, {"key": k, "label": k.replace("_", "-"), "title": title, "author": author, "status": "原稿未提出", "due": "", "note": ""}); n += 1
+        elif (s_.get("title"), s_.get("author")) != (title, author):
+            audit(user, "企画書に合わせて更新", f"総論{s_['label']}", f"題名 {s_.get('title')} → {title}、担当 {s_.get('author')} → {author}")
+            s_.update({"title": title, "author": author}); put("SORON", k, s_); changed.append(f"総論{s_['label']}")
     if not get("PHASE", "current"):
         put("PHASE", "current", {"phase": PHASES[2]}); n += 1  # CQ・FRQは承認済み。SRの実施中
-    audit(user, "初期データの作成", "企画書 Ver1", f"{n}件")
-    return {"created": n}
+    if n: audit(user, "初期データの作成", PLAN_VERSION, f"{n}件")
+    return {"created": n, "updated": changed}
 
 
 # ---------- 集計 ----------
@@ -232,7 +263,7 @@ def dashboard(user):
     g = set(user["groups"]); name = user["name"]; lead = bool(g & ROLE_LEAD)
     sr_view = bool(g & (ROLE_LEAD | {"SR委員", "作成グループ"})); soron_view = bool(g & (ROLE_ADMIN | {"総説執筆者"}))
     out_cq, todo, approvals, my_work = [], [], [], []
-    for c in (sorted(query("CQ"), key=lambda c: c["id"]) if sr_view else []):
+    for c in (in_plan_order(query("CQ")) if sr_view else []):
         n, units, papers = cq_records(c); st = stage_text(n); mine = is_assignee(user, c)
         wait = n.pop("f45_wait"); n["f45_wait"] = len(wait)
         out_cq.append({**c, "stages": st, "progress": progress(st), "counts": n, "mine": mine})
@@ -643,7 +674,7 @@ def cq(method, parts, body, user):
             if not c: return resp(404, {"error": "ありません"})
             st = stage_auto(c); return resp(200, {**c, "pico": pico_of(c), "stages": st, "progress": progress(st)})
         out = []
-        for c in sorted(query("CQ"), key=lambda c: c["id"]):
+        for c in in_plan_order(query("CQ")):
             c.pop("stages", None); c.pop("approved", None); st = stage_auto(c)
             out.append({**c, "pico": pico_of(c), "stages": st, "progress": progress(st)})
         return resp(200, out)
@@ -1090,7 +1121,8 @@ def form_books(cqid, c):
     """様式ごとのブック: [{form, folder, name, data}]"""
     import export_minds
     book = minds_book(cqid, c); nm = re.sub(r'[\\/:*?"<>|\n\r]', "_", c["title"])[:60]
-    return [{"form": f, "folder": folder, "name": f"{pre}_{nm}.xlsx", "sheets": sh, "data": export_minds.split_book(book, sh)} for f, folder, pre, sh in FORM_MAP]
+    olds = [re.sub(r'[\\/:*?"<>|\n\r]', "_", o)[:60] for o in c.get("old_titles") or []]   # 名称が変わった項目の、以前のファイル名
+    return [{"form": f, "folder": folder, "name": f"{pre}_{nm}.xlsx", "old_names": [f"{pre}_{o}.xlsx" for o in olds], "sheets": sh, "data": export_minds.split_book(book, sh)} for f, folder, pre, sh in FORM_MAP]
 
 
 def export(method, parts, body, user):
@@ -1100,7 +1132,7 @@ def export(method, parts, body, user):
     if parts[1] == "guideline":
         # GET /export/guideline : ガイドラインの草案(Word)。作成方法、CQ ごとの推奨・解説・文献、FRQ、総論の一覧を、ポータルの記録から組み立てる
         import guideline, viewer
-        plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8")); items = plan["SR項目"] + plan["FRQ項目"]; data = {it["id"]: cq_data(it["id"]) for it in items}
+        plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8")); items = plan_items(plan); data = {it["id"]: cq_data(it["id"]) for it in items}
         soron_ = sorted(query("SORON"), key=lambda s_: s_["sk"]); units = {}
         read = lambda k: viewer.docx_view(s3().get_object(Bucket=BUCKET, Key=k)["Body"].read())
         for s_ in soron_:   # 総論: 提出された原稿(Word)の本文。なければ、2023年版の本文
@@ -1137,7 +1169,7 @@ def export(method, parts, body, user):
             if BUCKET:
                 s3().put_object(Bucket=BUCKET, Key=key, Body=fb["data"], ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 url = s3().generate_presigned_url("get_object", Params={"Bucket": BUCKET, "Key": key}, ExpiresIn=900)
-            out.append({"form": fb["form"], "folder": fb["folder"], "name": fb["name"], "sheets": fb["sheets"], "bytes": len(fb["data"]), "url": url})
+            out.append({"form": fb["form"], "folder": fb["folder"], "name": fb["name"], "old_names": fb["old_names"], "sheets": fb["sheets"], "bytes": len(fb["data"]), "url": url})
         log(user, "Minds様式ごとの出力", cqid, ", ".join(x["form"] for x in out)); return resp(200, {"forms": out})
     data = minds_book(cqid, c)
     key = f"exports/{cqid}/Minds書類_{cqid}_{now()[:19].replace(':', '')}.xlsx"
@@ -1227,15 +1259,15 @@ def update_units(user, only=None):
         g23 = get("GL2023S", s_["key"]) or {}; name = "総論" + s_["label"] + "_" + fname(s_["title"]) + "_Update版.docx"
         key = f"soron/{s_['key']}/{s_['file']}" if str(s_.get("file", "")).lower().endswith(".docx") else g23.get("docx_key")
         out.append({"unit": unit, "kind": "総論", "name": name, "title": f"総論{s_['label']} {s_['title']}", "key": key or "", "url": url(key) if key else "", "source": "原稿" if s_.get("file") else ("依頼書(2023年版の全文)" if key else ""),
-                    "by": s_.get("file_by", ""), "at": (s_.get("file_at") or "")[:10], "legacy": os.path.basename(g23.get("docx_key") or ""), "drive": link.get(name, "")})
-    for it in (plan["SR項目"] + plan["FRQ項目"] if g & (ROLE_LEAD | {"SR委員", "作成グループ"}) else []):
+                    "by": s_.get("file_by", ""), "at": (s_.get("file_at") or "")[:10], "legacy": os.path.basename(g23.get("docx_key") or ""), "drive": link.get(name, ""), "stem": "総論" + s_["label"] + "_", "old_names": []})
+    for it in (plan_items(plan) if g & (ROLE_LEAD | {"SR委員", "作成グループ"}) else []):
         unit = f"cq/{it['id']}"
         if only and unit != only: continue
         name = "推奨_" + fname(it["名称"]) + "_Update版.docx"; u = get("UPD", unit) or {}; key = u.get("key")
         if not key and BUCKET:   # 編集された版がない: ポータルの記録から作る
             key = f"exports/update/{it['id']}.docx"; s3().put_object(Bucket=BUCKET, Key=key, Body=guideline.build_cq(plan["タイトル"], it, cq_data(it["id"])), ContentType=DOCX_TYPE)
         out.append({"unit": unit, "kind": "CQ・FRQ", "name": name, "title": it["名称"], "key": key or "", "url": url(key) if key else "", "source": "共有ドライブで編集" if u.get("key") else "ポータルの記録から作成",
-                    "by": u.get("by", ""), "at": (u.get("at") or "")[:10], "legacy": "", "drive": link.get(name, "")})
+                    "by": u.get("by", ""), "at": (u.get("at") or "")[:10], "legacy": "", "drive": link.get(name, ""), "stem": "", "old_names": ["推奨_" + fname(o) + "_Update版.docx" for o in it.get("旧名称") or []]})
     return out
 
 
@@ -1287,9 +1319,9 @@ def doc_list(g, kind, show_missing):
     if kind in ("scope", "all"):
         sc = s3().list_objects_v2(Bucket=BUCKET, Prefix="scope/").get("Contents", [])
         plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
-        for pre in ["SC-1", "SC-2", "SC-3"] + [f"SC-4_{it['名称']}" for it in plan["SR項目"] + plan["FRQ項目"]]:
+        for pre, olds in [(p_, []) for p_ in ("SC-1", "SC-2", "SC-3")] + [(f"SC-4_{it['名称']}", [f"SC-4_{o}.xlsx" for o in it.get("旧名称") or []]) for it in plan_items(plan)]:
             o = next((x for x in sc if x["Key"].split("/", 1)[1].startswith(pre)), None)
-            if o: out.append(row(o, "Scope"))
+            if o: out.append({**row(o, "Scope"), "old_names": olds})   # old_names: 名称が変わった項目の、以前のファイル名
             elif show_missing: out.append(miss(pre, "Scope"))
         if kind == "scope": return out
     objs = s3().list_objects_v2(Bucket=BUCKET, Prefix="docs/").get("Contents", [])
