@@ -206,16 +206,17 @@ def drive_attr(path):
     return v if r.returncode == 0 and re.fullmatch(r"[A-Za-z0-9_\-]{10,}", v) else None
 
 
-def register_links(tok, docs, ids=drive_attr, wait=60, sleep=time.sleep):
+def register_links(tok, docs, ids=drive_attr, wait=300, sleep=time.sleep):
     """転送した文書(Scope・手順書)の Google Drive 上の URL を、ポータルに登録する(ポータルの「Google Drive」のリンクになる)。
-    docs: {ファイル名: (置いた場所, 登録済みの URL)}。同期前のファイルは、wait 秒まで待つ。戻り値: (登録した件数, URL を取得できなかったファイル名, ID を 1 件でも読めたか)"""
+    docs: {ファイル名: (置いた場所, 登録済みの URL)}。同期前のファイルは、同期が終わるまで、wait 秒まで待つ(もう一度実行しなくてよいように)。戻り値: (登録した件数, URL を取得できなかったファイル名, ID を 1 件でも読めたか)"""
     links, pending, seen, t = {}, {n: p for n, (p, _) in docs.items()}, False, 0
     while pending:
         local = False   # 同期前(local- で始まる ID)のファイルがあるか
         for name, path in list(pending.items()):
-            v = ids(path); seen = seen or bool(v); local = local or bool(v and v.startswith("local-"))
+            v = ids(path); seen = seen or bool(v); local = local or bool(v and v.startswith("local-")) or (not v and seen and t < 30)   # 置いた直後は、ID がまだ付いていないことがある
             if v and not v.startswith("local-"): links[name] = f"https://drive.google.com/file/d/{v}/view"; del pending[name]
         if not pending or not local or t >= wait: break
+        if t and t % 30 == 0: print(f"  Google Drive の同期を待っています(残り {len(pending)} 件。最長 {wait // 60} 分)", flush=True)
         sleep(5); t += 5
     new = {n: u for n, u in links.items() if u != docs[n][1]}
     if new: tok.call("PUT", "/docs/links", {"links": new})
@@ -273,7 +274,7 @@ def sync_updates(tok, L, dry=False, fetch=get_bytes, upload=put_bytes, only=None
     return {"placed": placed, "pushed": pushed, "files": files}
 
 
-def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=60, upload=put_bytes, generated=generated_digests, reset=None, repo=REPO):
+def sync(tok, drive, dry=False, fetch=get_bytes, ids=drive_attr, wait=300, upload=put_bytes, generated=generated_digests, reset=None, repo=REPO):
     if not os.path.isdir(drive): sys.exit(f"共有ドライブのフォルダがありません: {drive}")
     copied, skipped, rel = [], [], lambda p: os.path.relpath(p, drive); L = Layout(drive)
     # 1. 総論の原稿(全ての版)と状態

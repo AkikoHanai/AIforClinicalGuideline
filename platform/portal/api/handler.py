@@ -23,7 +23,7 @@ DynamoDB 1テーブル(pk, sk):
   AUDIT/<時刻>#<id>           作成経過の記録。追記のみ
   PHASE/current               現在の段階
 """
-import base64, datetime, json, os, re, time, uuid
+import base64, datetime, functools, json, os, re, time, unicodedata, uuid
 import boto3
 from boto3.dynamodb.conditions import Key
 
@@ -114,7 +114,7 @@ def caller(event):
         groups = [g for g in re.split(r"[\s,\[\]]+", groups) if g]
     email = (claims.get("email") or "").lower()
     u = get("USER", email) if email else None
-    name = (u or {}).get("name") or claims.get("name") or ""
+    name = roster_name((u or {}).get("name") or claims.get("name") or "")
     return {"email": email, "groups": groups, "name": name}
 
 
@@ -408,7 +408,7 @@ def users(method, parts, body, user):
         return resp(200, sorted(query("USER"), key=lambda u: u.get("name", "")))
     require(user, ROLE_ADMIN)
     if method in ("POST", "PUT"):
-        email = body["email"].strip().lower(); name = body["name"].strip(); roles = [g for g in body.get("roles", []) if g in GROUPS]
+        email = body["email"].strip().lower(); name = roster_name(body["name"]); roles = [g for g in body.get("roles", []) if g in GROUPS]
         put("USER", email, {"email": email, "name": name, "roles": roles})
         invited = invite(email, name, roles) if body.get("invite") and USER_POOL else False
         audit(user, "利用者の登録" + ("と招待" if invited else ""), name, "役割: " + "・".join(roles)); return resp(200, {"email": email, "name": name, "roles": roles, "invited": invited})
@@ -433,9 +433,31 @@ def invite(email, name, roles):
 # ---------- 利用申請(自己登録 → 統括委員長の承認) ----------
 # 委員は、ポータルの「Sign up」で自分のアカウントを作り(メールの確認コード)、氏名を申請する。統括委員長が承認するまで、ポータルの内容は何も見えない。
 # 承認すると、役割(Cognito のグループ)が付く。氏名から、企画書の名簿に基づく役割の候補を示す(候補であり、承認する人が決める)。
+# 氏名の照合。企画書の名簿と、空白の有無・字体(例: 邊 と 辺、惠 と 恵)だけが違う氏名は、同じ人として扱い、企画書の表記にそろえる。
+# 担当(企画書の担当表は姓の表記)と氏名の照合は、氏名の先頭の一致で行うため、表記がそろっていないと、担当として扱われない。
+VARIANT = str.maketrans({"邊": "辺", "邉": "辺", "惠": "恵", "髙": "高", "﨑": "崎", "嵜": "崎", "濵": "浜", "濱": "浜", "齋": "斉", "齊": "斉", "斎": "斉", "澤": "沢", "廣": "広", "國": "国", "德": "徳", "眞": "真",
+                         "瀨": "瀬", "櫻": "桜", "嶋": "島", "嶌": "島", "冨": "富", "𠮷": "吉", "繩": "縄", "聰": "聡", "繪": "絵", "采": "釆", "靜": "静", "榮": "栄", "條": "条", "彌": "弥", "曾": "曽", "增": "増", "藏": "蔵",
+                         "禮": "礼", "龍": "竜", "寬": "寛"})
+bare = lambda x: re.sub(r"[\s　]", "", re.sub(r"[((].*?[))]", "", str(x)))          # 空白と、(委員長)などの注記を除いた氏名
+name_key = lambda x: unicodedata.normalize("NFKC", bare(x)).translate(VARIANT)      # 字体の違いをそろえた、照合用の氏名
+
+
+@functools.lru_cache(maxsize=1)
+def roster():
+    """企画書の名簿: 照合用の氏名 → 企画書の表記"""
+    plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
+    return {name_key(m): bare(m) for lst in plan.get("体制", {}).values() for m in lst}
+
+
+def roster_name(name):
+    """空白を除いた氏名。企画書の名簿に、字体だけが違う同じ氏名があれば、企画書の表記にする。名簿にない氏名は、入力のまま。"""
+    n = re.sub(r"[\s　]+", "", str(name or ""))
+    return roster().get(name_key(n), n) if n else ""
+
+
 def roster_roles(name):
     plan = json.load(open(os.path.join(HERE, "approved_plan.json"), encoding="utf-8"))
-    norm = lambda x: re.sub(r"[\s　]", "", re.sub(r"[((].*?[))]", "", str(x)))
+    norm = name_key
     n = norm(name)
     if not n: return []
     roles = []
@@ -447,7 +469,7 @@ def roster_roles(name):
                 if role == "SR委員" and "委員長" in m: add("SR委員長")
     # 総論の執筆者(企画書は姓だけの表記が多い): 名簿の氏名(フルネーム)に一致し、その姓が執筆者の表記で始まる場合だけ、候補にする(同姓の別人を候補にしない)
     authors = {x for v in plan["総論"].values() for x in re.split("[・]", v.rpartition(":")[2]) if x}
-    if any(norm(m) == n and any(n.startswith(x) for x in authors) for lst in plan.get("体制", {}).values() for m in lst): add("総説執筆者")
+    if any(norm(m) == n and any(n.startswith(norm(x)) for x in authors) for lst in plan.get("体制", {}).values() for m in lst): add("総説執筆者")
     return roles
 
 
@@ -470,7 +492,7 @@ def access(method, parts, body, user):
     if method == "GET" and sub == "me": return resp(200, {"email": me, "groups": user["groups"], "request": get("ACCESS", me)})
     if method == "POST" and sub == "request":
         if user["groups"]: return resp(409, {"error": "すでに承認されています"})
-        name = re.sub(r"[\s　]+", "", str(body.get("name", ""))); aff = str(body.get("affiliation", "")).strip()[:100]
+        name = roster_name(body.get("name", "")); aff = str(body.get("affiliation", "")).strip()[:100]
         if not name or len(name) > 40: return resp(400, {"error": "氏名を入力してください(例: 華井明子)"})
         old = get("ACCESS", me)
         if old and old.get("status") == "承認済み": return resp(200, old)
@@ -482,7 +504,7 @@ def access(method, parts, body, user):
     if not a: return resp(404, {"error": "申請がありません"})
     act = parts[2] if len(parts) > 2 else ""
     if method == "POST" and act == "approve":
-        roles = [g for g in body.get("roles", []) if g in GROUPS]; name = re.sub(r"[\s　]+", "", str(body.get("name") or a["name"]))
+        roles = [g for g in body.get("roles", []) if g in GROUPS]; name = roster_name(body.get("name") or a["name"])
         if not roles: return resp(400, {"error": "役割を 1つ以上、選んでください"})
         put("USER", a["email"], {"email": a["email"], "name": name, "roles": roles}); granted = grant(a["email"], roles)
         a.update({"status": "承認済み", "approved_by": user["name"] or user["email"], "approved_at": now(), "roles": roles, "name": name}); put("ACCESS", a["email"], a)

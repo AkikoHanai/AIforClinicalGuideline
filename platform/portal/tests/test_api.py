@@ -843,6 +843,8 @@ def test_documents_open_in_browser_with_drive_links(env, tmp_path):
     new, pending, seen = SD.register_links(Tok(), placed, ids=ids, wait=60, sleep=slept.append)
     assert seen and new == 2 and pending == ["2_統括委員会へのお願い_スケジュールとアプリの精査.docx"] and slept and sum(slept) <= 60    # SC-3 は登録済みのため、新規は SC-2 と手順書。ID のないファイルは未登録
     got = {x["name"]: x["drive"] for x in call("GET", "/docs?kind=all")[1]}; assert got["SC-2_診療アルゴリズム.xlsx"] == "https://drive.google.com/file/d/1ZZZdEfGhIjKlMnOpQrStUvWxYz0SC2xx/view" and got["4_SR委員の手順書.docx"].endswith("/view")
+    slept3 = []; late = lambda p: ("1LateLateLateLateLateLateLateLate00" if sum(slept3) >= 120 else "local-x") if os.path.basename(p).startswith("2_") else ids(p)
+    assert SD.register_links(Tok(), placed, ids=late, sleep=slept3.append)[1] == [] and 120 <= sum(slept3) <= 300                    # 同期に 2分かかっても、待って登録する(もう一度実行しなくてよい)
     slept2 = []; assert SD.register_links(Tok(), placed, ids=lambda p: None, wait=60, sleep=slept2.append) == (0, sorted(placed), False) and not slept2    # ID を読めないフォルダ(Google Drive for desktop の外)では、待たない
     SD.sync(Tok(), drive, fetch=fetch, ids=lambda p: None)                                                               # 転送そのものは、ID を読めなくても完了する
     assert os.path.exists(os.path.join(drive, "ポータル出力", "Scope", "SC-3_スコープ.xlsx"))
@@ -1095,6 +1097,12 @@ def test_self_registration_and_approval(env):
         assert call("POST", "/access/request", {"name": ""}, N)[0] == 400
         c, r = call("POST", "/access/request", {"name": "元雄 良治", "affiliation": "A大学"}, N); assert c == 200 and r["status"] == "承認待ち" and r["name"] == "元雄良治" and r["suggest"] == ["SR委員", "総説執筆者"]   # 氏名から、SR担当と総論K(元雄)の候補
         assert call("POST", "/access/request", {"name": "山田太郎"}, S)[1]["suggest"] == []                                                   # 名簿にない氏名は、候補なし
+        # 字体・空白だけが企画書と違う氏名(例: 邊 と 辺)は、同じ人として扱い、企画書の表記にそろえる(担当の照合は、企画書の担当表の表記で行うため)
+        cog.admin_create_user(UserPoolId=pool, Username="v@example.org"); V = dict(email="v@example.org", groups=()); c, r = call("POST", "/access/request", {"name": "渡邊　大地"}, V); assert r["name"] == "渡辺大地" and r["suggest"] == ["SR委員"]
+        assert H.roster_name("荒尾 晴恵") == "荒尾晴惠" and H.roster_name("髙木雄亮") == "高木雄亮" and H.roster_name("中川　貴之") == "中川貴之" and H.roster_name("山田太郎") == "山田太郎" and H.roster_name("渡邊太郎") == "渡邊太郎"   # 名簿にない氏名は、入力のまま
+        assert call("POST", "/access/v@example.org/approve", {"roles": ["SR委員"], "name": "渡邊大地"})[1]["name"] == "渡辺大地"
+        VV = dict(email="v@example.org", groups=("SR委員",)); t3 = next(x for x in call("GET", "/cq", who=VV)[1] if "渡辺" in x["assignees"])
+        assert call("GET", "/me", who=VV)[1]["name"] == "渡辺大地" and any(w["cq"] == t3["id"] for w in call("GET", "/dashboard", who=VV)[1]["my_work"])   # 担当の CQ として扱われる
         assert call("POST", "/access/request", {"name": "華井明子"}, dict(email="x@example.org", groups=()))[1]["suggest"] == ["統括委員会", "総説執筆者"]
         assert call("GET", "/access", who=N)[0] == 403 and call("POST", "/access/new@example.org/approve", {"roles": ["SR委員"]}, N)[0] == 403   # 本人は承認できない
         d = call("GET", "/dashboard")[1]; assert any(a["kind"] == "利用申請の承認" for a in d["approvals"])                                         # 承認待ちが、進捗ボードに出る
